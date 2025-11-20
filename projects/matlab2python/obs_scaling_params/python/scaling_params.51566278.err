@@ -1,0 +1,8 @@
+/gpfsm/dnb06/projects/p284/GEOSldas_CYGNSS/GEOSldas/src/Components/@GEOSldas_GridComp/GEOSldas_App/util/inputs/obs_scaling_params/python/get_model_and_obs_clim_stats_latlon_grid.py:339: RuntimeWarning: All-NaN slice encountered
+  data2d[5, :] = np.nanmin(m_data_min[scnt, :, :], axis=1)
+/gpfsm/dnb06/projects/p284/GEOSldas_CYGNSS/GEOSldas/src/Components/@GEOSldas_GridComp/GEOSldas_App/util/inputs/obs_scaling_params/python/get_model_and_obs_clim_stats_latlon_grid.py:340: RuntimeWarning: All-NaN slice encountered
+  data2d[6, :] = np.nanmax(m_data_max[scnt, :, :], axis=1)
+/gpfsm/dnb06/projects/p284/GEOSldas_CYGNSS/GEOSldas/src/Components/@GEOSldas_GridComp/GEOSldas_App/util/inputs/obs_scaling_params/python/obs_scaling_utils.py:608: RuntimeWarning: All-NaN slice encountered
+  mmax[:, :] = np.nanmax(grid_legacy[6], axis=0)
+/gpfsm/dnb06/projects/p284/GEOSldas_CYGNSS/GEOSldas/src/Components/@GEOSldas_GridComp/GEOSldas_App/util/inputs/obs_scaling_params/python/obs_scaling_utils.py:612: RuntimeWarning: All-NaN slice encountered
+  min_vals = np.nanmin(min_data, axis=0)
