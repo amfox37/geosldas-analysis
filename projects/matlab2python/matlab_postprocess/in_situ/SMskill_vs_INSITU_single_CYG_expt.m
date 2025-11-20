@@ -4,8 +4,8 @@ clear
 
 % addpath('/discover/nobackup/amfox/metop_sm_GEOSldas/GEOSldas/src/Applications/LDAS_App/util/shared/matlab/')
 % addpath('/gpfsm/dnb34/amfox/GEOSldas_diagnostics/Jupyter/Matlab_functions')
-addpath /discover/nobackup/qliu/gdelanno_RTM/MATLAB_LDASSA/
-addpath /home/qliu/projects/matlab_code/SMAP/
+% addpath /discover/nobackup/qliu/gdelanno_RTM/MATLAB_LDASSA/
+% addpath /home/qliu/projects/matlab_code/SMAP/
 addpath /home/amfox/for_Andy
 
 INSITU_tag ='CalVal_M33'; % 'USCRN', 'Oznet', 'Msnet' , 'SMOSM', 'CalVal_M33', 'SCAN'
