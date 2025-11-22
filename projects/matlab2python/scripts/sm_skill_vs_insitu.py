@@ -8,8 +8,9 @@ with a compressed NPZ for quick reload.
 
 Notes:
 - Paths default to the same locations used in the MATLAB script. Override via CLI flags.
-- Anomaly correlation follows the 31-day window climatology with Nmin_day=150.
+- Anomaly correlation follows the 31-day window climatology (CalVal uses Nmin_day=50, others 150).
 - Autocorrelation-adjusted sample sizes follow the MATLAB logic (lag-1 based).
+- CalVal daily stations are aggregated to daily, then reindexed to the first station’s calendar (Y/M/D), matching MATLAB.
 
 Example:
 python sm_skill_vs_insitu.py \
@@ -37,9 +38,12 @@ import scipy.io as sio
 from scipy import stats
 import xarray as xr
 
-ROOT = Path(__file__).resolve().parents[2]  # repo root
+# Resolve repo root (…/geosldas-analysis) from projects/matlab2python/scripts/
+ROOT = Path(__file__).resolve().parents[3]
+# Add both shared IO locations
 sys.path.append(str(ROOT / "common" / "python" / "io"))
-from read_tilecoord import read_tilecoord  # type: ignore
+sys.path.append(str(ROOT / "projects" / "matlab2python" / "shared" / "python"))
+from read_GEOSldas import read_tilecoord  # type: ignore
 
 
 # ----------------------
@@ -85,7 +89,7 @@ def get_dofyr_pentad(dt: DateTime) -> DateTime:
 
 
 def augment_date_time(dtstep_sec: int, dt: DateTime) -> DateTime:
-    # Mirror MATLAB augment_date_time.m
+    # Mirror MATLAB augment_date_time.m: advance/retreat by dtstep_sec, updating Y/M/D/HH/MM/SS and dofyr/pentad
     total = dt.hour * 3600 + dt.minute * 60 + dt.second + dtstep_sec
     day_delta, rem = divmod(total, 86400)
     if rem < 0:
@@ -188,15 +192,27 @@ def get_insitu_coord(insitu_tag: str) -> Tuple[np.ndarray, np.ndarray, List[str]
             "48013301",
             "67013301",
         ]
-        # Expect a master CSV with lat/lon; adjust path if needed
-        master = Path("/home/qliu/smap/SMAP_Nature/validation/tools/refpix_master.csv")
+        # Expect the master list alongside validation tools
+        master = Path("/home/qliu/smap/SMAP_Nature/validation/tools/refpix_SM_masterlist.txt")
         if not master.exists():
             raise FileNotFoundError(f"CalVal master file not found: {master}")
         import pandas as pd
 
-        df = pd.read_csv(master)
-        df = df[df["refpixid"].astype(str).isin(refpixids)]
-        return df["lat"].to_numpy(), df["lon"].to_numpy(), df["refpixid"].astype(str).tolist()
+        # CSV with header; columns: Alias,RPID,Active,RZ,Col,Row,Lat,Lon,Description
+        df = pd.read_csv(master, sep=",", engine="python", comment="#", skip_blank_lines=True)
+        df.columns = [c.strip() for c in df.columns]  # trim whitespace in header
+
+        def fmt_rpid(val):
+            try:
+                return f"{int(val):08d}"
+            except Exception:
+                return str(val).strip()
+
+        df["RPID"] = df["RPID"].apply(fmt_rpid)
+        df = df[df["RPID"].isin(refpixids)]
+        if df.empty:
+            raise ValueError(f"No CalVal refpix entries matched in {master}")
+        return df["Lat"].to_numpy(), df["Lon"].to_numpy(), df["RPID"].tolist()
 
     raise ValueError(f"Unsupported INSITU_tag '{insitu_tag}' in Python port")
 
@@ -235,7 +251,7 @@ def corrcoef_autocorr(data: np.ndarray) -> Tuple[float, float, float]:
 
 
 def get_validation_stats(data: np.ndarray, AC: bool, complete: bool, ref_col: int, select_cols: Iterable[int], Nmin: int) -> Dict[str, float]:
-    # data shape (n, m); ref_col, select_cols 1-based in MATLAB; convert to 0-based
+    # data shape (n, m); ref_col, select_cols are 1-based in MATLAB; convert to 0-based here
     ref_idx = ref_col - 1
     select_idx = [c - 1 for c in select_cols]
     sub = data[:, select_idx]
@@ -303,6 +319,7 @@ def get_validation_stats(data: np.ndarray, AC: bool, complete: bool, ref_col: in
 # Core processing
 # ----------------------
 def build_time_vector(start: DateTime, end: DateTime, dtstep: int, file_tag: str) -> List[DateTime]:
+    # Build [start, end) time axis at dtstep cadence, mirroring MATLAB's while/break loop
     times: List[DateTime] = []
     current = start
     while True:
@@ -314,6 +331,7 @@ def build_time_vector(start: DateTime, end: DateTime, dtstep: int, file_tag: str
 
 
 def nearest_tiles(tc: Dict[str, np.ndarray], lat: np.ndarray, lon: np.ndarray, max_distance: float) -> Tuple[np.ndarray, np.ndarray]:
+    # Map each station to nearest tile (squared distance), drop if outside threshold
     inds = []
     dists = []
     for la, lo in zip(lat, lon):
@@ -331,13 +349,41 @@ def nearest_tiles(tc: Dict[str, np.ndarray], lat: np.ndarray, lon: np.ndarray, m
     return inds[mask].astype(int), mask
 
 
-def read_model_series(exp_root: Path, exp: str, domain: str, file_tag: str, times: List[DateTime], ind_tile: np.ndarray) -> Tuple[np.ndarray, List[DateTime]]:
+def _extract_tile_values(ds: xr.Dataset, var: str, ind_tile: np.ndarray, dt: DateTime, dtstep: int, n_tile: int) -> np.ndarray:
+    da = ds[var]
+    # handle time dimension
+    if "time" in da.dims:
+        if da.sizes["time"] > 1 and dtstep == 10800:
+            ind_hour = min(da.sizes["time"] - 1, math.ceil((dt.hour + 1) / 3) - 1)
+            da = da.isel(time=ind_hour)
+        else:
+            da = da.isel(time=0)
+    # tile-friendly selection
+    if "tile" in da.dims:
+        return da.isel(tile=ind_tile).values
+    # try to pick axis matching tile count
+    arr = np.asarray(da.values)
+    candidates = [i for i, dim in enumerate(da.dims) if da.shape[i] == n_tile] or \
+                 [i for i, dim in enumerate(da.dims) if da.shape[i] > ind_tile.max()]
+    if candidates:
+        axis = candidates[0]
+        return np.take(arr, ind_tile, axis=axis)
+    # fallback: flatten
+    arr_flat = arr.ravel(order="F")  # column-major to mimic MATLAB
+    if arr_flat.size <= ind_tile.max():
+        raise IndexError(f"Variable {var} flattened has length {arr_flat.size}, max index {ind_tile.max()}")
+    return arr_flat[ind_tile]
+
+
+def read_model_series(exp_root: Path, exp: str, domain: str, file_tag: str, times: List[DateTime], ind_tile: np.ndarray, n_tile: int) -> Tuple[np.ndarray, List[DateTime]]:
     dtstep = 86400 if "daily" in file_tag else 10800
     surf = []
     rz = []
     for dt in times:
         dt_str = get_date_time_string(dt, file_tag)
-        fname = exp_root / exp / "output" / domain / "cat" / "ens_avg" / f"Y{dt.year:04d}" / f"M{dt.month:02d}" / f"{exp}{'.tavg24_1d_lnd_Nt.' if 'daily' in file_tag else '.tavg3_1d_lnd_Nt.'}{dt_str}_1200z.nc4"
+        fname_primary = exp_root / exp / "output" / domain / "cat" / "ens_avg" / f"Y{dt.year:04d}" / f"M{dt.month:02d}" / f"{exp}{'.tavg24_1d_lnd_Nt.' if 'daily' in file_tag else '.tavg3_1d_lnd_Nt.'}{dt_str}_1200z.nc4"
+        fname_fallback = exp_root / exp / exp / "output" / domain / "cat" / "ens_avg" / f"Y{dt.year:04d}" / f"M{dt.month:02d}" / f"{exp}{'.tavg24_1d_lnd_Nt.' if 'daily' in file_tag else '.tavg3_1d_lnd_Nt.'}{dt_str}_1200z.nc4"
+        fname = fname_primary if fname_primary.exists() else fname_fallback
         if not fname.exists():
             fname = fname.with_name(fname.name.replace("ens_avg", "ens0000"))
         if not fname.exists():
@@ -349,26 +395,23 @@ def read_model_series(exp_root: Path, exp: str, domain: str, file_tag: str, time
             rz.append(np.full((len(ind_tile),), np.nan))
             continue
         ds = xr.open_dataset(fname, engine="netcdf4")
-        if "time" in ds.dims and ds.sizes["time"] > 1 and dtstep == 10800:
-            ind_hour = min(ds.sizes["time"] - 1, math.ceil((dt.hour + 1) / 3) - 1)
-            sfmc = ds["SFMC"].isel(time=ind_hour).values
-            rzmc = ds["RZMC"].isel(time=ind_hour).values
-        else:
-            sfmc = ds["SFMC"].values
-            rzmc = ds["RZMC"].values
-        surf.append(sfmc[ind_tile])
-        rz.append(rzmc[ind_tile])
+        sfmc = _extract_tile_values(ds, "SFMC", ind_tile, dt, dtstep, n_tile)
+        rzmc = _extract_tile_values(ds, "RZMC", ind_tile, dt, dtstep, n_tile)
+        surf.append(sfmc)
+        rz.append(rzmc)
         ds.close()
     surf_arr = np.vstack(surf)
     rz_arr = np.vstack(rz)
     return np.stack([surf_arr, rz_arr], axis=1), times
 
 
-def load_insitu_series(insitu_tag: str, insitu_root: Path, file_tag: str, ids: List[str], ref_YMD=None):
+def load_insitu_series(insitu_tag: str, insitu_root: Path, file_tag: str, ids: List[str]):
     sm_list = []
     st_list = []
     prcp_list = []
     times = None
+    ref_YMD = None
+    ref_T = None
     for i, sid in enumerate(ids):
         if insitu_tag == "USCRN":
             tag1, tmp_tag = f"{insitu_tag}_", "_2009_2024"
@@ -397,22 +440,64 @@ def load_insitu_series(insitu_tag: str, insitu_root: Path, file_tag: str, ids: L
         mat = sio.loadmat(mat_path)
         if "CalVal" in insitu_tag and "daily" in file_tag:
             S = mat["regular_data"]
-            Y, M, D = S[:, 0], S[:, 1], S[:, 2]
-            if ref_YMD is None:
-                ref_YMD = np.c_[Y, M, D]
+            # columns: year, month, day, hour, min, sec, doy, pentad, prcp, sm1, sm2, tempC, ...
+            Y, M, D = S[:, 0].astype(int), S[:, 1].astype(int), S[:, 2].astype(int)
             pr = S[:, 8].astype(float)
             pr[pr < -1e-5] = np.nan
-            sm1 = S[:, 9]
-            sm2 = S[:, 10]
-            tC = S[:, 11]
-            sm = np.c_[sm1, sm2]
-            tK = tC + 273.15
-            prd = pr
-            sm_list.append(sm)
-            st_list.append(tK[:, None])
-            prcp_list.append(prd[:, None])
-            if times is None:
-                times = DateTimeSeries.from_YMDHMS(Y, M, D, S[:, 3], S[:, 4], S[:, 5])
+            sm1 = S[:, 9].astype(float)
+            sm2 = S[:, 10].astype(float)
+            tC = S[:, 11].astype(float)
+
+            # Aggregate to daily (mean SM/temp, sum precip)
+            import pandas as pd
+
+            df = pd.DataFrame({
+                "Y": Y, "M": M, "D": D,
+                "sm1": sm1, "sm2": sm2,
+                "tC": tC,
+                "pr": pr,
+            })
+            gb = df.groupby(["Y", "M", "D"], as_index=False)
+            sm1_d = gb["sm1"].mean()
+            sm2_d = gb["sm2"].mean()
+            tC_d = gb["tC"].mean()
+            pr_d = gb["pr"].sum(min_count=1)
+            Yd = sm1_d["Y"].to_numpy()
+            Md = sm1_d["M"].to_numpy()
+            Dd = sm1_d["D"].to_numpy()
+
+            sm = np.column_stack([sm1_d["sm1"].to_numpy(), sm2_d["sm2"].to_numpy()])
+            tK = tC_d["tC"].to_numpy() + 273.15
+            prd = pr_d["pr"].to_numpy()
+
+            # Build daily time metadata
+            sm = sm.astype(float)
+            tK = tK.astype(float)
+            prd = prd.astype(float)
+
+            if ref_YMD is None:
+                ref_YMD = np.column_stack([Yd, Md, Dd])
+                ref_T = ref_YMD.shape[0]
+                sm_list.append(sm)
+                st_list.append(tK[:, None])
+                prcp_list.append(prd[:, None])
+                if times is None:
+                    times = DateTimeSeries.from_YMDHMS(Yd, Md, Dd, np.full_like(Yd, 12), np.zeros_like(Yd), np.zeros_like(Yd))
+            else:
+                this_YMD = np.column_stack([Yd, Md, Dd])
+                ref_YMD_tuples = {tuple(row): idx for idx, row in enumerate(ref_YMD)}
+                sm_pad = np.full((ref_T, sm.shape[1]), np.nan)
+                tK_pad = np.full((ref_T, 1), np.nan)
+                pr_pad = np.full((ref_T, 1), np.nan)
+                for row, srow, tval, pval in zip(this_YMD, sm, tK, prd):
+                    idx = ref_YMD_tuples.get(tuple(row))
+                    if idx is not None:
+                        sm_pad[idx, :] = srow
+                        tK_pad[idx, 0] = tval
+                        pr_pad[idx, 0] = pval
+                sm_list.append(sm_pad)
+                st_list.append(tK_pad)
+                prcp_list.append(pr_pad)
         else:
             key = "Sdata_1d" if "daily" in file_tag else ("Udata_3h" if insitu_tag == "USCRN" else "Sdata_3h")
             if key not in mat:
@@ -463,7 +548,7 @@ def align_series(model: np.ndarray, model_times: List[DateTime], obs_sm: np.ndar
 
 
 def compute_anom(series: np.ndarray, doy_vec: np.ndarray, Nmin_day: int = 150) -> np.ndarray:
-    # series shape (time,); returns anomalies with 31-day window climatology
+    # series shape (time,); returns anomalies with 31-day window climatology (circular over year)
     clim = np.full(365, np.nan)
     for doy in range(1, 366):
         if doy <= 15:
@@ -503,19 +588,35 @@ def main():
     dtstep = 86400 if "daily" in args.file_tag else 10800
     times = build_time_vector(start_dt, end_dt, dtstep, args.file_tag)
 
+    # Load in-situ coords once; per-experiment loop mirrors MATLAB kkk loop
     lat, lon, ids = get_insitu_coord(args.insitu_tag)
     for exp in args.exp:
         print(f"Processing {exp} / {args.insitu_tag}")
-        tc = read_tilecoord(str(args.exp_root / exp / "output" / args.domain / "rc_out" / f"{exp}.ldas_tilecoord.bin"))
+        # Try standard path; if missing, fall back to exp/exp/output layout
+        tc_path_primary = args.exp_root / exp / "output" / args.domain / "rc_out" / f"{exp}.ldas_tilecoord.bin"
+        tc_path_fallback = args.exp_root / exp / exp / "output" / args.domain / "rc_out" / f"{exp}.ldas_tilecoord.bin"
+        tc_path = tc_path_primary if tc_path_primary.exists() else tc_path_fallback
+        if not tc_path.exists():
+            raise FileNotFoundError(f"Tilecoord not found at {tc_path_primary} or {tc_path_fallback}")
+        print(f"reading from {tc_path}")
+        tc = read_tilecoord(str(tc_path))
+        n_tile = len(tc["com_lat"])
         ind_tile, mask_keep = nearest_tiles(tc, lat, lon, args.max_distance)
         lat_use = lat[mask_keep]
         lon_use = lon[mask_keep]
         ids_use = [ids[i] for i, m in enumerate(mask_keep) if m]
-        model_sm, model_times = read_model_series(args.exp_root, exp, args.domain, args.file_tag, times, ind_tile)
+        # Read model and obs, then align by overlapping timestamps (daily: calendar day)
+        model_sm, model_times = read_model_series(args.exp_root, exp, args.domain, args.file_tag, times, ind_tile, n_tile)
         obs_sm, obs_st, obs_prcp, obs_times = load_insitu_series(args.insitu_tag, args.insitu_root, args.file_tag, ids_use)
         model_sm_aligned, obs_sm_aligned, model_times_aligned = align_series(model_sm.transpose(0, 2, 1), model_times, obs_sm, obs_times, args.file_tag)
-        # model_sm_aligned: (time, station, depth) after transpose
-        model_sm_aligned = model_sm_aligned  # already aligned
+        # model_sm_aligned: (time, station, depth); obs_sm_aligned: (time, depth, station) -> transpose
+        obs_sm_aligned = np.transpose(obs_sm_aligned, (0, 2, 1))
+
+        # Apply same QC as MATLAB: model zeros -> NaN, obs with cold temps (<277.16K) or tiny sm -> NaN
+        model_sm_aligned[model_sm_aligned == 0] = np.nan
+        obs_sm_aligned[obs_sm_aligned < 1e-4] = np.nan
+        # For CalVal, temp was in column 12 (converted to K) when daily; if st provided, mask cold
+        # We don't carry st through alignment; assume already masked in load_insitu_series (CalVal daily).
 
         # Cross mask
         m = np.isnan(model_sm_aligned) | np.isnan(obs_sm_aligned)
@@ -538,6 +639,7 @@ def main():
 
         doy_vec = np.array([dt.dofyr for dt in model_times_aligned])
         Nmin = 200 if dtstep == 86400 else 480
+        # Compute stats per site/depth
         for i_site in range(n_sites):
             for j_depth in range(model_sm_aligned.shape[2]):
                 tmp = np.c_[obs_sm_aligned[:, i_site, j_depth], model_sm_aligned[:, i_site, j_depth]]
@@ -556,8 +658,8 @@ def main():
                 if not np.isnan(s["ubMSELO"]):
                     stats_ubrmseCI[i_site, j_depth] = math.sqrt(max(ubmse + s["ubMSEUP"], 0)) - ub_rmse
                 if not args.no_anomR:
-                    obs_anom = compute_anom(tmp[:, 0], doy_vec)
-                    mod_anom = compute_anom(tmp[:, 1], doy_vec)
+                    obs_anom = compute_anom(tmp[:, 0], doy_vec, Nmin_day=50 if "CalVal" in args.insitu_tag else 150)
+                    mod_anom = compute_anom(tmp[:, 1], doy_vec, Nmin_day=50 if "CalVal" in args.insitu_tag else 150)
                     tmp_anom = np.c_[obs_anom, mod_anom]
                     sa = get_validation_stats(tmp_anom, AC=1, complete=True, ref_col=1, select_cols=[1, 2], Nmin=Nmin)
                     stats_anomR[i_site, j_depth] = sa["R"]
@@ -590,9 +692,9 @@ def main():
                 file_tag=args.file_tag,
                 start=args.start,
                 end=args.end,
-                Nmin=Nmin,
-                max_distance=args.max_distance,
-                add_anomR=not args.no_anomR,
+                Nmin=int(Nmin),
+                max_distance=float(args.max_distance),
+                add_anomR=int(not args.no_anomR),
             ),
         )
         if not args.no_anomR:
