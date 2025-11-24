@@ -126,7 +126,7 @@ def setup_colorbar_discrete(ax, norm, cmap, edges, label, orientation="horizonta
     return cbar
     
 # === Plotting Entry Point ===
-def plot_region(array, region_bounds, ease_path='../test_data', 
+def plot_region(array, region_bounds, ease_path=None, 
                 saveflag=False, meanflag=False, plot_title='regional_plot', 
                 units='na', cmin=None, cmax=None, cmap=None, norm=None,
                 output_dir='./plots', save_fmt='png', save_dpi=600, 
