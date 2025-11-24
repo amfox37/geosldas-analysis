@@ -41,9 +41,17 @@ def summarize_array_stats(array, units='na', title=''):
         return f"Mean = {mean:.1f}±{std:.1f} {units}"
     return f"Mean = {format_number(mean)}±{format_number(std)} {units}"
 
-def load_ease_grid(ease_path):
-    lats = np.fromfile(f'{ease_path}/EASE2_M36km.lats.964x406x1.double', dtype=np.float64).reshape((406,964))
-    lons = np.fromfile(f'{ease_path}/EASE2_M36km.lons.964x406x1.double', dtype=np.float64).reshape((406,964))
+def load_ease_grid(ease_path=None):
+    """
+    Load EASE grid from bundled binaries. If ease_path is None, use the
+    packaged files under common/python/plotting/ease_grids.
+    """
+    if ease_path is None:
+        here = Path(__file__).resolve().parent
+        ease_path = here / "ease_grids"
+    ease_path = Path(ease_path)
+    lats = np.fromfile(ease_path / 'EASE2_M36km.lats.964x406x1.double', dtype=np.float64).reshape((406,964))
+    lons = np.fromfile(ease_path / 'EASE2_M36km.lons.964x406x1.double', dtype=np.float64).reshape((406,964))
     return lats, lons
 
 def build_ease_grid_mapping(array, lats_row, lons_col):
