@@ -5,6 +5,9 @@
 *#
 .#*
 **/CVS/
+__pycache__/
+*.pyc
+*.png
 
 
 # Ignore possible symlinked build and install directories
