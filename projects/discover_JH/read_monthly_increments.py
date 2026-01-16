@@ -55,7 +55,12 @@ def build_fcst_ana_increments(
 
     def _pre(ds):
         keep = [v for v in vars_needed if v in ds.variables]
-        return ds[keep]
+        ds = ds[keep]
+        if "time" in ds.dims:
+            ds = ds.squeeze("time", drop=True)
+        if "time" in ds.coords:
+            ds = ds.reset_coords("time", drop=True)
+        return ds
 
     ds = xr.open_mfdataset(
         files,
@@ -122,7 +127,12 @@ def build_snowmass_increment(
 
     def _pre(ds):
         keep = [v for v in vars_needed if v in ds.variables]
-        return ds[keep]
+        ds = ds[keep]
+        if "time" in ds.dims:
+            ds = ds.squeeze("time", drop=True)
+        if "time" in ds.coords:
+            ds = ds.reset_coords("time", drop=True)
+        return ds
 
     ds = xr.open_mfdataset(
         files,
@@ -251,4 +261,3 @@ def main(argv=None):
 
 if __name__ == "__main__":
     sys.exit(main())
-
