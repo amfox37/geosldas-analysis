@@ -88,7 +88,12 @@ def build_lsm_dataset(
         keep = [v for v in varnames if v in ds.variables]
         if not keep:
             raise KeyError(f"None of requested variables present. Requested: {varnames}")
-        return ds[keep]
+        ds = ds[keep]
+        if "time" in ds.dims:
+            ds = ds.squeeze("time", drop=True)
+        if "time" in ds.coords:
+            ds = ds.reset_coords("time", drop=True)
+        return ds
 
     ds = _safe_open_mfdataset(files, preprocess=_pre, engine=read_engine)
 
@@ -179,4 +184,3 @@ def main(argv=None):
 
 if __name__ == "__main__":
     sys.exit(main())
-
