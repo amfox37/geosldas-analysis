@@ -133,9 +133,9 @@ def parse_args(argv=None):
         description="Extract monthly state variables from OL/DA tavg24_1d_lnd_Nt.* files and save compressed NetCDFs."
     )
     # Hardwired defaults: your paths/prefixes/vars
-    p.add_argument("--ol-root", default="/discover/nobackup/projects/land_da/Experiment_archive/M21C_land_sweeper_OLv8_M36/LS_OLv8_M36/output/SMAP_EASEv2_M36_GLOBAL/cat/ens_avg")
+    p.add_argument("--ol-root", default="/discover/nobackup/projects/land_da/M21C_land_sweeper/LS_OLv8_M36_v2/LS_OLv8_M36/output/SMAP_EASEv2_M36_GLOBAL/cat/ens_avg")
     p.add_argument("--ol-prefix", default="LS_OLv8_M36")
-    p.add_argument("--da-root", default="/discover/nobackup/projects/land_da/M21C_land_sweeper/LS_DAv8_M36_v2/LS_DAv8_M36/output/SMAP_EASEv2_M36_GLOBAL/cat/ens_avg")
+    p.add_argument("--da-root", default="/discover/nobackup/projects/land_da/M21C_land_sweeper/LS_DAv8_M36_v3/LS_DAv8_M36/output/SMAP_EASEv2_M36_GLOBAL/cat/ens_avg")
     p.add_argument("--da-prefix", default="LS_DAv8_M36")
     p.add_argument("--vars", nargs="+",
                    default=["SFMC", "RZMC", "PRECTOTCORRLAND", "FRLANDSNO", "TSOIL1", "SNOMASLAND"])
