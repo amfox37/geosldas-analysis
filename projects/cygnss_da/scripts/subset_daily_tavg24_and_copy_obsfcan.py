@@ -37,11 +37,7 @@ def parse_args() -> argparse.Namespace:
         default=",".join(DEFAULT_VARS),
         help="Comma-separated list of NetCDF variables to keep",
     )
-    p.add_argument(
-        "--hours",
-        default="00,03,06,09,12,15,18,21",
-        help="Comma-separated hours for ObsFcstAna (HH, e.g., 00,03,...,21)",
-    )
+    # ObsFcstAna files are copied by date token match (YYYYMMDD)
     p.add_argument("--dry-run", action="store_true", help="Print actions without writing files")
     return p.parse_args()
 
@@ -58,7 +54,11 @@ def copy_variable(src_var, dst, name: str) -> None:
     try:
         filters = src_var.filters()
         if filters:
-            kwargs.update(filters)
+            # Only pass filter args supported by netCDF4-python
+            allow = {"zlib", "complevel", "shuffle", "fletcher32", "contiguous", "chunksizes", "endian"}
+            for k, v in filters.items():
+                if k in allow:
+                    kwargs[k] = v
     except Exception:
         pass
 
@@ -121,8 +121,6 @@ def main() -> None:
     exp_run_alias = args.exp_run_alias
     out_root = Path(args.out_root)
     keep_vars = [v.strip() for v in args.vars.split(",") if v.strip()]
-    hours = [h.strip() for h in args.hours.split(",") if h.strip()]
-
     cat_root = exp_path / exp_run / "output" / "SMAP_EASEv2_M36_GLOBAL" / "cat" / "ens_avg"
     ana_root = exp_path / exp_run / "output" / "SMAP_EASEv2_M36_GLOBAL" / "ana" / "ens_avg"
 
@@ -147,16 +145,17 @@ def main() -> None:
         dst_nc = out_dir / out_name
         subset_nc(src, dst_nc, keep_vars, args.dry_run)
 
-        # Copy 8 daily ObsFcstAna files
-        for hh in hours:
-            obs_name = f"{exp_run}.ens_avg.ldas_ObsFcstAna.{yyyy}{mm}{dd}_{hh}00z.bin"
-            obs_src = ana_root / f"Y{yyyy}" / f"M{mm}" / obs_name
-            obs_dst = out_dir / obs_name.replace(exp_run, exp_run_alias)
+        # Copy all ObsFcstAna files that match the YYYYMMDD token
+        obs_glob = ana_root / f"Y{yyyy}" / f"M{mm}" / f"{exp_run}.ens_avg.ldas_ObsFcstAna.{yyyy}{mm}{dd}_*00z.bin"
+        obs_files = sorted(glob.glob(str(obs_glob)))
+        if not obs_files:
+            raise FileNotFoundError(f"No ObsFcstAna files found for date {yyyy}{mm}{dd} using {obs_glob}")
+        for obs_src_str in obs_files:
+            obs_src = Path(obs_src_str)
+            obs_dst = out_dir / obs_src.name.replace(exp_run, exp_run_alias)
             if args.dry_run:
                 print(f"[dry-run] copy {obs_src} -> {obs_dst}")
                 continue
-            if not obs_src.exists():
-                raise FileNotFoundError(f"Missing ObsFcstAna file: {obs_src}")
             shutil.copy2(obs_src, obs_dst)
 
 
