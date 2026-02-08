@@ -138,7 +138,7 @@ def main() -> None:
         date_token = parts[-2].split("_")[0]  # YYYYMMDD
         yyyy, mm, dd = date_token[:4], date_token[4:6], date_token[6:8]
 
-        out_dir = out_root / exp_run_alias / yyyy / mm / dd
+        out_dir = out_root / exp_run_alias / f"Y{yyyy}" / f"M{mm}" / f"D{dd}"
         ensure_dir(out_dir, args.dry_run)
 
         out_name = src.name.replace(exp_run, exp_run_alias)
