@@ -218,9 +218,9 @@ def build_monthly_increments(
 
 def parse_args(argv=None):
     p = argparse.ArgumentParser(description="Build monthly ANA−FCST increments and snow mass increments (chunked NetCDF).")
-    p.add_argument("--fcst-ana-root", default="/discover/nobackup/projects/land_da/M21C_land_sweeper/LS_DAv8_M36_v2/LS_DAv8_M36/output/SMAP_EASEv2_M36_GLOBAL/cat/ens_avg",
+    p.add_argument("--fcst-ana-root", default="/discover/nobackup/projects/land_da/M21C_land_sweeper/LS_DAv8_M36_v3/LS_DAv8_M36/output/SMAP_EASEv2_M36_GLOBAL/cat/ens_avg",
                    help="Root with inst3_1d_lndfcstana_Nt.monthly.YYYYMM.nc4 in YYYYY/MM folders")
-    p.add_argument("--snow-incr-root", default="/discover/nobackup/projects/land_da/M21C_land_sweeper/LS_DAv8_M36_v2/LS_DAv8_M36/output/SMAP_EASEv2_M36_GLOBAL/cat/ens_avg",
+    p.add_argument("--snow-incr-root", default="/discover/nobackup/projects/land_da/M21C_land_sweeper/LS_DAv8_M36_v3/LS_DAv8_M36/output/SMAP_EASEv2_M36_GLOBAL/cat/ens_avg",
                    help="Root with catch_progn_incr.monthly.YYYYMM.nc4 in YYYYY/MM folders")
     p.add_argument("--file-prefix", default="LS_DAv8_M36", help="Common file prefix")
     p.add_argument("--start-year", type=int, default=2000)
