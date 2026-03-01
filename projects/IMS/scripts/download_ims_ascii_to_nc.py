@@ -127,27 +127,63 @@ def parse_ims_ascii_gz(path: Path, nx: int, ny: int) -> np.ndarray:
     Parse one IMS .asc.gz file into a (ny, nx) float32 array.
 
     Important: we do NOT assume a fixed header length.
-    Instead we keep only lines that look like full data rows:
-    - exactly nx whitespace-separated tokens
-    - all tokens numeric
+
+    We support common IMS row layouts:
+    1) whitespace-delimited rows with nx numeric tokens
+    2) fixed-width rows with no whitespace (or compacted whitespace), where
+       each row is represented by nx values packed as:
+       - 1-char codes (len == nx), or
+       - constant-width fields (len == nx * field_width)
     """
+    def _try_parse_row(line: str) -> np.ndarray | None:
+        s = line.strip()
+        if not s:
+            return None
+
+        # Case 1: whitespace-delimited tokens.
+        toks = s.split()
+        if len(toks) == nx:
+            try:
+                return np.asarray(toks, dtype=np.float32)
+            except ValueError:
+                return None
+
+        # Case 2: fixed-width rows (possibly with internal spaces removed).
+        # Some IMS ASCII files store each row as contiguous characters without
+        # separators, so a split() call returns only one token.
+        compact = "".join(toks) if len(toks) > 1 else s
+        if not compact:
+            return None
+
+        # 2a) One-character-per-cell format (most common for categorical grids).
+        if len(compact) == nx:
+            try:
+                # Fast digit parse for simple code grids.
+                return np.fromiter((float(ch) for ch in compact), dtype=np.float32, count=nx)
+            except ValueError:
+                return None
+
+        # 2b) Generic fixed-width field parse.
+        if len(compact) % nx == 0:
+            width = len(compact) // nx
+            if 1 < width <= 6:
+                try:
+                    return np.asarray(
+                        [float(compact[i * width : (i + 1) * width]) for i in range(nx)],
+                        dtype=np.float32,
+                    )
+                except ValueError:
+                    return None
+
+        return None
+
     rows: list[np.ndarray] = []
 
     with gzip.open(path, "rt", encoding="utf-8", errors="replace") as f:
         for line in f:
-            s = line.strip()
-            if not s:
-                continue
-
-            toks = s.split()
-            if len(toks) != nx:
-                # Header/metadata lines generally do not have nx columns.
-                continue
-
-            try:
-                arr = np.asarray(toks, dtype=np.float32)
-            except ValueError:
-                # Non-numeric row -> still likely header or malformed line.
+            arr = _try_parse_row(line)
+            if arr is None:
+                # Header/metadata or non-numeric line.
                 continue
 
             rows.append(arr)
