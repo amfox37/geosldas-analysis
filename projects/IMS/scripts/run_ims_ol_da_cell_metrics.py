@@ -82,6 +82,7 @@ DEFAULT_N_BOOTSTRAP = 2000
 DEFAULT_BOOTSTRAP_SEED = 42
 DEFAULT_CI_LOW = 2.5
 DEFAULT_CI_HIGH = 97.5
+DEFAULT_MIN_IMS_SNOW_DAYS = 10
 
 METRIC_ORDER = [
     "accuracy",
@@ -688,6 +689,8 @@ def write_cell_counts_netcdf(
     snow_codes: set[int],
     no_snow_codes: set[int],
     fill_values: set[int],
+    eligible_mask: np.ndarray | None = None,
+    extra_note: str = "",
 ) -> None:
     """Write map-ready per-cell counts + metrics to NetCDF."""
     ny = int(rep["ny"])
@@ -736,6 +739,10 @@ def write_cell_counts_netcdf(
         rep_elev = ds.createVariable("cell_elev_m", "f4", ("cell",))
         rep_tile = ds.createVariable("cell_rep_tile_id", "i4", ("cell",))
         rep_frac = ds.createVariable("cell_rep_frac_cell", "f4", ("cell",))
+        if eligible_mask is not None:
+            rep_eligible = ds.createVariable("cell_eligible", "i1", ("cell",))
+        else:
+            rep_eligible = None
 
         rep_i[:] = rep["rep_i"].astype(np.int32)
         rep_j[:] = rep["rep_j"].astype(np.int32)
@@ -744,6 +751,9 @@ def write_cell_counts_netcdf(
         rep_elev[:] = rep["rep_elev_m"].astype(np.float32)
         rep_tile[:] = rep["rep_tile_id"].astype(np.int32)
         rep_frac[:] = rep["rep_frac_cell"].astype(np.float32)
+        if rep_eligible is not None:
+            rep_eligible[:] = np.asarray(eligible_mask, dtype=np.int8)
+            rep_eligible.long_name = "Eligibility flag after IMS snow-day filter (1=kept,0=excluded)"
 
         rep_i.long_name = "M36 x index of representative land cell"
         rep_j.long_name = "M36 y index of representative land cell"
@@ -773,6 +783,8 @@ def write_cell_counts_netcdf(
         ds.ims_no_snow_codes = ",".join(str(x) for x in sorted(no_snow_codes))
         ds.ims_fill_values = ",".join(str(x) for x in sorted(fill_values))
         ds.note = "Counts were accumulated using fair daily common masks where both OL and DA were finite."
+        if str(extra_note).strip():
+            ds.note = f"{ds.note} {str(extra_note).strip()}"
 
     finally:
         ds.close()
@@ -785,6 +797,244 @@ def maybe_write_parquet(df: pd.DataFrame, path: Path, label: str) -> None:
         print(f"Wrote {label} parquet: {path}")
     except Exception as exc:
         warnings.warn(f"Could not write parquet for {label} ({path}): {exc}")
+
+
+def read_scope_meta_from_cell_counts_nc(nc_path: Path) -> pd.DataFrame:
+    """Read scope metadata table from an existing cell-counts NetCDF file."""
+    with Dataset(nc_path, "r") as ds:
+        scope_id = np.asarray(ds.variables["scope_id"][:], dtype=np.int32)
+        scope_type_code = np.asarray(ds.variables["scope_type_code"][:], dtype=np.int32)
+        scope_year = np.asarray(ds.variables["scope_year"][:], dtype=np.int32)
+        scope_season_code = np.asarray(ds.variables["scope_season_code"][:], dtype=np.int32)
+
+    rows = []
+    for sid, stc, yr, ssc in zip(scope_id, scope_type_code, scope_year, scope_season_code):
+        if int(stc) == 0:
+            scope = "ALL_PERIOD"
+        elif int(stc) == 1:
+            scope = "SEASON_ALL_YEARS"
+        elif int(stc) == 2:
+            scope = "YEAR"
+        elif int(stc) == 3:
+            scope = "YEAR_SEASON"
+        else:
+            scope = "UNKNOWN"
+
+        season = "ALL" if int(ssc) < 0 else CODE_TO_SEASON.get(int(ssc), "ALL")
+        rows.append(
+            {
+                "scope_id": int(sid),
+                "scope": str(scope),
+                "year": int(yr),
+                "season": str(season),
+                "scope_type_code": int(stc),
+                "season_code": int(ssc),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def read_counts_and_rep_from_cell_counts_nc(nc_path: Path) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray], dict[str, str]]:
+    """Load per-cell count arrays and representative-cell metadata from an existing NetCDF."""
+    with Dataset(nc_path, "r") as ds:
+        cell_counts = {}
+        for name in COUNT_ORDER:
+            if name not in ds.variables:
+                raise KeyError(f"{nc_path} missing required variable '{name}'")
+            cell_counts[name] = np.asarray(ds.variables[name][:], dtype=np.int32)
+
+        n_cell = int(ds.dimensions["cell"].size)
+        rep = {
+            "rep_idx": np.arange(n_cell, dtype=np.int64),
+            "rep_i": np.asarray(ds.variables["cell_i"][:], dtype=np.int32),
+            "rep_j": np.asarray(ds.variables["cell_j"][:], dtype=np.int32),
+            "rep_lat": np.asarray(ds.variables["cell_lat"][:], dtype=np.float64),
+            "rep_lon": np.asarray(ds.variables["cell_lon"][:], dtype=np.float64),
+            "rep_elev_m": np.asarray(ds.variables["cell_elev_m"][:], dtype=np.float64),
+            "rep_tile_id": np.asarray(ds.variables["cell_rep_tile_id"][:], dtype=np.int32),
+            "rep_frac_cell": np.asarray(ds.variables["cell_rep_frac_cell"][:], dtype=np.float32),
+            "nx": np.int32(getattr(ds, "grid_nx")),
+            "ny": np.int32(getattr(ds, "grid_ny")),
+        }
+
+        attrs = {
+            "model_threshold_scf": str(getattr(ds, "model_threshold_scf", DEFAULT_SCF_THRESHOLD)),
+            "ims_var": str(getattr(ds, "ims_var", DEFAULT_IMS_VAR)),
+            "ims_snow_codes": str(getattr(ds, "ims_snow_codes", ",".join(str(x) for x in sorted(DEFAULT_IMS_SNOW_CODES)))),
+            "ims_no_snow_codes": str(
+                getattr(ds, "ims_no_snow_codes", ",".join(str(x) for x in sorted(DEFAULT_IMS_NO_SNOW_CODES)))
+            ),
+            "ims_fill_values": str(
+                getattr(ds, "ims_fill_values", ",".join(str(x) for x in sorted(DEFAULT_IMS_FILL_VALUES)))
+            ),
+        }
+
+    return cell_counts, rep, attrs
+
+
+def apply_min_ims_snow_days_filter_to_counts(
+    cell_counts: dict[str, np.ndarray],
+    scope_meta: pd.DataFrame,
+    exp_keys: list[str],
+    min_days: int,
+    eligibility_experiment: str = "OL",
+) -> np.ndarray:
+    """
+    Apply IMS snow-day eligibility to count arrays in-place.
+
+    Eligibility uses ALL_PERIOD obs-snow days at each representative cell:
+      obs_snow_days = A + C
+    """
+    n_cell = int(cell_counts["A"].shape[2])
+    if int(min_days) <= 0:
+        return np.ones(n_cell, dtype=bool)
+
+    if "ALL_PERIOD" not in set(scope_meta["scope"]):
+        raise KeyError("scope_meta does not contain ALL_PERIOD row")
+    sid = int(scope_meta.loc[scope_meta["scope"] == "ALL_PERIOD", "scope_id"].iloc[0])
+
+    if eligibility_experiment not in exp_keys:
+        raise KeyError(f"eligibility_experiment={eligibility_experiment} not in exp_keys={exp_keys}")
+    exp_idx = int(exp_keys.index(eligibility_experiment))
+
+    obs_snow_days = (
+        np.asarray(cell_counts["A"][exp_idx, sid, :], dtype=np.int64)
+        + np.asarray(cell_counts["C"][exp_idx, sid, :], dtype=np.int64)
+    )
+    eligible = obs_snow_days >= int(min_days)
+
+    ineligible = ~eligible
+    if np.any(ineligible):
+        for name in COUNT_ORDER:
+            arr = cell_counts[name]
+            arr[:, :, ineligible] = 0
+            cell_counts[name] = arr
+
+    return eligible
+
+
+def build_comparison_table_from_cell_counts(
+    cell_counts: dict[str, np.ndarray],
+    scope_meta: pd.DataFrame,
+    exp_keys: list[str],
+) -> pd.DataFrame:
+    """
+    Build comparison table directly from per-cell scope counts.
+
+    This path does not have per-day rows, so bootstrap CI columns are written as NaN.
+    """
+    if "OL" not in exp_keys or "DA" not in exp_keys:
+        raise KeyError(f"exp_keys must contain OL and DA, got {exp_keys}")
+
+    i_ol = int(exp_keys.index("OL"))
+    i_da = int(exp_keys.index("DA"))
+
+    rows = []
+    for r in scope_meta.itertuples(index=False):
+        sid = int(r.scope_id)
+        A_ol = int(np.sum(cell_counts["A"][i_ol, sid, :], dtype=np.int64))
+        B_ol = int(np.sum(cell_counts["B"][i_ol, sid, :], dtype=np.int64))
+        C_ol = int(np.sum(cell_counts["C"][i_ol, sid, :], dtype=np.int64))
+        D_ol = int(np.sum(cell_counts["D"][i_ol, sid, :], dtype=np.int64))
+        A_da = int(np.sum(cell_counts["A"][i_da, sid, :], dtype=np.int64))
+        B_da = int(np.sum(cell_counts["B"][i_da, sid, :], dtype=np.int64))
+        C_da = int(np.sum(cell_counts["C"][i_da, sid, :], dtype=np.int64))
+        D_da = int(np.sum(cell_counts["D"][i_da, sid, :], dtype=np.int64))
+
+        m_ol = snow_scores_from_counts(A_ol, B_ol, C_ol, D_ol)
+        m_da = snow_scores_from_counts(A_da, B_da, C_da, D_da)
+
+        for metric in METRIC_ORDER:
+            ol = m_ol[metric]
+            da = m_da[metric]
+            delta = (da - ol) if (np.isfinite(ol) and np.isfinite(da)) else np.nan
+            rows.append(
+                {
+                    "scope": str(r.scope),
+                    "year": int(r.year),
+                    "season": str(r.season),
+                    "metric": str(metric),
+                    "ol": float(ol) if np.isfinite(ol) else np.nan,
+                    "ol_ci_lo": np.nan,
+                    "ol_ci_hi": np.nan,
+                    "da": float(da) if np.isfinite(da) else np.nan,
+                    "da_ci_lo": np.nan,
+                    "da_ci_hi": np.nan,
+                    "delta_da_minus_ol": float(delta) if np.isfinite(delta) else np.nan,
+                    "delta_ci_lo": np.nan,
+                    "delta_ci_hi": np.nan,
+                    "n_days": np.nan,
+                    "A_ol": int(A_ol),
+                    "B_ol": int(B_ol),
+                    "C_ol": int(C_ol),
+                    "D_ol": int(D_ol),
+                    "N_ol": int(A_ol + B_ol + C_ol + D_ol),
+                    "A_da": int(A_da),
+                    "B_da": int(B_da),
+                    "C_da": int(C_da),
+                    "D_da": int(D_da),
+                    "N_da": int(A_da + B_da + C_da + D_da),
+                }
+            )
+
+    return pd.DataFrame(rows)
+
+
+def build_empty_daily_table() -> pd.DataFrame:
+    """Return an empty daily table with expected columns."""
+    cols = [
+        "date",
+        "year",
+        "doy",
+        "season",
+        "experiment",
+        "exp_name",
+        "ims_file",
+        "model_file",
+        "model_file_found",
+        "model_read_ok",
+        "model_var",
+        "A",
+        "B",
+        "C",
+        "D",
+        "N_valid",
+        "accuracy",
+        "hit_rate",
+        "miss_rate",
+        "false_alarm_ratio",
+        "correct_rejection_rate",
+        "N_land_mask",
+        "N_ims_obs_valid",
+        "N_ims_unknown_codes",
+        "obs_scf_mean",
+        "mod_scf_mean",
+        "paired_common_mask_used",
+        "N_common_mask",
+        "mask_type",
+    ]
+    return pd.DataFrame(columns=cols)
+
+
+def build_empty_pair_daily_table() -> pd.DataFrame:
+    """Return an empty paired-daily table with expected columns."""
+    cols = [
+        "date",
+        "year",
+        "doy",
+        "season",
+        "A_OL",
+        "B_OL",
+        "C_OL",
+        "D_OL",
+        "N_valid_OL",
+        "A_DA",
+        "B_DA",
+        "C_DA",
+        "D_DA",
+        "N_valid_DA",
+    ]
+    return pd.DataFrame(columns=cols)
 
 
 def parse_args() -> argparse.Namespace:
@@ -836,6 +1086,22 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--bootstrap-seed", type=int, default=DEFAULT_BOOTSTRAP_SEED)
     ap.add_argument("--ci-low", type=float, default=DEFAULT_CI_LOW)
     ap.add_argument("--ci-high", type=float, default=DEFAULT_CI_HIGH)
+    ap.add_argument(
+        "--min-ims-snow-days",
+        type=int,
+        default=DEFAULT_MIN_IMS_SNOW_DAYS,
+        help="Keep only cells with at least this many IMS observed-snow days (A+C over ALL_PERIOD).",
+    )
+    ap.add_argument(
+        "--reuse-cell-counts-nc",
+        default=None,
+        help="Fast path: read existing ims_ol_da_cell_counts_metrics_*.nc4 and regenerate stats without model re-read.",
+    )
+    ap.add_argument(
+        "--reuse-scope-meta-csv",
+        default=None,
+        help="Optional scope metadata CSV for --reuse-cell-counts-nc mode. If omitted, read scope metadata from NetCDF.",
+    )
 
     ap.add_argument(
         "--output-dir",
@@ -895,6 +1161,8 @@ def main() -> None:
     out_tag = args.output_tag
     if out_tag is None:
         out_tag = f"{args.domain}_{args.year_start}_{args.year_end}_thr{args.scf_threshold:.2f}".replace(".", "p")
+        if int(args.min_ims_snow_days) > 0:
+            out_tag = f"{out_tag}_imsSnowDaysGe{int(args.min_ims_snow_days)}"
 
     daily_parquet = output_dir / f"ims_ol_da_daily_counts_{out_tag}.parquet"
     daily_csv = output_dir / f"ims_ol_da_daily_counts_{out_tag}.csv"
@@ -911,6 +1179,84 @@ def main() -> None:
         raise FileExistsError(
             "Output exists. Use --overwrite or choose --output-tag/--output-dir. Existing: " + ", ".join(existing)
         )
+
+    # Fast postprocess mode: start from an existing cell-counts NetCDF, apply eligibility filter,
+    # then regenerate downstream files used by the notebook pipeline.
+    if args.reuse_cell_counts_nc is not None:
+        src_nc = Path(args.reuse_cell_counts_nc)
+        if not src_nc.exists():
+            raise FileNotFoundError(f"--reuse-cell-counts-nc does not exist: {src_nc}")
+
+        print(f"Fast mode: reuse existing cell-counts NetCDF: {src_nc}")
+        print(f"Min IMS snow days: {int(args.min_ims_snow_days)}")
+
+        cell_counts, rep, src_attrs = read_counts_and_rep_from_cell_counts_nc(src_nc)
+        if args.reuse_scope_meta_csv:
+            scope_meta = pd.read_csv(Path(args.reuse_scope_meta_csv))
+        else:
+            scope_meta = read_scope_meta_from_cell_counts_nc(src_nc)
+
+        eligible = apply_min_ims_snow_days_filter_to_counts(
+            cell_counts=cell_counts,
+            scope_meta=scope_meta,
+            exp_keys=exp_keys,
+            min_days=int(args.min_ims_snow_days),
+            eligibility_experiment="OL",
+        )
+        n_keep = int(np.sum(eligible))
+        n_total = int(eligible.size)
+        print(f"Eligible cells kept: {n_keep}/{n_total}")
+
+        # Regenerate comparison table from filtered per-scope counts.
+        comparison_df = build_comparison_table_from_cell_counts(
+            cell_counts=cell_counts,
+            scope_meta=scope_meta,
+            exp_keys=exp_keys,
+        )
+        maybe_write_parquet(comparison_df, comparison_parquet, "comparison table")
+        comparison_df.to_csv(comparison_csv, index=False)
+        print(f"Wrote comparison table csv: {comparison_csv}")
+
+        # Keep table file contract for downstream notebook even though fast mode does not have per-day rows.
+        daily_df = build_empty_daily_table()
+        pair_daily = build_empty_pair_daily_table()
+        maybe_write_parquet(daily_df, daily_parquet, "daily counts (empty fast-mode placeholder)")
+        daily_df.to_csv(daily_csv, index=False)
+        print(f"Wrote daily counts csv (empty fast-mode placeholder): {daily_csv}")
+        maybe_write_parquet(pair_daily, pair_daily_parquet, "paired daily (empty fast-mode placeholder)")
+        pair_daily.to_csv(pair_daily_csv, index=False)
+        print(f"Wrote paired daily csv (empty fast-mode placeholder): {pair_daily_csv}")
+
+        scope_meta.to_csv(scope_meta_csv, index=False)
+        print(f"Wrote scope metadata csv: {scope_meta_csv}")
+
+        src_threshold = float(src_attrs["model_threshold_scf"])
+        src_ims_var = str(src_attrs["ims_var"])
+        src_snow_codes = parse_int_set(src_attrs["ims_snow_codes"])
+        src_no_snow_codes = parse_int_set(src_attrs["ims_no_snow_codes"])
+        src_fill_values = parse_int_set(src_attrs["ims_fill_values"])
+
+        write_cell_counts_netcdf(
+            out_nc=cell_counts_nc,
+            rep=rep,
+            exp_keys=exp_keys,
+            scope_meta=scope_meta,
+            cell_counts=cell_counts,
+            threshold=src_threshold,
+            ims_var=src_ims_var,
+            snow_codes=src_snow_codes,
+            no_snow_codes=src_no_snow_codes,
+            fill_values=src_fill_values,
+            eligible_mask=eligible,
+            extra_note=f"Fast postprocess mode with min_ims_snow_days={int(args.min_ims_snow_days)}.",
+        )
+        print(f"Wrote map-ready per-cell counts+metrics NetCDF: {cell_counts_nc}")
+
+        print("\nDone (fast mode).")
+        print("Bootstrap CI columns are NaN in fast mode because per-day paired rows are not re-read.")
+        print(f"Comparison rows: {len(comparison_df)}")
+        print(f"Cell dimensions: experiment=2, scope={int(scope_meta.shape[0])}, cell={int(rep['rep_idx'].size)}")
+        return
 
     # Tilecoord from OL is sufficient because OL/DA share the same M36 grid.
     tilecoord = locate_tilecoord_file(
