@@ -917,11 +917,17 @@ def build_comparison_table_from_cell_counts(
     cell_counts: dict[str, np.ndarray],
     scope_meta: pd.DataFrame,
     exp_keys: list[str],
+    n_boot: int,
+    seed: int,
+    ci_low: float,
+    ci_high: float,
+    eligible_mask: np.ndarray | None = None,
 ) -> pd.DataFrame:
     """
     Build comparison table directly from per-cell scope counts.
 
-    This path does not have per-day rows, so bootstrap CI columns are written as NaN.
+    Fast-mode CI uses cell bootstrap (resample representative cells with replacement)
+    because day-level paired rows are not reconstructed in this mode.
     """
     if "OL" not in exp_keys or "DA" not in exp_keys:
         raise KeyError(f"exp_keys must contain OL and DA, got {exp_keys}")
@@ -929,20 +935,65 @@ def build_comparison_table_from_cell_counts(
     i_ol = int(exp_keys.index("OL"))
     i_da = int(exp_keys.index("DA"))
 
+    n_cell = int(cell_counts["A"].shape[2])
+    if eligible_mask is None:
+        boot_pool = np.arange(n_cell, dtype=np.int64)
+    else:
+        boot_pool = np.flatnonzero(np.asarray(eligible_mask, dtype=bool))
+    if boot_pool.size == 0:
+        raise RuntimeError("No eligible cells available for fast-mode comparison table bootstrap")
+
     rows = []
     for r in scope_meta.itertuples(index=False):
         sid = int(r.scope_id)
-        A_ol = int(np.sum(cell_counts["A"][i_ol, sid, :], dtype=np.int64))
-        B_ol = int(np.sum(cell_counts["B"][i_ol, sid, :], dtype=np.int64))
-        C_ol = int(np.sum(cell_counts["C"][i_ol, sid, :], dtype=np.int64))
-        D_ol = int(np.sum(cell_counts["D"][i_ol, sid, :], dtype=np.int64))
-        A_da = int(np.sum(cell_counts["A"][i_da, sid, :], dtype=np.int64))
-        B_da = int(np.sum(cell_counts["B"][i_da, sid, :], dtype=np.int64))
-        C_da = int(np.sum(cell_counts["C"][i_da, sid, :], dtype=np.int64))
-        D_da = int(np.sum(cell_counts["D"][i_da, sid, :], dtype=np.int64))
+        A_ol_vec = np.asarray(cell_counts["A"][i_ol, sid, :], dtype=np.int64)
+        B_ol_vec = np.asarray(cell_counts["B"][i_ol, sid, :], dtype=np.int64)
+        C_ol_vec = np.asarray(cell_counts["C"][i_ol, sid, :], dtype=np.int64)
+        D_ol_vec = np.asarray(cell_counts["D"][i_ol, sid, :], dtype=np.int64)
+        A_da_vec = np.asarray(cell_counts["A"][i_da, sid, :], dtype=np.int64)
+        B_da_vec = np.asarray(cell_counts["B"][i_da, sid, :], dtype=np.int64)
+        C_da_vec = np.asarray(cell_counts["C"][i_da, sid, :], dtype=np.int64)
+        D_da_vec = np.asarray(cell_counts["D"][i_da, sid, :], dtype=np.int64)
+
+        A_ol = int(np.sum(A_ol_vec, dtype=np.int64))
+        B_ol = int(np.sum(B_ol_vec, dtype=np.int64))
+        C_ol = int(np.sum(C_ol_vec, dtype=np.int64))
+        D_ol = int(np.sum(D_ol_vec, dtype=np.int64))
+        A_da = int(np.sum(A_da_vec, dtype=np.int64))
+        B_da = int(np.sum(B_da_vec, dtype=np.int64))
+        C_da = int(np.sum(C_da_vec, dtype=np.int64))
+        D_da = int(np.sum(D_da_vec, dtype=np.int64))
 
         m_ol = snow_scores_from_counts(A_ol, B_ol, C_ol, D_ol)
         m_da = snow_scores_from_counts(A_da, B_da, C_da, D_da)
+
+        rng = np.random.default_rng(int(seed + sid))
+        boot_ol = {m: [] for m in METRIC_ORDER}
+        boot_da = {m: [] for m in METRIC_ORDER}
+        boot_delta = {m: [] for m in METRIC_ORDER}
+        for _ in range(int(n_boot)):
+            sample = rng.choice(boot_pool, size=boot_pool.size, replace=True)
+            bA_ol = int(np.sum(A_ol_vec[sample], dtype=np.int64))
+            bB_ol = int(np.sum(B_ol_vec[sample], dtype=np.int64))
+            bC_ol = int(np.sum(C_ol_vec[sample], dtype=np.int64))
+            bD_ol = int(np.sum(D_ol_vec[sample], dtype=np.int64))
+            bA_da = int(np.sum(A_da_vec[sample], dtype=np.int64))
+            bB_da = int(np.sum(B_da_vec[sample], dtype=np.int64))
+            bC_da = int(np.sum(C_da_vec[sample], dtype=np.int64))
+            bD_da = int(np.sum(D_da_vec[sample], dtype=np.int64))
+
+            bm_ol = snow_scores_from_counts(bA_ol, bB_ol, bC_ol, bD_ol)
+            bm_da = snow_scores_from_counts(bA_da, bB_da, bC_da, bD_da)
+
+            for m in METRIC_ORDER:
+                v_ol = bm_ol[m]
+                v_da = bm_da[m]
+                boot_ol[m].append(v_ol)
+                boot_da[m].append(v_da)
+                if np.isfinite(v_ol) and np.isfinite(v_da):
+                    boot_delta[m].append(v_da - v_ol)
+                else:
+                    boot_delta[m].append(np.nan)
 
         for metric in METRIC_ORDER:
             ol = m_ol[metric]
@@ -955,14 +1006,14 @@ def build_comparison_table_from_cell_counts(
                     "season": str(r.season),
                     "metric": str(metric),
                     "ol": float(ol) if np.isfinite(ol) else np.nan,
-                    "ol_ci_lo": np.nan,
-                    "ol_ci_hi": np.nan,
+                    "ol_ci_lo": _pct_finite(boot_ol[metric], ci_low),
+                    "ol_ci_hi": _pct_finite(boot_ol[metric], ci_high),
                     "da": float(da) if np.isfinite(da) else np.nan,
-                    "da_ci_lo": np.nan,
-                    "da_ci_hi": np.nan,
+                    "da_ci_lo": _pct_finite(boot_da[metric], ci_low),
+                    "da_ci_hi": _pct_finite(boot_da[metric], ci_high),
                     "delta_da_minus_ol": float(delta) if np.isfinite(delta) else np.nan,
-                    "delta_ci_lo": np.nan,
-                    "delta_ci_hi": np.nan,
+                    "delta_ci_lo": _pct_finite(boot_delta[metric], ci_low),
+                    "delta_ci_hi": _pct_finite(boot_delta[metric], ci_high),
                     "n_days": np.nan,
                     "A_ol": int(A_ol),
                     "B_ol": int(B_ol),
@@ -1095,7 +1146,10 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument(
         "--reuse-cell-counts-nc",
         default=None,
-        help="Fast path: read existing ims_ol_da_cell_counts_metrics_*.nc4 and regenerate stats without model re-read.",
+        help=(
+            "Fast path: read existing ims_ol_da_cell_counts_metrics_*.nc4 and regenerate "
+            "stats without model re-read; comparison CIs use cell-bootstrap in this mode."
+        ),
     )
     ap.add_argument(
         "--reuse-scope-meta-csv",
@@ -1212,6 +1266,11 @@ def main() -> None:
             cell_counts=cell_counts,
             scope_meta=scope_meta,
             exp_keys=exp_keys,
+            n_boot=int(args.n_bootstrap),
+            seed=int(args.bootstrap_seed),
+            ci_low=float(args.ci_low),
+            ci_high=float(args.ci_high),
+            eligible_mask=eligible,
         )
         maybe_write_parquet(comparison_df, comparison_parquet, "comparison table")
         comparison_df.to_csv(comparison_csv, index=False)
@@ -1248,12 +1307,18 @@ def main() -> None:
             no_snow_codes=src_no_snow_codes,
             fill_values=src_fill_values,
             eligible_mask=eligible,
-            extra_note=f"Fast postprocess mode with min_ims_snow_days={int(args.min_ims_snow_days)}.",
+            extra_note=(
+                f"Fast postprocess mode with min_ims_snow_days={int(args.min_ims_snow_days)}. "
+                f"Comparison table CI uses cell bootstrap with n_boot={int(args.n_bootstrap)}."
+            ),
         )
         print(f"Wrote map-ready per-cell counts+metrics NetCDF: {cell_counts_nc}")
 
         print("\nDone (fast mode).")
-        print("Bootstrap CI columns are NaN in fast mode because per-day paired rows are not re-read.")
+        print(
+            "Comparison table bootstrap CI recomputed in fast mode using cell-bootstrap "
+            "(day-level pair_daily is not reconstructed)."
+        )
         print(f"Comparison rows: {len(comparison_df)}")
         print(f"Cell dimensions: experiment=2, scope={int(scope_meta.shape[0])}, cell={int(rep['rep_idx'].size)}")
         return
