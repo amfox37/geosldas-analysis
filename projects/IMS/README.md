@@ -110,6 +110,56 @@ Fair comparison note:
   - `correct_rejection_rate`
 - Includes `OL`, `DA`, and `delta_da_minus_ol` with bootstrap CIs.
 
+## 4) Fast Batch Build for Tables + Maps (Recommended)
+
+If you want map-ready grid-cell metrics and faster reruns, use:
+
+- `scripts/run_ims_ol_da_cell_metrics.py`
+
+This script:
+
+- reads regridded IMS-on-M36 files (`ims_category`)
+- reads OL/DA daily cat files
+- enforces paired daily common-mask scoring for fair OL-vs-DA comparison
+- writes:
+  - map-ready per-cell counts + metrics NetCDF
+  - scope metadata CSV
+  - daily/pair/comparison tables (same style as notebook)
+
+Example:
+
+```bash
+python run_ims_ol_da_cell_metrics.py \
+  --domain SMAP_EASEv2_M36_GLOBAL \
+  --year-start 2000 \
+  --year-end 2024 \
+  --ims-regrid-dir /discover/nobackup/projects/land_da/geosldas-analysis/projects/IMS/output \
+  --ims-regrid-template 'ims_snowcover_24km_{year}_on_m36_nearest.nc4' \
+  --ol-run-root /discover/nobackup/projects/land_da/M21C_land_sweeper/LS_OLv8_M36_v2/LS_OLv8_M36 \
+  --da-run-root /discover/nobackup/projects/land_da/M21C_land_sweeper/LS_DAv8_M36_v3/LS_DAv8_M36 \
+  --output-dir /discover/nobackup/projects/land_da/geosldas-analysis/projects/IMS/output
+```
+
+Key output files:
+
+- `ims_ol_da_cell_counts_metrics_*.nc4` (per-cell A/B/C/D/N and metric maps by scope)
+- `ims_ol_da_scope_metadata_*.csv` (scope id -> ALL_PERIOD/SEASON/YEAR/YEAR_SEASON)
+- `ims_ol_da_comparison_table_*.parquet/csv` (OL/DA table with bootstrap CI)
+- `ims_ol_da_pair_daily_*.parquet/csv`
+- `ims_ol_da_daily_counts_*.parquet/csv`
+
+## 5) Notebook for Precomputed Outputs (Tables + Maps)
+
+Notebook:
+
+- `notebooks/ims_maps_and_tables_from_precomputed_outputs.ipynb`
+
+Use this notebook after running `run_ims_ol_da_cell_metrics.py`. It is designed to:
+
+- quickly inspect OL-vs-DA tables from precomputed files
+- plot per-cell maps for OL, DA, and DA-minus-OL
+- avoid re-running the expensive daily extraction loop
+
 ## Typical End-to-End Order
 
 1. Build annual raw files with `download_ims_ascii_to_nc.py`.
