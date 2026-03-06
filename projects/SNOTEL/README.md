@@ -1,16 +1,22 @@
-# SNOTEL Downloader
+# SNOTEL Downloader + Validation
 
 Download daily SNOTEL snow observations from USDA NRCS AWDB:
 
 - `WTEQ` (SWE)
 - `SNWD` (snow depth)
 
-The downloader writes per-station CSV files, station metadata, and a combined parquet file.
+The downloader writes per-station CSV files, station metadata, and a combined parquet file used by downstream validation notebooks.
 
 ## Scripts
 
 - `scripts/download_snotel_swe_snwd.py`
 - `scripts/read_parquet_example.py`
+
+## Notebook
+
+- `notebooks/snow_daily_seasonal_ol_da_swe_snwd.ipynb`
+  - Compares OL/DA daily model snow variables against SNOTEL SWE + snow depth.
+  - Uses station lat/lon from the parquet output for model-to-site extraction.
 
 ## Requirements
 
@@ -64,6 +70,13 @@ python projects/SNOTEL/scripts/download_snotel_swe_snwd.py \
   --end 2025-09-30
 ```
 
+Read parquet quickly:
+
+```bash
+python projects/SNOTEL/scripts/read_parquet_example.py \
+  --parquet projects/SNOTEL/output/all_stations_daily_wteq_snwd.parquet
+```
+
 ## CLI Options
 
 - `--begin` default `1999-10-01`
@@ -84,6 +97,11 @@ python projects/SNOTEL/scripts/download_snotel_swe_snwd.py \
     <stationTriplet>.ERROR.txt   # only for failed stations
   all_stations_daily_wteq_snwd.parquet
 ```
+
+Downstream usage:
+
+- `all_stations_daily_wteq_snwd.parquet` is the standard input for model validation notebooks.
+- Station metadata (`latitude`, `longitude`, `elevation`) are merged into the parquet for extraction/mapping.
 
 ## What Data Is Downloaded
 
@@ -140,6 +158,10 @@ The script requests network code `SNTL` (SNOTEL), `duration=DAILY`, and elements
 - Values are stored exactly as returned by AWDB (no unit conversion in downloader).
 - For SNOTEL, `WTEQ` and `SNWD` are commonly interpreted in inches in downstream workflows; convert as needed for model comparison.
 
+Common conversion used in notebook workflows:
+
+- inches -> meters: `m = inches * 0.0254`
+
 ## Resume Behavior
 
 If a per-station CSV already exists and `--overwrite` is not used:
@@ -163,6 +185,12 @@ python projects/SNOTEL/scripts/read_parquet_example.py \
   --start 2015-10-01 \
   --end 2016-09-30
 ```
+
+## Typical Workflow
+
+1. Run `download_snotel_swe_snwd.py` to build station CSVs + combined parquet.
+2. Sanity-check parquet with `read_parquet_example.py`.
+3. Run `notebooks/snow_daily_seasonal_ol_da_swe_snwd.ipynb` for OL/DA validation.
 
 ## Notes
 
