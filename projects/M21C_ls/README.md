@@ -41,3 +41,52 @@ Land Sweeper (LS) diagnostics for the M21C campaign. Notebooks track LS assimila
 
 - `scripts/LS_full_TS_insitu_plotter.py`
   - Python driver to regenerate large in-situ plot sets outside notebook execution.
+
+## Notebook Runtime/Smoke-Test Runbook
+
+Use this when developing new M21C notebooks from Codex/shell or when notebook runs fail with OpenMP shared-memory errors.
+
+### 1) Prevent OpenMP SHM failures in shell runs
+
+Symptom:
+- `OMP: Error #179: Function Can't open SHM2 failed`
+
+Working fix:
+- Set `MKL_THREADING_LAYER=SEQUENTIAL` before Python starts.
+- Also cap thread counts to reduce backend/thread contention.
+
+Example:
+
+```bash
+MKL_THREADING_LAYER=SEQUENTIAL \
+OMP_NUM_THREADS=1 \
+MKL_NUM_THREADS=1 \
+OPENBLAS_NUM_THREADS=1 \
+NUMEXPR_NUM_THREADS=1 \
+~/mamba/envs/regrid/bin/python your_script.py
+```
+
+### 2) Matplotlib inline vs pop-out windows on macOS
+
+Issue encountered:
+- `ismn.interface` can force `TkAgg` on Darwin at import time.
+
+Recommended notebook pattern:
+- Avoid top-level `from ismn.interface import ISMN_Interface`.
+- Lazy-import ISMN only in code paths that require it.
+- Re-enforce inline backend after lazy import.
+
+### 3) Smoke-test command pattern (cache-only notebooks)
+
+For quick one-file smoke tests:
+- Run with the environment variables above.
+- Use `~/mamba/envs/regrid/bin/python`.
+- Ensure xarray can read NetCDF via `netCDF4` (present in `regrid` env).
+
+### 4) Current batch cache notebook behavior
+
+`notebooks/insitu_skill_cached_batch_figures.ipynb` now includes:
+- Startup env guard for the OpenMP issue.
+- Cache-only processing over `*_raw_timeseries.nc`.
+- OL/DA bar figures and paired delta figures (Figure-4 style).
+- Delta figure key/legend text with paired `n` counts (surface/rootzone) by window.
