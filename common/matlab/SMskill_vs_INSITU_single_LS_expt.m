@@ -34,10 +34,10 @@ exp_run_name= {...
         'LS_DAv8_M36'
      };
 
-kkk = 1;
+kkk = 2;
 
 % tmp mat file to store the time series
-fout_name = [fout_path,'/',exp_run_name{kkk},'_',INSITU_tag, '_SM_1d_',rzmc_tag,'_25yr_']
+fout_name = [fout_path,'/',exp_run_name{kkk},'_',INSITU_tag, '_SM_1d_',rzmc_tag,'_9yr_']
 
 if exist([fout_name,'raw_timeseries.mat'],'file')
     
@@ -72,8 +72,8 @@ else
 
     out_collection = '.tavg24_1d_lnd_Nt.';
 
-    start_time.year  = 2000;
-    start_time.month = 6;
+    start_time.year  = 2015;
+    start_time.month = 4;
     start_time.day   = 1;
     start_time.hour  = 12;
     start_time.min   = 0;
@@ -594,183 +594,170 @@ for it = 1:length(date_time_vec)
     day_vec(it) = date_time_vec(it).day;
 end
 
-%% ========= NEW: range-aware stats =========
-% Build a datetime vector for masking
-tvec = datetime([ [date_time_vec.year]'  [date_time_vec.month]'  [date_time_vec.day]' ...
-                  [date_time_vec.hour]'  [date_time_vec.min]'    [date_time_vec.sec]' ]);
+% Compute SM skills
 
-% ---- Define the ranges you care about ----
-% Each row: {name, mask_function_or_boundaries}
-% Option A (start/end dates): {'2011-2020', datetime(2011,1,1), datetime(2020,12,31)}
-% Option B (function on tvec): {'DJF', @(dt) month(dt)==12 | month(dt)<=2}
-ranges = {
-    'ALL',            datetime(2000,6,1), datetime(2024,6,30);     % full record (matches your read window)
-    'pre-ASCAT',      datetime(2000,6,1), datetime(2007,5,31);
-    'pre-SMAP',      datetime(2007,6,1), datetime(2015,3,31);
-    'SMAP-era',       datetime(2015,4,1), datetime(2024,6,30);
-};
+nv = 2;
+nn = size(LDAS_sm_org,3);
+nc = size(LDAS_sm_org,4);
 
-% Turn the above into logical masks over tvec
-Kr = size(ranges,1);
-range_masks = false(numel(tvec), Kr);
-for k = 1:Kr
-    spec = ranges(k,:);
-    nm   = spec{1};
-    if isa(spec{2}, 'function_handle')
-        fmask = spec{2};
-        range_masks(:,k) = fmask(tvec);
-    else
-        t0 = spec{2};
-        t1 = spec{3};
-        range_masks(:,k) = (tvec >= t0) & (tvec <= t1);
-    end
-end
-
-% Prepare shapes
-nv = 2;                           % [surface, rootzone]
-nn = size(LDAS_sm_org,3);         % stations
-nc = size(LDAS_sm_org,4);         % (kept from your original, but is 1 here)
-if isempty(nc), nc = 1; end
-
-% Allocate outputs with 4th dim = range
-R      = NaN(nn,nv,nc,Kr);  RLO   = R;   RUP   = R;
-Bias   = NaN(nn,nv,nc,Kr);  BiasLO= Bias; BiasUP= Bias;
-absBias= NaN(nn,nv,nc,Kr);  absBiasLO=absBias; absBiasUP=absBias;
-RMSE   = NaN(nn,nv,nc,Kr);  RMSELO= RMSE; RMSEUP= RMSE;
-ubRMSE = NaN(nn,nv,nc,Kr);  ubRMSELO=ubRMSE; ubRMSEUP=ubRMSE;
+R   = NaN*ones(nn,nv,nc);
+RLO = NaN*ones(nn,nv,nc) ;
+RUP = NaN*ones(nn,nv,nc);
 
 if add_anomR
-    anomR = NaN(nn,nv,nc,Kr); anomRLO = anomR; anomRUP = anomR;
+    anomR   = NaN*ones(nn,nv,nc);
+    anomRLO = NaN*ones(nn,nv,nc);
+    anomRUP = NaN*ones(nn,nv,nc);
 end
 
-% Convenience: copy original arrays to working variable names
-LDAS_sm_full   = LDAS_sm_org;                % [T,2,N]
-INSITU_sm_full = INSITU_sm;                  % [T,*,N] but trimmed earlier to [T,2,N] or [T,1..,N]
-doy_full       = doy_vec(:);                 % [T,1]
+Bias   = NaN*ones(nn,nv,nc);
+BiasLO = NaN*ones(nn,nv,nc);
+BiasUP = NaN*ones(nn,nv,nc);
 
-% Loop over ranges
-for k = 1:Kr
-    mask = range_masks(:,k);
-    if nnz(mask) == 0
-        warning('Range "%s" has no data—skipping.', ranges{k,1});
-        continue
-    end
+absBias = NaN*ones(nn,nv,nc);
+absBiasLO = NaN*ones(nn,nv,nc);
+absBiasUP = NaN*ones(nn,nv,nc);
 
-    % Slice time dimension
-    LDAS_sm = LDAS_sm_full(mask,:,:);
-    INSITU_sm_rng = INSITU_sm_full(mask,:,:);
+RMSE =   NaN*ones(nn,nv,nc);
+ubRMSE =  NaN*ones(nn,nv,nc);
+ubRMSELO = NaN*ones(nn,nv,nc);
+ubRMSEUP = NaN*ones(nn,nv,nc);
 
-    % Cross-mask (NaN where either is NaN)
-    LDAS_sm(LDAS_sm==0) = NaN;
-    LDAS_sm(isnan(INSITU_sm_rng)) = NaN;
-    INSITU_sm_rng(isnan(LDAS_sm)) = NaN;
-
-    % Compute stats per station and variable
-    for i = 1:size(LDAS_sm,3)      % station
-        for j = 1:size(LDAS_sm,2)  % var index (1=surface, 2=rootzone)
-            tmpdata = [INSITU_sm_rng(:,j,i), LDAS_sm(:,j,i)];
-            [stats, stats_tags] = get_validation_stats(tmpdata, 1, 'complete', 1, [1:2], Nmin, 1);
-
-            N_data     = sum(all(~isnan(tmpdata),2));
-            nodata_val = -9999; nodata_tol = 1e-4;
-            stats(abs(stats-nodata_val)<nodata_tol) = NaN;
-            stats(stats == 0) = NaN;
-
-            R(i,j,1,k)    = stats(strcmp(stats_tags,'R'));
-            RLO(i,j,1,k)  = stats(strcmp(stats_tags,'RLO')) - R(i,j,1,k);
-            RUP(i,j,1,k)  = stats(strcmp(stats_tags,'RUP')) - R(i,j,1,k);
-
-            Bias(i,j,1,k)   = -stats(strcmp(stats_tags,'bias'));
-            BiasLO(i,j,1,k) = -stats(strcmp(stats_tags,'CI_bias'));
-            BiasUP(i,j,1,k) =  stats(strcmp(stats_tags,'CI_bias'));
-
-            absBias(i,j,1,k)   =  abs(stats(strcmp(stats_tags,'bias')));
-            absBiasLO(i,j,1,k) = -stats(strcmp(stats_tags,'CI_bias'));
-            absBiasUP(i,j,1,k) =  stats(strcmp(stats_tags,'CI_bias'));
-
-            RMSE(i,j,1,k)   =  sqrt( stats(strcmp(stats_tags,'MSE')) );
-            RMSELO(i,j,1,k) = -sqrt( stats(strcmp(stats_tags,'CI_MSE')) );
-            RMSEUP(i,j,1,k) =  sqrt( stats(strcmp(stats_tags,'CI_MSE')) );
-
-            ubRMSE(i,j,1,k)   = sqrt( stats(strcmp(stats_tags,'MSE')) - stats(strcmp(stats_tags,'bias')).^2 );
-            ubRMSELO(i,j,1,k) = -sqrt( stats(strcmp(stats_tags,'CI_MSE')) + stats(strcmp(stats_tags,'MSE')) - stats(strcmp(stats_tags,'bias')).^2 ) + ubRMSE(i,j,1,k);
-            ubRMSEUP(i,j,1,k) =  sqrt( stats(strcmp(stats_tags,'CI_MSE')) + stats(strcmp(stats_tags,'MSE')) - stats(strcmp(stats_tags,'bias')).^2 ) - ubRMSE(i,j,1,k);
-
-            % Optional anomaly correlation per range
+for kk = kkk % 1:length(exp_run)
+    
+    clear LDAS_sm
+    
+    LDAS_sm(:,1,:) = LDAS_sm_org(:,1,:);
+    LDAS_sm(:,2,:) = LDAS_sm_org(:,2,:);  %rzmc
+    LDAS_sm(LDAS_sm == 0) = NaN;
+    
+    %Cross mask data
+    LDAS_sm(isnan(INSITU_sm)) = NaN;
+    INSITU_sm(isnan(LDAS_sm)) = NaN;
+    
+    for i = 1:size(LDAS_sm,3)
+        for j = 1:size(LDAS_sm,2)
+            
+            tmpdata = [INSITU_sm(:,j,i), LDAS_sm(:,j,i)];
+            [ stats, stats_tags ] = get_validation_stats( tmpdata, 1 , 'complete', ...
+                1, [1:2], Nmin, 1 );
+            
+            N_data = sum(all(~isnan(tmpdata),2));
+            nodata_val = -9999;
+            nodata_tol =  1E-4;
+            
+            stats(abs(stats-nodata_val)<nodata_tol ) = NaN;
+            stats(stats == 0 ) = NaN;
+            
+            R(i,j)   = stats(strcmp(stats_tags,'R'));
+            RLO(i,j) = stats(strcmp(stats_tags,'RLO')) - R(i,j) ;
+            RUP(i,j) = stats(strcmp(stats_tags,'RUP')) - R(i,j);
+            
+            Bias(i,j)   = -stats(strcmp(stats_tags,'bias'));
+            BiasLO(i,j) = -stats(strcmp(stats_tags,'CI_bias')) ;
+            BiasUP(i,j) =  stats(strcmp(stats_tags,'CI_bias')) ;
+            
+            absBias(i,j) =  abs(stats(strcmp(stats_tags,'bias')));
+            absBiasLO(i,j) = -stats(strcmp(stats_tags,'CI_bias')) ;
+            absBiasUP(i,j) =  stats(strcmp(stats_tags,'CI_bias')) ;
+            
+            RMSE(i,j) =     sqrt( stats(strcmp(stats_tags,'MSE')) );
+            RMSELO(i,j) = -sqrt(stats(strcmp(stats_tags,'CI_MSE'))) ;
+            RMSEUP(i,j) =  sqrt(stats(strcmp(stats_tags,'CI_MSE'))) ;
+            ubRMSE(i,j) =   sqrt(stats(strcmp(stats_tags,'MSE')) - stats(strcmp(stats_tags,'bias')).^2);
+            ubRMSELO(i,j) = -sqrt(stats(strcmp(stats_tags,'CI_MSE'))+stats(strcmp(stats_tags,'MSE')) - ...
+                stats(strcmp(stats_tags,'bias')).^2)+ubRMSE(i,j);
+            ubRMSEUP(i,j) =  sqrt(stats(strcmp(stats_tags,'CI_MSE'))+stats(strcmp(stats_tags,'MSE')) - ...
+                stats(strcmp(stats_tags,'bias')).^2)-ubRMSE(i,j);
+            
             if add_anomR
-                insitu_data = INSITU_sm_rng(:,j,i);
+                
+                insitu_data = INSITU_sm(:,j,i);
                 model_data  = LDAS_sm(:,j,i);
-
-                % Cross mask
+                
+                % cross mask data
                 insitu_data(isnan(model_data)) = NaN;
                 model_data(isnan(insitu_data)) = NaN;
-
-                % Recompute seasonal cycle/climatology WITHIN this range
-                Nday_window = 31; Nday_shift = (Nday_window-1)/2;
-                Nmin_day = 60;  % tune if needed
-                doy_rng  = doy_full(mask);
-
-                % Build rolling-day lists (365-day wrap)
-                dofyr_list = nan(Nday_window,365);
-                for d = 1:365
-                    if d <= 15
-                        dofyr_list(:,d) = [1:d+Nday_shift, 365-(Nday_shift-d):365];
-                    elseif d >= 351
-                        dofyr_list(:,d) = [d-Nday_shift:365, 1:Nday_shift-(365-d)];
+                
+                % window of temporal smoothing
+                Nday_window = 31; % days
+                Nday_shift = (Nday_window-1)/2;
+                
+                % minumum data requirement for computing the daily climatology
+                Nmin_day = 150 % 240 ; % 8 perday *30 days for one clim window
+                
+                disp('computing anomalies...')
+                
+                clear dofyr_list
+                for dofyr = 1:365
+                    if dofyr <= 15
+                        dofyr_list(:,dofyr) = [1:dofyr+Nday_shift 365-(Nday_shift-dofyr):365];
+                    elseif dofyr >= 351
+                        dofyr_list(:,dofyr) = [dofyr-Nday_shift:365 1:Nday_shift-(365-dofyr)];
                     else
-                        dofyr_list(:,d) = (d-Nday_shift):(d+Nday_shift);
+                        dofyr_list(:,dofyr) = [dofyr-Nday_shift : dofyr+Nday_shift];
                     end
                 end
-
-                insitu_clim = NaN(365,1);
-                model_clim  = NaN(365,1);
-                for d = 1:365
-                    ind = find( ismember(doy_rng, dofyr_list(:,d)) );
-                    tmp = insitu_data(ind); tmp = tmp(~isnan(tmp));
-                    insitu_clim(d) = iif(numel(tmp)>=Nmin_day, mean(tmp), NaN);
-
-                    tmp = model_data(ind);  tmp = tmp(~isnan(tmp));
-                    model_clim(d)  = iif(numel(tmp)>=Nmin_day, mean(tmp), NaN);
+                
+                for doy = 1:365
+                    
+                    ind = [];
+                    for id = 1:length(dofyr_list(:,doy))
+                        ind = [ind, find(doy_vec(:) == dofyr_list(id,doy))'];
+                    end
+                    
+                    tmp = insitu_data(ind);
+                    tmp = tmp(~isnan(tmp));
+                    if length(tmp) >= Nmin_day
+                        tmp = mean(tmp);
+                    else
+                        tmp = NaN;
+                    end
+                    insitu_clim(doy) = tmp; clear tmp
+                    
+                    tmp = model_data(ind);
+                    tmp = tmp(~isnan(tmp));
+                    if length(tmp) >= Nmin_day
+                        tmp = mean(tmp);
+                    else
+                        tmp = NaN;
+                    end
+                    model_clim(doy) = tmp; clear tmp
+                    
                 end
-
-                insitu_anom = NaN(size(insitu_data));
-                model_anom  = NaN(size(model_data));
-                for d = 1:366
-                    ii = find(doy_rng==d);
-                    if ~isempty(ii)
-                        dd = min(365,d);
-                        insitu_anom(ii) = insitu_data(ii) - insitu_clim(dd);
-                        model_anom(ii)  = model_data(ii)  - model_clim(dd);
+                
+                model_anom = NaN * ones(size(model_data));
+                insitu_anom = NaN * ones(size(model_data));
+                
+                for doy = 1:366
+                    ind = find(doy_vec(:) == doy);
+                    if ~isempty(ind)
+                        insitu_anom(ind) = insitu_data(ind) - insitu_clim(min(365,doy));
+                        model_anom(ind) = model_data(ind) - model_clim(min(365,doy));
                     end
                 end
-
-                [st2, tg2] = get_validation_stats([insitu_anom, model_anom], 1, 'complete', 1, [1 2], Nmin, 1);
-                st2(abs(st2-nodata_val)<nodata_tol) = NaN;  st2(st2==0) = NaN;
-
-                anomR(i,j,1,k)   = st2(strcmp(tg2,'R'));
-                anomRLO(i,j,1,k) = st2(strcmp(tg2,'RLO')) - anomR(i,j,1,k);
-                anomRUP(i,j,1,k) = st2(strcmp(tg2,'RUP')) - anomR(i,j,1,k);
+                
+                clear stats stats_tags
+                [stats, stats_tags] = get_validation_stats(...
+                    [insitu_anom model_anom], 1, 'complete', 1, [1:2], Nmin, 1 );
+                
+                nodata_val = -9999;
+                nodata_tol =  1E-4;
+                
+                stats(abs(stats-nodata_val)<nodata_tol ) = NaN;
+                stats(stats == 0 ) = NaN;
+                
+                
+                anomR(i,j)   = stats(strcmp(stats_tags,'R'));
+                anomRLO(i,j) = stats(strcmp(stats_tags,'RLO')) - anomR(i,j) ;
+                anomRUP(i,j) = stats(strcmp(stats_tags,'RUP')) - anomR(i,j);
+                
             end
         end
     end
 end
 
-% Package outputs neatly (optional)
-StatsByRange.names = ranges(:,1);
-StatsByRange.R       = R;       StatsByRange.RLO = RLO;        StatsByRange.RUP = RUP;
-StatsByRange.Bias    = Bias;    StatsByRange.BiasLO = BiasLO;  StatsByRange.BiasUP = BiasUP;
-StatsByRange.absBias = absBias; StatsByRange.absBiasLO = absBiasLO; StatsByRange.absBiasUP = absBiasUP;
-StatsByRange.RMSE    = RMSE;    StatsByRange.RMSELO = RMSELO;  StatsByRange.RMSEUP = RMSEUP;
-StatsByRange.ubRMSE  = ubRMSE;  StatsByRange.ubRMSELO = ubRMSELO; StatsByRange.ubRMSEUP = ubRMSEUP;
-if add_anomR
-    StatsByRange.anomR = anomR; StatsByRange.anomRLO = anomRLO; StatsByRange.anomRUP = anomRUP;
-end
-StatsByRange.masks = range_masks;  % [T x Kr], if you want to reproduce selections later
-StatsByRange.tvec  = tvec;         % the timeline used
+clear LDAS_sm LDAS_sm_org LDAS_prcp_org INSITU_sm INSITU_prcp
 
-% Save alongside your original stats
-save([fout_name,'stats_by_range.mat'], 'StatsByRange', 'ranges', 'range_masks', '-v7.3');
-
-% helper inline
-function out = iif(cond, a, b), if cond, out=a; else, out=b; end, end
-
+disp('writing output ...')
+save([fout_name,'stats.mat']);

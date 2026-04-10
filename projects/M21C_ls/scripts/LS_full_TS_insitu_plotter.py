@@ -26,7 +26,7 @@ INSITU_TAGS = [
 ]
 
 # Base directories / file patterns (identical to your originals)
-STATS_DIR = '../test_data/M21C_land_sweeper/Evaluation/InSitu/output'
+STATS_DIR = '/Users/amfox/Desktop/GEOSldas_diagnostics/test_data/M21C_land_sweeper_v2'
 RAW_TS_TEMPLATE = os.path.join(STATS_DIR, '{exp}' + '{tag}' + '_raw_timeseries.mat')
 STATS_TEMPLATE  = os.path.join(STATS_DIR, '{exp}' + '{tag}' + '_stats.mat')
 

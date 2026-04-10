@@ -707,7 +707,7 @@ for k = 1:Kr
 
                 % Recompute seasonal cycle/climatology WITHIN this range
                 Nday_window = 31; Nday_shift = (Nday_window-1)/2;
-                Nmin_day = 60;  % tune if needed
+                Nmin_day = 150;  % tune if needed
                 doy_rng  = doy_full(mask);
 
                 % Build rolling-day lists (365-day wrap)

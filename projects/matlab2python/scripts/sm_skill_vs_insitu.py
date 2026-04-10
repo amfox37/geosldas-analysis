@@ -242,6 +242,9 @@ def corrcoef_autocorr(data: np.ndarray) -> Tuple[float, float, float]:
     neff = max(3, math.ceil(n * (1 - rx * ry) / (1 + rx * ry))) if not (np.isnan(rx) or np.isnan(ry)) else n
     r = float(np.corrcoef(ref, mod)[0, 1])
     z = 0.5 * math.log((1 + r) / (1 - r)) if abs(r) < 1 else np.inf
+    if neff <= 3:
+        # Not enough effective samples for CI; return R with NaN bounds
+        return r, np.nan, np.nan
     se = 1 / math.sqrt(neff - 3)
     z_lo = z - stats.norm.ppf(0.975) * se
     z_up = z + stats.norm.ppf(0.975) * se
@@ -547,7 +550,7 @@ def align_series(model: np.ndarray, model_times: List[DateTime], obs_sm: np.ndar
     return model[im], obs_sm[io], [model_times[i] for i in im]
 
 
-def compute_anom(series: np.ndarray, doy_vec: np.ndarray, Nmin_day: int = 150) -> np.ndarray:
+def compute_anom(series: np.ndarray, doy_vec: np.ndarray, Nmin_day: int = 60) -> np.ndarray:
     # series shape (time,); returns anomalies with 31-day window climatology (circular over year)
     clim = np.full(365, np.nan)
     for doy in range(1, 366):

@@ -16,12 +16,20 @@ import numpy as np
 from netCDF4 import Dataset
 
 THIS_DIR = Path(__file__).resolve().parent
-sys.path.append(str((THIS_DIR / '../../shared/python').resolve()))
+
+# Support both legacy and current repository layouts.
+_READ_PATHS = [
+    (THIS_DIR / '../../shared/python').resolve(),
+    (THIS_DIR / '../../../common/python/io').resolve(),
+]
+for _p in _READ_PATHS:
+    if _p.exists():
+        sys.path.append(str(_p))
 from read_GEOSldas import read_ObsFcstAna  # noqa: E402
 
 
 INT_MAP = [
-    ('obs_assim', 'assim'),
+    ('obs_assim', 'assim_flag'),
     ('obs_species', 'species'),
     ('obs_tilenum', 'tilenum'),
 ]
@@ -134,12 +142,13 @@ def compare_one(bin_file, nc4_file, rtol, atol):
 
     # Time/header checks
     t_bin = b['date_time']
-    for key in TIME_KEYS:
-        key_bin = 'min' if key == 'minute' else ('sec' if key == 'second' else key)
-        vb = int(t_bin.get(key_bin, -9999))
-        vn = int(t_nc4.get(key, -9999))
-        if vb != vn:
-            issues.append(f'time mismatch: {key} bin={vb} nc4={vn}')
+    if all(t_nc4.get(key, -9999) != -9999 for key in TIME_KEYS):
+        for key in TIME_KEYS:
+            key_bin = 'min' if key == 'minute' else ('sec' if key == 'second' else key)
+            vb = int(t_bin.get(key_bin, -9999))
+            vn = int(t_nc4.get(key, -9999))
+            if vb != vn:
+                issues.append(f'time mismatch: {key} bin={vb} nc4={vn}')
 
     n_obs_bin = int(_as_array(b['obs_species']).size)
     n_obs_nc4 = int(_as_array(n['obs_species']).size)

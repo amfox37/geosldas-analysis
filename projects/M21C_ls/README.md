@@ -4,6 +4,8 @@ Land Sweeper (LS) diagnostics for the M21C campaign. Notebooks track LS assimila
 
 ## Notebook Guide
 
+### Current notebooks
+
 ### In-situ skill workflows
 
 - `notebooks/insitu_skill_ismn_network_ol_da.ipynb`
@@ -30,12 +32,22 @@ Land Sweeper (LS) diagnostics for the M21C campaign. Notebooks track LS assimila
 - `notebooks/snow_da_impact_OLv8_vs_DAv8_M21C_land_sweeper.ipynb`
   - Snow DA impact analysis across OLv8 and DAv8 experiments.
 
-### Legacy / figure notebooks
+### Figure / utility notebooks
 
 - `notebooks/LS_insitu_plotter_102625.ipynb` - broad in-situ plotting/inspection notebook.
 - `notebooks/LS_ofa_figures.ipynb` - OL vs DA figure package generation.
-- `notebooks/obsfcstana_ts_stats_LS_021725.ipynb` - ObsFcstAna time-series statistics.
 - `notebooks/LS_compare_OL_DA.ipynb` - compact OL vs DA comparison notebook.
+- `notebooks/tsoil1_climatology.ipynb` - tsoil climatology diagnostics.
+
+### Archived notebooks
+
+Older exploratory notebooks are kept in:
+
+- `notebooks/legacy/Core_site_stats_plotter_042124.ipynb`
+- `notebooks/legacy/Plot_validation_core_sites_010324.ipynb`
+- `notebooks/legacy/obsfcstana_ts_stats_LS_021725.ipynb`
+- `notebooks/legacy/pentad_scatter_compare.ipynb`
+- `notebooks/legacy/process_experiment_LS_021725.ipynb`
 
 ## Scripts
 

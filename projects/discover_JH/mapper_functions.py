@@ -6,10 +6,14 @@ import numpy as np
 import xarray as xr
 import re
 import warnings
+from pathlib import Path
 
 from shapely.errors import ShapelyDeprecationWarning
 
 warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
+
+# Use repo-provided EASE grid binaries by default
+EASE_PATH = Path(__file__).resolve().parents[2] / "common" / "python" / "plotting" / "ease_grids"
 
 def format_number(num):
     if abs(num) < 0.01:
@@ -269,19 +273,22 @@ def plot_global_tight_pcm(array, saveflag=False, meanflag=False, plot_title ='gl
 
     # Read binary files and reshape to correct size
     # The number of rows and columns are in the file name
-    lats = np.fromfile('../test_data/EASE2_M36km.lats.964x406x1.double', 
+    lats = np.fromfile(str(EASE_PATH / 'EASE2_M36km.lats.964x406x1.double'), 
                           dtype=np.float64).reshape((406,964))
-    lons = np.fromfile('../test_data/EASE2_M36km.lons.964x406x1.double', 
+    lons = np.fromfile(str(EASE_PATH / 'EASE2_M36km.lons.964x406x1.double'), 
                           dtype=np.float64).reshape((406,964))
     
-    ds = xr.open_dataset('DAv7_M36.inst3_1d_lndfcstana_Nt.20150901.nc4')
-    lon = ds['lon']
-    lat = ds['lat']
+    lon = lons
+    lat = lats
     n_tile = len(lat)
     
-    # Convert to numpy array
-    lon = lon.values
-    lat = lat.values
+    # Ensure numpy arrays and 1D vectors
+    lon = np.asarray(lon)
+    lat = np.asarray(lat)
+    if lon.ndim > 1:
+        lon = lon.ravel()
+    if lat.ndim > 1:
+        lat = lat.ravel()
 
     # Make an empty array with dimensions of the grid
     grid = np.full((406, 964), np.nan)
@@ -392,14 +399,13 @@ def plot_aus_tight_pcm(array, saveflag=False, meanflag=False, plot_title ='globa
 
     # Read binary files and reshape to correct size
     # The number of rows and columns are in the file name
-    lats = np.fromfile('../test_data/EASE2_M36km.lats.964x406x1.double', 
+    lats = np.fromfile(str(EASE_PATH / 'EASE2_M36km.lats.964x406x1.double'), 
                           dtype=np.float64).reshape((406,964))
-    lons = np.fromfile('../test_data/EASE2_M36km.lons.964x406x1.double', 
+    lons = np.fromfile(str(EASE_PATH / 'EASE2_M36km.lons.964x406x1.double'), 
                           dtype=np.float64).reshape((406,964))
     
-    ds = xr.open_dataset('DAv7_M36.inst3_1d_lndfcstana_Nt.20150901.nc4')
-    lon = ds['lon']
-    lat = ds['lat']
+    lon = lons
+    lat = lats
     n_tile = len(lat)
     
     # Convert to numpy array
@@ -526,14 +532,13 @@ def plot_sa_tight_pcm(array, saveflag=False, meanflag=False, plot_title ='global
 
     # Read binary files and reshape to correct size
     # The number of rows and columns are in the file name
-    lats = np.fromfile('../test_data/EASE2_M36km.lats.964x406x1.double', 
+    lats = np.fromfile(str(EASE_PATH / 'EASE2_M36km.lats.964x406x1.double'), 
                           dtype=np.float64).reshape((406,964))
-    lons = np.fromfile('../test_data/EASE2_M36km.lons.964x406x1.double', 
+    lons = np.fromfile(str(EASE_PATH / 'EASE2_M36km.lons.964x406x1.double'), 
                           dtype=np.float64).reshape((406,964))
     
-    ds = xr.open_dataset('DAv7_M36.inst3_1d_lndfcstana_Nt.20150901.nc4')
-    lon = ds['lon']
-    lat = ds['lat']
+    lon = lons
+    lat = lats
     n_tile = len(lat)
     
     # Convert to numpy array
@@ -662,14 +667,13 @@ def plot_tb_tight_pcm(array, saveflag=False, meanflag=False, plot_title ='global
 
     # Read binary files and reshape to correct size
     # The number of rows and columns are in the file name
-    lats = np.fromfile('../test_data/EASE2_M36km.lats.964x406x1.double', 
+    lats = np.fromfile(str(EASE_PATH / 'EASE2_M36km.lats.964x406x1.double'), 
                           dtype=np.float64).reshape((406,964))
-    lons = np.fromfile('../test_data/EASE2_M36km.lons.964x406x1.double', 
+    lons = np.fromfile(str(EASE_PATH / 'EASE2_M36km.lons.964x406x1.double'), 
                           dtype=np.float64).reshape((406,964))
     
-    ds = xr.open_dataset('DAv7_M36.inst3_1d_lndfcstana_Nt.20150901.nc4')
-    lon = ds['lon']
-    lat = ds['lat']
+    lon = lons
+    lat = lats
     n_tile = len(lat)
     
     # Convert to numpy array
@@ -802,14 +806,13 @@ def plot_NA_tight_pcm(array, saveflag=False, meanflag=False, plot_title ='global
 
     # Read binary files and reshape to correct size
     # The number of rows and columns are in the file name
-    lats = np.fromfile('../test_data/EASE2_M36km.lats.964x406x1.double', 
+    lats = np.fromfile(str(EASE_PATH / 'EASE2_M36km.lats.964x406x1.double'), 
                           dtype=np.float64).reshape((406,964))
-    lons = np.fromfile('../test_data/EASE2_M36km.lons.964x406x1.double', 
+    lons = np.fromfile(str(EASE_PATH / 'EASE2_M36km.lons.964x406x1.double'), 
                           dtype=np.float64).reshape((406,964))
     
-    ds = xr.open_dataset('DAv7_M36.inst3_1d_lndfcstana_Nt.20150901.nc4')
-    lon = ds['lon']
-    lat = ds['lat']
+    lon = lons
+    lat = lats
     n_tile = len(lat)
     
     # Convert to numpy array
@@ -936,11 +939,13 @@ def plot_NA_tight_pcm(array, saveflag=False, meanflag=False, plot_title ='global
 
 #################################################################################
 
-def load_ease_grid(ease_path):
+def load_ease_grid(ease_path=None):
     """Load EASE grid data"""
-    lats = np.fromfile(f'{ease_path}/EASE2_M36km.lats.964x406x1.double', 
+    if ease_path is None:
+        ease_path = EASE_PATH
+    lats = np.fromfile(str(Path(ease_path) / 'EASE2_M36km.lats.964x406x1.double'), 
                       dtype=np.float64).reshape((406,964))
-    lons = np.fromfile(f'{ease_path}/EASE2_M36km.lons.964x406x1.double', 
+    lons = np.fromfile(str(Path(ease_path) / 'EASE2_M36km.lons.964x406x1.double'), 
                       dtype=np.float64).reshape((406,964))
     return lats, lons
 
@@ -961,7 +966,7 @@ def create_grid_mapping(array, lats, lons, lats_row, lons_col):
 #################################################################################
 
 def plot_region(array, lon_min, lon_max, lat_min, lat_max, 
-                ease_path='../test_data',
+                ease_path=str(EASE_PATH),
                 saveflag=False, 
                 meanflag=False, 
                 plot_title='regional_plot', 
@@ -1166,7 +1171,7 @@ def colorbar_info(array):
 
 def plot_region_scatter(array, lon_min, lon_max, lat_min, lat_max, 
                 grid_type='ease',
-                ease_path='../test_data',
+                ease_path=str(EASE_PATH),
                 saveflag=False, 
                 meanflag=False, 
                 plot_title='regional_plot', 
