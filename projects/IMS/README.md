@@ -1,133 +1,52 @@
-# IMS Workflow (Download -> Regrid -> Validation)
+# IMS Validation Workflow
 
-IMS processing in this project has three core stages:
+This project validates GEOS-LDAS OL/DA snow cover against IMS daily snow-cover products on the M36 grid.
 
-1. Download daily IMS ASCII snow-cover and write annual NetCDF.
-2. Regrid annual IMS to M36 EASE with categorical-safe nearest neighbor.
-3. Compare IMS with OL/DA using contingency metrics (accuracy/hit/miss/FAR/CRR).
+## Latest workflow run order
 
-## Project Layout
+1. Build annual IMS NetCDF from daily ASCII:
+   - `scripts/download_ims_ascii_to_nc.py`
 
-- `scripts/download_ims_ascii_to_nc.py`: download + convert `.asc.gz` to annual NetCDF (`ims_snowcover`).
-- `scripts/regrid_ims_to_m36_nearest.py`: regrid annual IMS files to M36 EASE (`ims_category`).
-- `scripts/run_ims_ol_da_cell_metrics.py`: batch OL/DA vs IMS metrics and cache outputs.
-- `notebooks/ims_daily_seasonal_ol_da_scf.ipynb`: direct end-to-end validation notebook.
-- `notebooks/ims_maps_and_tables_from_precomputed_outputs.ipynb`: plotting/tables from precomputed script outputs.
-- `notebooks/ims_regrid_qc_colorado.ipynb`: map QC for raw IMS vs regridded IMS (plus model snapshots).
-- `output/`: local staging/output area.
+2. Regrid IMS annual files to M36 EASE (nearest-neighbor categorical mapping):
+   - `scripts/regrid_ims_to_m36_nearest.py`
 
-## Environment
+3. Build OL/DA vs IMS validation metrics (recommended scripted pipeline):
+   - `scripts/run_ims_ol_da_cell_metrics.py`
 
-Recommended packages:
+4. Make maps/tables from precomputed outputs:
+   - `notebooks/ims_maps_and_tables_from_precomputed_outputs.ipynb`
 
-- `numpy`
-- `pandas`
-- `xarray`
-- `netCDF4`
-- `scipy`
-- `requests`
-- `jupyter`
-- `pyarrow`
+5. Optional direct notebook workflow (no precompute step):
+   - `notebooks/ims_daily_seasonal_ol_da_scf.ipynb`
 
-Example:
+6. Optional regridding QC map checks:
+   - `notebooks/ims_regrid_qc_colorado.ipynb`
 
-```bash
-mamba install -n regrid numpy pandas xarray netcdf4 scipy requests jupyter pyarrow
-```
+## Inputs
 
-## 1) Download IMS Annual NetCDF
+- IMS daily source data (`imsYYYYDDD_00UTC_24km_v1.3.asc.gz`) and IMS 24-km lat/lon file.
+- M36 tilecoord (used by regridding script).
+- GEOS-LDAS daily model outputs for:
+  - `LS_OLv8_M36`
+  - `LS_DAv8_M36`
 
-Run from `projects/IMS/scripts`:
+## Outputs
 
-```bash
-python download_ims_ascii_to_nc.py \
-  --year 2024 \
-  --latlon-file ims_24km_latlon.nc4 \
-  --out-file ../output/ims_snowcover_24km_2024.nc4 \
-  --cache-dir ../output/gz \
-  --allow-missing-days
-```
+- IMS annual files (example):
+  - `projects/IMS/output/ims_snowcover_24km_YYYY.nc4`
+- Regridded IMS annual files:
+  - `projects/IMS/output/ims_snowcover_24km_YYYY_on_m36_nearest.nc4`
+- Validation outputs:
+  - `projects/IMS/output/outputs_ims_ol_da_validation/`
+  - includes metric caches/tables such as:
+    - `ims_ol_da_cell_counts_metrics_*.nc4`
+    - `ims_ol_da_scope_metadata_*.csv`
+    - `ims_ol_da_comparison_table_*.parquet/.csv`
+    - `ims_ol_da_pair_daily_*.parquet/.csv`
+    - `ims_ol_da_daily_counts_*.parquet/.csv`
 
-Notes:
+## Notes
 
-- Expected source filename pattern: `imsYYYYDDD_00UTC_24km_v1.3.asc.gz`.
-- If `--allow-missing-days` is set, missing days are written as `NaN`.
-
-## 2) Regrid Annual IMS to M36 EASE
-
-Run from `projects/IMS/scripts`:
-
-```bash
-python regrid_ims_to_m36_nearest.py \
-  --ims-dir /gpfsm/dnb06/projects/p163/IMS \
-  --out-dir ../output \
-  --year-start 2000 \
-  --year-end 2023 \
-  --ims-template 'ims_snowcover_24km_{year}.nc4' \
-  --out-template 'ims_snowcover_24km_{year}_on_m36_nearest.nc4' \
-  --tilecoord /discover/nobackup/projects/land_da/M21C_land_sweeper/LS_OLv8_M36_v2/LS_OLv8_M36/output/SMAP_EASEv2_M36_GLOBAL/rc_out/LS_OLv8_M36.ldas_tilecoord.bin \
-  --copy-time-values \
-  --skip-missing-input
-```
-
-Behavior:
-
-- Nearest-neighbor only (no averaging of categorical IMS values).
-- One representative tile per EASE cell (`max frac_cell`, tie-break `min tile_id`).
-- Writes diagnostics like `source_y/source_x`, distance, and representative elevation.
-
-## 3A) Direct Notebook Validation
-
-- `notebooks/ims_daily_seasonal_ol_da_scf.ipynb`
-
-Uses regridded IMS and OL/DA daily files directly. Produces paired daily metrics and bootstrap comparison tables.
-
-## 3B) Precomputed Fast Pipeline (Recommended for reruns/maps)
-
-Script:
-
-- `scripts/run_ims_ol_da_cell_metrics.py`
-
-Example:
-
-```bash
-python run_ims_ol_da_cell_metrics.py \
-  --domain SMAP_EASEv2_M36_GLOBAL \
-  --year-start 2000 \
-  --year-end 2024 \
-  --ims-regrid-dir /discover/nobackup/projects/land_da/geosldas-analysis/projects/IMS/output \
-  --ims-regrid-template 'ims_snowcover_24km_{year}_on_m36_nearest.nc4' \
-  --ol-run-root /discover/nobackup/projects/land_da/M21C_land_sweeper/LS_OLv8_M36_v2/LS_OLv8_M36 \
-  --da-run-root /discover/nobackup/projects/land_da/M21C_land_sweeper/LS_DAv8_M36_v3/LS_DAv8_M36 \
-  --output-dir /discover/nobackup/projects/land_da/geosldas-analysis/projects/IMS/output
-```
-
-Important options:
-
-- `--min-ims-snow-days` (default `10`): keep only cells where IMS reports snow on at least N days.
-- `--fast-mode`: skips model re-read and recomputes stats from cached cell-count files.
-
-Fast-mode note:
-
-- Comparison CIs are recomputed with cell bootstrap.
-- Day-level paired table is not reconstructed in fast mode (placeholder output is written for file compatibility).
-
-Main outputs:
-
-- `ims_ol_da_cell_counts_metrics_*.nc4`
-- `ims_ol_da_scope_metadata_*.csv`
-- `ims_ol_da_comparison_table_*.parquet/csv`
-- `ims_ol_da_pair_daily_*.parquet/csv`
-- `ims_ol_da_daily_counts_*.parquet/csv`
-
-Plotting notebook for precomputed outputs:
-
-- `notebooks/ims_maps_and_tables_from_precomputed_outputs.ipynb`
-
-## Typical End-to-End Order
-
-1. `download_ims_ascii_to_nc.py`
-2. `regrid_ims_to_m36_nearest.py`
-3. Either:
-   - run `ims_daily_seasonal_ol_da_scf.ipynb` directly, or
-   - run `run_ims_ol_da_cell_metrics.py` then `ims_maps_and_tables_from_precomputed_outputs.ipynb`.
+- Current default rerun path is script-first (`run_ims_ol_da_cell_metrics.py`) plus plotting notebook.
+- `run_ims_ol_da_cell_metrics.py --fast-mode` reuses cached counts and skips model re-read.
+- `--min-ims-snow-days` controls analysis domain filtering (default `10`).
