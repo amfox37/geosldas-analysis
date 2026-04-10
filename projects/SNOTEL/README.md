@@ -192,6 +192,27 @@ python projects/SNOTEL/scripts/read_parquet_example.py \
 2. Sanity-check parquet with `read_parquet_example.py`.
 3. Run `notebooks/snow_daily_seasonal_ol_da_swe_snwd.ipynb` for OL/DA validation.
 
+## Latest OL/DA validation workflow (quick reference)
+
+1. Build or refresh SNOTEL source parquet:
+   - Script: `projects/SNOTEL/scripts/download_snotel_swe_snwd.py`
+   - Required output:
+     - `projects/SNOTEL/output/all_stations_daily_wteq_snwd.parquet`
+
+2. Run validation notebook:
+   - `projects/SNOTEL/notebooks/snow_daily_seasonal_ol_da_swe_snwd.ipynb`
+   - Reads:
+     - SNOTEL parquet above (`stationTriplet`, `WTEQ`, `SNWD`, station metadata)
+     - GEOSldas OL/DA daily files (`SNODPLAND`, `SNOMASLAND`) + tilecoord
+
+3. Review notebook outputs:
+   - `projects/SNOTEL/outputs_snotel_ol_da_validation/`
+   - Includes:
+     - `snotel_raw_timeseries_*.nc`
+     - `snotel_station_metrics_*.csv/.parquet`
+     - `snotel_domain_metrics_*.csv/.parquet`
+     - figures/tables subfolders
+
 ## Notes
 
 - The script uses retry/backoff for SOAP and REST calls.
