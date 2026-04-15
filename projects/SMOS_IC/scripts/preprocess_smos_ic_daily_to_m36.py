@@ -15,7 +15,7 @@ Design:
 
 Outputs:
 - mapping cache (.npz)
-- daily sparse .npz files
+- daily sparse .nc files
 - manifest CSV
 """
 
@@ -436,6 +436,42 @@ def remap_source_to_m36(
     return out, coverage
 
 
+def write_daily_sparse_netcdf(
+    out_nc: Path,
+    idx: np.ndarray,
+    vals: np.ndarray,
+    cov: np.ndarray,
+    tag: str,
+    args: argparse.Namespace,
+) -> None:
+    """Write one day of sparse M36 values in NetCDF format."""
+    out_nc.parent.mkdir(parents=True, exist_ok=True)
+    with Dataset(out_nc, "w", format="NETCDF4") as ds:
+        n = int(idx.size)
+        ds.createDimension("n_points", n)
+
+        v_idx = ds.createVariable("idx_EASEv2_lonxlat", "i4", ("n_points",), zlib=True, complevel=4)
+        v_idx.long_name = "EASEv2 M36 linear index, 0-based (column-major flattening)"
+        v_idx[:] = idx.astype(np.int32, copy=False)
+
+        v_sm = ds.createVariable("sm_obs", "f4", ("n_points",), zlib=True, complevel=4)
+        v_sm.long_name = "SMOS-IC daily soil moisture on M36"
+        v_sm.units = "m3 m-3"
+        v_sm[:] = vals.astype(np.float32, copy=False)
+
+        v_cov = ds.createVariable("coverage_frac", "f4", ("n_points",), zlib=True, complevel=4)
+        v_cov.long_name = "Conservative overlap coverage fraction for each retained M36 cell"
+        v_cov.units = "1"
+        v_cov[:] = cov.astype(np.float32, copy=False)
+
+        ds.date = tag
+        ds.qc_scene_flag_max = int(args.scene_flag_max)
+        ds.qc_tb_rmse_max = float(args.tb_rmse_max)
+        ds.qc_sm_min = float(args.sm_min)
+        ds.qc_sm_max = float(args.sm_max)
+        ds.min_coverage_frac = float(args.min_coverage_frac)
+
+
 def date_range(start: date, end: date) -> list[date]:
     out: list[date] = []
     d = start
@@ -526,16 +562,16 @@ def main() -> None:
         "n_valid_combined_native",
         "n_valid_m36",
         "mean_coverage_m36",
-        "output_npz",
+        "output_nc",
     ]
 
     rows: list[dict[str, str]] = []
 
     for n, d in enumerate(run_dates, start=1):
         tag = format_day(d)
-        out_npz = out_dir / f"smos_ic_sm_m36_{tag}.npz"
+        out_nc = out_dir / f"smos_ic_sm_m36_{tag}.nc"
 
-        if out_npz.exists() and not args.overwrite:
+        if out_nc.exists() and not args.overwrite:
             rows.append(
                 {
                     "date": tag,
@@ -546,7 +582,7 @@ def main() -> None:
                     "n_valid_combined_native": "",
                     "n_valid_m36": "",
                     "mean_coverage_m36": "",
-                    "output_npz": str(out_npz),
+                    "output_nc": str(out_nc),
                 }
             )
             continue
@@ -602,16 +638,13 @@ def main() -> None:
         vals = sm_m36[valid_tgt].astype(np.float32)
         cov = coverage[valid_tgt].astype(np.float32)
 
-        np.savez_compressed(
-            out_npz,
-            idx_EASEv2_lonxlat=idx,
-            sm_obs=vals,
-            coverage_frac=cov,
-            date=tag,
-            qc_scene_flag_max=np.int32(args.scene_flag_max),
-            qc_tb_rmse_max=np.float32(args.tb_rmse_max),
-            qc_sm_min=np.float32(args.sm_min),
-            qc_sm_max=np.float32(args.sm_max),
+        write_daily_sparse_netcdf(
+            out_nc=out_nc,
+            idx=idx,
+            vals=vals,
+            cov=cov,
+            tag=tag,
+            args=args,
         )
 
         rows.append(
@@ -624,7 +657,7 @@ def main() -> None:
                 "n_valid_combined_native": str(n_comb),
                 "n_valid_m36": str(int(valid_tgt.sum())),
                 "mean_coverage_m36": f"{float(np.nanmean(coverage[valid_tgt])):.6f}" if np.any(valid_tgt) else "",
-                "output_npz": str(out_npz),
+                "output_nc": str(out_nc),
             }
         )
 
