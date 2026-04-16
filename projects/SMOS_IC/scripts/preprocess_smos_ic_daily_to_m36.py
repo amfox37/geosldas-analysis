@@ -61,6 +61,18 @@ class M36Grid:
         return (self.s0 - (np.arange(self.ny + 1, dtype=np.float64) - 0.5)) * self.dx_m
 
 
+@dataclass(frozen=True)
+class SourceLayout:
+    raw_shape: tuple[int, int]
+    nlat: int
+    nlon: int
+    lat_axis: int
+    lon_axis: int
+    transpose: bool
+    flip_lat: bool
+    flip_lon: bool
+
+
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="Preprocess SMOS-IC daily files to M36 sparse cache.")
     ap.add_argument("--smos-root", required=True, help="Root directory containing SMOS-IC folders")
@@ -346,24 +358,132 @@ def load_mapping(cache_path: Path) -> dict[str, np.ndarray]:
         return {k: z[k] for k in z.files}
 
 
-def _read_smos_fields(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def _filled(arr: np.ndarray | np.ma.MaskedArray) -> np.ndarray:
+    if np.ma.isMaskedArray(arr):
+        return np.asarray(arr.filled(np.nan))
+    return np.asarray(arr)
+
+
+def _infer_axis_by_name_or_size(var: np.ndarray, dims: tuple[str, ...], name: str, expected_size: int) -> int:
+    if name in dims:
+        return int(dims.index(name))
+    candidates = [i for i, n in enumerate(var.shape) if int(n) == int(expected_size)]
+    if len(candidates) == 1:
+        return int(candidates[0])
+    raise RuntimeError(f"Could not infer axis for '{name}' from dims={dims}, shape={var.shape}")
+
+
+def _mono_sign(v: np.ndarray) -> int:
+    dv = np.diff(np.asarray(v, dtype=np.float64))
+    dv = dv[np.isfinite(dv)]
+    if dv.size == 0:
+        return 0
+    med = float(np.nanmedian(dv))
+    if med > 0.0:
+        return 1
+    if med < 0.0:
+        return -1
+    return 0
+
+
+def _coord_line_1d_or_2d(
+    arr: np.ndarray,
+    canonical_shape: tuple[int, int],
+    axis: int,
+    transpose_2d: bool = False,
+) -> np.ndarray | None:
+    a = _filled(arr).astype(np.float64, copy=False)
+    if a.ndim == 1:
+        if a.size == canonical_shape[axis]:
+            return a
+        return None
+    if a.ndim == 2:
+        if a.shape == canonical_shape:
+            pass
+        elif transpose_2d and a.shape == (canonical_shape[1], canonical_shape[0]):
+            a = a.T
+        else:
+            return None
+        other_axis = 1 - axis
+        return np.nanmean(a, axis=other_axis)
+    return None
+
+
+def infer_source_layout(sample_nc: Path) -> SourceLayout:
+    with Dataset(sample_nc, "r") as ds:
+        sm_var = ds.variables["Soil_Moisture"]
+        dims = tuple(str(d) for d in sm_var.dimensions)
+        sm_shape = tuple(int(n) for n in sm_var.shape)
+        if len(sm_shape) != 2:
+            raise RuntimeError(f"Expected 2D Soil_Moisture, got shape={sm_shape}")
+        if "lat" not in ds.dimensions or "lon" not in ds.dimensions:
+            raise KeyError(f"{sample_nc} missing lat/lon dimensions")
+
+        nlat = int(len(ds.dimensions["lat"]))
+        nlon = int(len(ds.dimensions["lon"]))
+        lat_axis = _infer_axis_by_name_or_size(sm_var, dims, "lat", nlat)
+        lon_axis = _infer_axis_by_name_or_size(sm_var, dims, "lon", nlon)
+        if lat_axis == lon_axis:
+            raise RuntimeError(f"Invalid Soil_Moisture axis mapping: lat_axis={lat_axis}, lon_axis={lon_axis}")
+
+        if (lat_axis, lon_axis) not in ((0, 1), (1, 0)):
+            raise RuntimeError(
+                f"Unsupported axis order for Soil_Moisture: dims={dims}, lat_axis={lat_axis}, lon_axis={lon_axis}"
+            )
+        transpose = (lat_axis, lon_axis) == (1, 0)
+        canonical_shape = (nlat, nlon)
+
+        flip_lat = False
+        if "lat" in ds.variables:
+            lat_line = _coord_line_1d_or_2d(ds.variables["lat"][:], canonical_shape, axis=0, transpose_2d=transpose)
+            if lat_line is not None:
+                # Canonical source rows must be north->south (lat descending).
+                s = _mono_sign(lat_line)
+                flip_lat = s > 0
+
+        flip_lon = False
+        if "lon" in ds.variables:
+            lon_line = _coord_line_1d_or_2d(ds.variables["lon"][:], canonical_shape, axis=1, transpose_2d=transpose)
+            if lon_line is not None:
+                # Canonical source cols must be west->east (lon ascending).
+                s = _mono_sign(lon_line)
+                flip_lon = s < 0
+
+    return SourceLayout(
+        raw_shape=sm_shape,
+        nlat=nlat,
+        nlon=nlon,
+        lat_axis=lat_axis,
+        lon_axis=lon_axis,
+        transpose=transpose,
+        flip_lat=flip_lat,
+        flip_lon=flip_lon,
+    )
+
+
+def canonicalize_source_array(arr: np.ndarray, layout: SourceLayout) -> np.ndarray:
+    a = _filled(arr).astype(np.float64, copy=False)
+    if tuple(int(n) for n in a.shape) != tuple(int(n) for n in layout.raw_shape):
+        raise RuntimeError(f"Unexpected source shape {a.shape}; expected {layout.raw_shape}")
+    if layout.transpose:
+        a = a.T
+    if layout.flip_lat:
+        a = a[::-1, :]
+    if layout.flip_lon:
+        a = a[:, ::-1]
+    return np.asarray(a, dtype=np.float64)
+
+
+def _read_smos_fields(path: Path, layout: SourceLayout) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     with Dataset(path, "r") as ds:
         sm = ds.variables["Soil_Moisture"][:]
         sf = ds.variables["Scene_Flags"][:]
         rmse = ds.variables["RMSE"][:]
 
-    # Preserve masks from netCDF4 masked arrays.
-    if np.ma.isMaskedArray(sm):
-        sm = sm.filled(np.nan)
-    if np.ma.isMaskedArray(sf):
-        sf = sf.filled(np.nan)
-    if np.ma.isMaskedArray(rmse):
-        rmse = rmse.filled(np.nan)
-
     return (
-        np.asarray(sm, dtype=np.float64),
-        np.asarray(sf, dtype=np.float64),
-        np.asarray(rmse, dtype=np.float64),
+        canonicalize_source_array(sm, layout),
+        canonicalize_source_array(sf, layout),
+        canonicalize_source_array(rmse, layout),
     )
 
 
@@ -530,6 +650,16 @@ def main() -> None:
     print(f"Dates with ASC/DES files: {len(run_dates)}")
     print(f"QC: Scene_Flags <= {args.scene_flag_max}, RMSE <= {args.tb_rmse_max} K, {args.sm_min} <= SM <= {args.sm_max}")
 
+    sample_path = asc_idx.get(run_dates[0], None) or des_idx.get(run_dates[0], None)
+    if sample_path is None:
+        raise RuntimeError("Could not find sample SMOS file")
+    source_layout = infer_source_layout(sample_path)
+    print(
+        "Source layout normalization: "
+        f"shape={source_layout.raw_shape}, axes(lat,lon)=({source_layout.lat_axis},{source_layout.lon_axis}), "
+        f"transpose={source_layout.transpose}, flip_lat={source_layout.flip_lat}, flip_lon={source_layout.flip_lon}"
+    )
+
     tc = read_tilecoord(str(tilecoord))
     rep = choose_representative_tile_per_cell(tc)
 
@@ -539,9 +669,6 @@ def main() -> None:
         mapping = load_mapping(mapping_cache)
         print(f"Loaded mapping cache: {mapping_cache}")
     else:
-        sample_path = asc_idx.get(run_dates[0], None) or des_idx.get(run_dates[0], None)
-        if sample_path is None:
-            raise RuntimeError("Could not find sample SMOS file to build mapping")
         mapping = build_conservative_mapping(
             sample_nc=sample_path,
             rep=rep,
@@ -549,6 +676,14 @@ def main() -> None:
             cache_path=mapping_cache,
         )
         print(f"Built mapping cache: {mapping_cache}")
+
+    map_nlat = int(mapping["src_nlat"])
+    map_nlon = int(mapping["src_nlon"])
+    if map_nlat != int(source_layout.nlat) or map_nlon != int(source_layout.nlon):
+        raise RuntimeError(
+            f"Mapping source dims ({map_nlat},{map_nlon}) do not match source layout ({source_layout.nlat},{source_layout.nlon}). "
+            "Rebuild mapping cache with --rebuild-mapping."
+        )
 
     m36_linear = mapping["m36_linear"].astype(np.int64)
 
@@ -596,7 +731,7 @@ def main() -> None:
         n_des = 0
 
         if asc_file is not None:
-            sm, sf, rmse = _read_smos_fields(asc_file)
+            sm, sf, rmse = _read_smos_fields(asc_file, source_layout)
             sm_asc = apply_qc(
                 sm=sm,
                 sf=sf,
@@ -609,7 +744,7 @@ def main() -> None:
             n_asc = int(np.isfinite(sm_asc).sum())
 
         if des_file is not None:
-            sm, sf, rmse = _read_smos_fields(des_file)
+            sm, sf, rmse = _read_smos_fields(des_file, source_layout)
             sm_des = apply_qc(
                 sm=sm,
                 sf=sf,
