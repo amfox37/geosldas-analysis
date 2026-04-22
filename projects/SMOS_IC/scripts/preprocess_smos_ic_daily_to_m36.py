@@ -168,9 +168,11 @@ def choose_representative_tile_per_cell(tc: dict[str, np.ndarray]) -> dict[str, 
 
     frac_sort = np.where(np.isfinite(frac_cell), frac_cell, -np.inf)
 
-    nx = int(i_indg.max()) + 1
-    ny = int(j_indg.max()) + 1
-    cell_code = j_indg * nx + i_indg
+    # Use tilecoord index space only to identify unique cells. Do not infer
+    # target-grid geometry from these maxima (some domains are partial subsets).
+    nx_local = int(i_indg.max()) + 1
+    ny_local = int(j_indg.max()) + 1
+    cell_code = j_indg * nx_local + i_indg
 
     order = np.lexsort((tile_id, -frac_sort, cell_code))
     code_sorted = cell_code[order]
@@ -191,9 +193,22 @@ def choose_representative_tile_per_cell(tc: dict[str, np.ndarray]) -> dict[str, 
         "rep_frac_cell": frac_cell[rep_idx].astype(np.float32),
         "rep_lat": np.asarray(tc["com_lat"][rep_idx], dtype=np.float64),
         "rep_lon": np.asarray(tc["com_lon"][rep_idx], dtype=np.float64),
-        "nx": np.int32(nx),
-        "ny": np.int32(ny),
+        "nx_local": np.int32(nx_local),
+        "ny_local": np.int32(ny_local),
     }
+
+
+def read_source_georef(sample_nc: Path) -> tuple[int, int, np.ndarray]:
+    """Read source grid shape and GeoTransform from one SMOS-IC file."""
+    with Dataset(sample_nc, "r") as ds:
+        if "lon" not in ds.dimensions or "lat" not in ds.dimensions:
+            raise KeyError(f"{sample_nc} missing lon/lat dimensions")
+        nlon = int(len(ds.dimensions["lon"]))
+        nlat = int(len(ds.dimensions["lat"]))
+        if "crs" not in ds.variables or not hasattr(ds.variables["crs"], "GeoTransform"):
+            raise KeyError(f"{sample_nc} missing crs GeoTransform")
+        gt = np.asarray([float(v) for v in str(ds.variables["crs"].GeoTransform).split()], dtype=np.float64)
+    return nlat, nlon, gt
 
 
 def _interval_overlaps(edges_asc: np.ndarray, low: float, high: float) -> tuple[np.ndarray, np.ndarray]:
@@ -289,8 +304,13 @@ def build_conservative_mapping(
 
     rep_i = rep["rep_i"].astype(np.int32)
     rep_j = rep["rep_j"].astype(np.int32)
-    nx = int(rep["nx"])
-    m36_linear = rep_j.astype(np.int64) * nx + rep_i.astype(np.int64)
+    if np.any(rep_i < 0) or np.any(rep_i >= tgt.nx) or np.any(rep_j < 0) or np.any(rep_j >= tgt.ny):
+        raise RuntimeError(
+            "Representative tilecoord indices are outside expected M36 global bounds: "
+            f"i=[{int(rep_i.min())},{int(rep_i.max())}] vs [0,{tgt.nx-1}], "
+            f"j=[{int(rep_j.min())},{int(rep_j.max())}] vs [0,{tgt.ny-1}]"
+        )
+    m36_linear = rep_j.astype(np.int64) * int(tgt.nx) + rep_i.astype(np.int64)
 
     tgt_ids: list[np.ndarray] = []
     src_ids: list[np.ndarray] = []
@@ -343,8 +363,8 @@ def build_conservative_mapping(
         "rep_frac_cell": rep["rep_frac_cell"].astype(np.float32),
         "rep_lat": rep["rep_lat"].astype(np.float32),
         "rep_lon": rep["rep_lon"].astype(np.float32),
-        "m36_nx": np.int32(nx),
-        "m36_ny": np.int32(int(rep["ny"])),
+        "m36_nx": np.int32(int(tgt.nx)),
+        "m36_ny": np.int32(int(tgt.ny)),
         "source_gt": np.asarray(gt, dtype=np.float64),
     }
 
@@ -653,6 +673,7 @@ def main() -> None:
     sample_path = asc_idx.get(run_dates[0], None) or des_idx.get(run_dates[0], None)
     if sample_path is None:
         raise RuntimeError("Could not find sample SMOS file")
+    sample_nlat, sample_nlon, sample_gt = read_source_georef(sample_path)
     source_layout = infer_source_layout(sample_path)
     print(
         "Source layout normalization: "
@@ -662,13 +683,46 @@ def main() -> None:
 
     tc = read_tilecoord(str(tilecoord))
     rep = choose_representative_tile_per_cell(tc)
+    tgt = M36Grid()  # always use full global M36 geometry (964x406)
+    print(
+        "Tilecoord representative index range: "
+        f"i=[{int(rep['rep_i'].min())},{int(rep['rep_i'].max())}] "
+        f"j=[{int(rep['rep_j'].min())},{int(rep['rep_j'].max())}] "
+        f"(local max extents nx={int(rep['nx_local'])}, ny={int(rep['ny_local'])})"
+    )
 
-    tgt = M36Grid(nx=int(rep["nx"]), ny=int(rep["ny"]))
-
+    mapping: dict[str, np.ndarray] | None = None
+    cache_reasons: list[str] = []
     if mapping_cache.exists() and not args.rebuild_mapping:
         mapping = load_mapping(mapping_cache)
-        print(f"Loaded mapping cache: {mapping_cache}")
-    else:
+        map_nlat = int(mapping["src_nlat"])
+        map_nlon = int(mapping["src_nlon"])
+        if map_nlat != int(sample_nlat) or map_nlon != int(sample_nlon):
+            cache_reasons.append(
+                f"source dims cache=({map_nlat},{map_nlon}) current=({sample_nlat},{sample_nlon})"
+            )
+        map_m36_nx = int(mapping.get("m36_nx", np.int32(-1)))
+        map_m36_ny = int(mapping.get("m36_ny", np.int32(-1)))
+        if map_m36_nx != int(tgt.nx) or map_m36_ny != int(tgt.ny):
+            cache_reasons.append(
+                f"target dims cache=({map_m36_nx},{map_m36_ny}) expected=({tgt.nx},{tgt.ny})"
+            )
+        if "source_gt" in mapping:
+            gt_cache = np.asarray(mapping["source_gt"], dtype=np.float64).reshape(-1)
+            if gt_cache.size != sample_gt.size or not np.allclose(gt_cache, sample_gt, rtol=0.0, atol=1e-6):
+                cache_reasons.append("source GeoTransform differs from current sample file")
+        else:
+            cache_reasons.append("cache missing source_gt metadata")
+
+        if cache_reasons:
+            print("Mapping cache is incompatible and will be rebuilt:")
+            for r in cache_reasons:
+                print(f"  - {r}")
+            mapping = None
+        else:
+            print(f"Loaded mapping cache: {mapping_cache}")
+
+    if mapping is None:
         mapping = build_conservative_mapping(
             sample_nc=sample_path,
             rep=rep,
@@ -682,6 +736,11 @@ def main() -> None:
     if map_nlat != int(source_layout.nlat) or map_nlon != int(source_layout.nlon):
         raise RuntimeError(
             f"Mapping source dims ({map_nlat},{map_nlon}) do not match source layout ({source_layout.nlat},{source_layout.nlon}). "
+            "Rebuild mapping cache with --rebuild-mapping."
+        )
+    if int(mapping["m36_nx"]) != int(tgt.nx) or int(mapping["m36_ny"]) != int(tgt.ny):
+        raise RuntimeError(
+            f"Mapping target dims ({int(mapping['m36_nx'])},{int(mapping['m36_ny'])}) do not match expected ({tgt.nx},{tgt.ny}). "
             "Rebuild mapping cache with --rebuild-mapping."
         )
 
