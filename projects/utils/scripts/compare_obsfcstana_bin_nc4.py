@@ -57,7 +57,8 @@ def _normalize_missing(a, fill_value=-9999.0):
 
     The binary reader (read_ObsFcstAna) converts obs_obsvar/fcst/fcstvar/ana/
     anavar to NaN but leaves obs_obs, obs_lon, and obs_lat as raw -9999.
-    The NC4 reader uses the per-variable missing_value attribute (also -9999).
+    The NC4 reader reads the per-variable _FillValue attribute (MAPL_UNDEF=1e15 for
+    new files) or falls back to missing_value / -9999 for legacy files.
     Calling this function on both sides guarantees a uniform NaN-based
     comparison regardless of which fields each reader normalizes internally.
     """
@@ -76,7 +77,8 @@ def read_obsfcstana_nc4(fname):
 
         for bkey, nkey in FLOAT_MAP:
             v = _as_array(nc.variables[nkey][:]).astype(np.float64)
-            fillv = getattr(nc.variables[nkey], 'missing_value', -9999.0)
+            fillv = getattr(nc.variables[nkey], '_FillValue',
+                    getattr(nc.variables[nkey], 'missing_value', -9999.0))
             out[bkey] = _normalize_missing(v, fill_value=float(fillv))
 
         for key in TIME_KEYS:
