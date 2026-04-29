@@ -46,13 +46,26 @@ FLOAT_MAP = [
 ]
 
 TIME_KEYS = ['year', 'month', 'day', 'hour', 'minute', 'second', 'dofyr', 'pentad']
+LEGACY_FILL_VALUE = -9999.0
 
 
 def _as_array(x):
     return np.asarray(x)
 
 
-def _normalize_missing(a, fill_value=-9999.0):
+def _as_float_array(x, fill_value=None):
+    """Convert plain or masked arrays to float arrays for fill-value handling."""
+    if np.ma.isMaskedArray(x):
+        fill_value = LEGACY_FILL_VALUE if fill_value is None else fill_value
+        x = x.filled(fill_value)
+    return np.asarray(x, dtype=np.float64)
+
+
+def _count_fill_value(a, fill_value):
+    return int(np.count_nonzero(np.isclose(_as_float_array(a, fill_value), fill_value)))
+
+
+def _normalize_missing(a, fill_value=LEGACY_FILL_VALUE):
     """Replace fill_value sentinels with NaN for consistent comparison.
 
     The binary reader (read_ObsFcstAna) converts obs_obsvar/fcst/fcstvar/ana/
@@ -62,29 +75,39 @@ def _normalize_missing(a, fill_value=-9999.0):
     Calling this function on both sides guarantees a uniform NaN-based
     comparison regardless of which fields each reader normalizes internally.
     """
-    out = np.asarray(a, dtype=np.float64).copy()
+    out = _as_float_array(a, fill_value).copy()
     out[np.isclose(out, fill_value)] = np.nan
     return out
+
+
+def _get_nc4_fill_value(var):
+    return float(getattr(var, '_FillValue', getattr(var, 'missing_value', LEGACY_FILL_VALUE)))
 
 
 def read_obsfcstana_nc4(fname):
     out = {}
     date_time = {}
+    missing_counts = {}
 
     with Dataset(fname, mode='r') as nc:
         for bkey, nkey in INT_MAP:
             out[bkey] = _as_array(nc.variables[nkey][:]).astype(np.int32)
 
         for bkey, nkey in FLOAT_MAP:
-            v = _as_array(nc.variables[nkey][:]).astype(np.float64)
-            fillv = getattr(nc.variables[nkey], '_FillValue',
-                    getattr(nc.variables[nkey], 'missing_value', -9999.0))
-            out[bkey] = _normalize_missing(v, fill_value=float(fillv))
+            var = nc.variables[nkey]
+            fillv = _get_nc4_fill_value(var)
+            v = _as_float_array(var[:], fill_value=fillv)
+            missing_counts[bkey] = {
+                'fill_value': fillv,
+                'n_missing': _count_fill_value(v, fillv),
+            }
+            out[bkey] = _normalize_missing(v, fill_value=fillv)
 
         for key in TIME_KEYS:
-            date_time[key] = int(getattr(nc, key, -9999))
+            date_time[key] = int(getattr(nc, key, int(LEGACY_FILL_VALUE)))
 
         out['N_obsf_attr'] = int(getattr(nc, 'N_obsf', out['obs_species'].size))
+        out['_missing_counts'] = missing_counts
 
     return date_time, out
 
@@ -141,6 +164,11 @@ def compare_one(bin_file, nc4_file, rtol, atol):
 
     issues = []
     n_bad_total = 0
+    missing = {
+        'bin_legacy': 0,
+        'nc4_fill': 0,
+        'fields': {},
+    }
 
     # Time/header checks
     t_bin = b['date_time']
@@ -168,14 +196,35 @@ def compare_one(bin_file, nc4_file, rtol, atol):
 
     # Float fields
     for bkey, _ in FLOAT_MAP:
-        a_bin = _normalize_missing(_as_array(b[bkey]))
-        a_nc4 = _normalize_missing(_as_array(n[bkey]))
+        bin_missing = _count_fill_value(_as_array(b[bkey]), LEGACY_FILL_VALUE)
+        nc4_info = n.get('_missing_counts', {}).get(
+            bkey, {'fill_value': LEGACY_FILL_VALUE, 'n_missing': 0}
+        )
+        nc4_fill = float(nc4_info['fill_value'])
+        nc4_missing = int(nc4_info['n_missing'])
+
+        missing['bin_legacy'] += bin_missing
+        missing['nc4_fill'] += nc4_missing
+        missing['fields'][bkey] = {
+            'bin_legacy': bin_missing,
+            'nc4_fill': nc4_missing,
+            'nc4_fill_value': nc4_fill,
+        }
+
+        if bin_missing != nc4_missing:
+            issues.append(
+                f'{bkey}: missing count mismatch '
+                f'bin_legacy(-9999)={bin_missing}, nc4_fill({nc4_fill:g})={nc4_missing}'
+            )
+
+        a_bin = _normalize_missing(_as_array(b[bkey]), fill_value=LEGACY_FILL_VALUE)
+        a_nc4 = _normalize_missing(_as_array(n[bkey]), fill_value=nc4_fill)
         cb = compare_arrays_float(a_bin, a_nc4, rtol=rtol, atol=atol)
         if not cb['shape_match'] or cb['n_bad'] > 0:
             issues.append(f'{bkey}: n_bad={cb["n_bad"]}, max_abs={cb["max_abs"]:.6g}')
             n_bad_total += cb['n_bad']
 
-    return issues, n_bad_total, n_obs_bin
+    return issues, n_bad_total, n_obs_bin, missing
 
 
 def main():
@@ -213,13 +262,17 @@ def main():
     n_fail = 0
 
     for i, (fbin, fnc4) in enumerate(pairs[:n_compare], start=1):
-        issues, n_bad, n_obs = compare_one(fbin, fnc4, rtol=args.rtol, atol=args.atol)
+        issues, n_bad, n_obs, missing = compare_one(fbin, fnc4, rtol=args.rtol, atol=args.atol)
         rel = fbin.relative_to(root)
+        missing_txt = (
+            f'missing bin_legacy(-9999)={missing["bin_legacy"]}, '
+            f'nc4_fill={missing["nc4_fill"]}'
+        )
         if len(issues) == 0:
-            print(f'[{i}/{n_compare}] PASS {rel} (N_obs={n_obs})')
+            print(f'[{i}/{n_compare}] PASS {rel} (N_obs={n_obs}, {missing_txt})')
             n_pass += 1
         else:
-            print(f'[{i}/{n_compare}] FAIL {rel} (N_obs={n_obs}, n_bad={n_bad})')
+            print(f'[{i}/{n_compare}] FAIL {rel} (N_obs={n_obs}, n_bad={n_bad}, {missing_txt})')
             for msg in issues:
                 print(f'  - {msg}')
             n_fail += 1
