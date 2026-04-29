@@ -103,7 +103,8 @@ def read_obsfcstana_nc4(fname):
             v = _as_float_array(var[:], fill_value=fillv)
             missing_counts[bkey] = {
                 'fill_value': fillv,
-                'n_missing': _count_fill_value(v, fillv),
+                'n_fill': _count_fill_value(v, fillv),
+                'n_nan': _count_nan(v),
             }
             out[bkey] = _normalize_missing(v, fill_value=fillv)
 
@@ -172,6 +173,7 @@ def compare_one(bin_file, nc4_file, rtol, atol):
         'bin_legacy': 0,
         'bin_nan': 0,
         'nc4_fill': 0,
+        'nc4_nan': 0,
         'fields': {},
     }
 
@@ -205,26 +207,30 @@ def compare_one(bin_file, nc4_file, rtol, atol):
         bin_nan_missing = _count_nan(_as_array(b[bkey]))
         bin_missing_total = bin_legacy_missing + bin_nan_missing
         nc4_info = n.get('_missing_counts', {}).get(
-            bkey, {'fill_value': LEGACY_FILL_VALUE, 'n_missing': 0}
+            bkey, {'fill_value': LEGACY_FILL_VALUE, 'n_fill': 0, 'n_nan': 0}
         )
         nc4_fill = float(nc4_info['fill_value'])
-        nc4_missing = int(nc4_info['n_missing'])
+        nc4_fill_missing = int(nc4_info['n_fill'])
+        nc4_nan_missing = int(nc4_info['n_nan'])
+        nc4_missing_total = nc4_fill_missing + nc4_nan_missing
 
         missing['bin_legacy'] += bin_legacy_missing
         missing['bin_nan'] += bin_nan_missing
-        missing['nc4_fill'] += nc4_missing
+        missing['nc4_fill'] += nc4_fill_missing
+        missing['nc4_nan'] += nc4_nan_missing
         missing['fields'][bkey] = {
             'bin_legacy': bin_legacy_missing,
             'bin_nan': bin_nan_missing,
-            'nc4_fill': nc4_missing,
+            'nc4_fill': nc4_fill_missing,
+            'nc4_nan': nc4_nan_missing,
             'nc4_fill_value': nc4_fill,
         }
 
-        if bin_missing_total != nc4_missing:
+        if bin_missing_total != nc4_missing_total:
             issues.append(
                 f'{bkey}: missing count mismatch '
                 f'bin_legacy(-9999)={bin_legacy_missing}, bin_nan={bin_nan_missing}, '
-                f'nc4_fill({nc4_fill:g})={nc4_missing}'
+                f'nc4_fill({nc4_fill:g})={nc4_fill_missing}, nc4_nan={nc4_nan_missing}'
             )
 
         a_bin = _normalize_missing(_as_array(b[bkey]), fill_value=LEGACY_FILL_VALUE)
@@ -277,7 +283,8 @@ def main():
         missing_txt = (
             f'missing bin_legacy(-9999)={missing["bin_legacy"]}, '
             f'bin_nan={missing["bin_nan"]}, '
-            f'nc4_fill={missing["nc4_fill"]}'
+            f'nc4_fill={missing["nc4_fill"]}, '
+            f'nc4_nan={missing["nc4_nan"]}'
         )
         if len(issues) == 0:
             print(f'[{i}/{n_compare}] PASS {rel} (N_obs={n_obs}, {missing_txt})')
