@@ -23,6 +23,13 @@ All notebooks/scripts should reference inputs through `data/external/test_data/.
 
 All `.ipynb` files have been scrubbed of execution outputs and execution counts so future diffs stay readable. Before committing new work, re-run the clearing step or use `jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace <notebook>` to maintain the same standard.
 
+This repo also ships a local git pre-commit hook at `.githooks/pre-commit` that auto-clears outputs/execution counts from staged notebooks and re-stages them. Enable it once per clone:
+
+```bash
+git config core.hooksPath .githooks
+chmod +x .githooks/pre-commit
+```
+
 ## Future contributions
 
 1. Place shared logic in `common/` so it can be imported across projects.

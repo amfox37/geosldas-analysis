@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+staged_notebooks="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.ipynb$' || true)"
+
+if [ -z "$staged_notebooks" ]; then
+  exit 0
+fi
+
+printf '[pre-commit] Clearing outputs in staged notebooks...\n'
+
+changed="$(STAGED_NOTEBOOKS="$staged_notebooks" python3 - <<'PY'
+import json
+import os
+import pathlib
+
+changed = []
+
+for rel in os.environ.get("STAGED_NOTEBOOKS", "").splitlines():
+    rel = rel.strip()
+    if not rel:
+        continue
+    p = pathlib.Path(rel)
+    if not p.exists():
+        continue
+
+    try:
+        nb = json.loads(p.read_text(encoding="utf-8"))
+    except Exception as exc:
+        print(f"[pre-commit] warning: could not parse {rel}: {exc}", file=sys.stderr)
+        continue
+
+    modified = False
+    for cell in nb.get("cells", []):
+        if cell.get("cell_type") != "code":
+            continue
+        if cell.get("outputs"):
+            cell["outputs"] = []
+            modified = True
+        if cell.get("execution_count") is not None:
+            cell["execution_count"] = None
+            modified = True
+
+    md = nb.get("metadata")
+    if isinstance(md, dict) and "widgets" in md:
+        md.pop("widgets", None)
+        modified = True
+
+    if modified:
+        p.write_text(json.dumps(nb, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+        changed.append(rel)
+
+for rel in changed:
+    print(rel)
+PY
+)"
+
+if [ -n "$changed" ]; then
+  while IFS= read -r file; do
+    [ -z "$file" ] && continue
+    git add -- "$file"
+    printf '[pre-commit] cleaned: %s\n' "$file"
+  done <<< "$changed"
+fi
+
+exit 0
