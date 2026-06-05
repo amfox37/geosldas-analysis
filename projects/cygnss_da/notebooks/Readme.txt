@@ -153,13 +153,17 @@ Files are provided in a mixture of NetCDF (.nc4), MATLAB (.mat), Python pickle
 the paper figures. A manifest file is included to document the contents of this
 directory.
 
-The Jupyter notebook
+The Jupyter notebooks
 
   cygnss_da_combined_paper_figures.ipynb
 
-reproduces the figures in the manuscript using the datasets in
-cygnss_da_combined_inputs/. Figure numbering and content correspond directly
-to the submitted paper.
+  cygnss_da_combined_revised_paper_figures.ipynb
+
+reproduce the figures in the manuscript using the datasets in
+cygnss_da_combined_inputs/. The first notebook corresponds to the originally
+submitted paper; the second produces figures for the revised manuscript.
+Figure numbering and content correspond directly to the respective versions
+of the paper.
 
 ===============================================================================
 ===============================================================================
