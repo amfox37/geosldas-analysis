@@ -18,3 +18,46 @@ install*
 
 # If you build with spack libraries, you can get spack log files
 spack*.log
+
+# --- geosldas-analysis additions ---
+
+# Data files (NetCDF, binary, MATLAB, HDF, pickle, GEOSldas formats)
+*.nc
+*.nc4
+*.bin
+*.mat
+*.h5
+*.hdf5
+*.pkl
+*.double
+*.csv
+
+# Archives
+*.tar.gz
+*.tar
+*.gz
+*.zip
+
+# Logs
+*.log
+
+# PDFs (large figure outputs)
+*.pdf
+
+# Local IDE / tool config
+.claude/
+
+# Computed output and cache directories (any depth)
+**/outputs_*/
+**/output/
+cache/
+*_build/
+*_tmp/
+*_rec/
+
+# ERA5 download / processing scratch directories
+era5_monthly_nc/
+era5l_monthly_*/
+
+# Top-level paper figure directory
+paper_figures/
