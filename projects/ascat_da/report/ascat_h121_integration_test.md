@@ -38,7 +38,7 @@ Both products show broadly similar SSM distributions after QC. The notable diffe
 
 ![Gridded SSM scatter](fig2_gridded_ssm_scatter.png)
 
-On a 0.25° grid the two products correlate at R ≈ 0.71 with near-zero bias. The scatter (RMSD ~18 %sat) partly reflects the January 1 sampling — large areas of frozen ground produce observations in Legacy BUFR that are masked in H121, reducing the overlap and introducing apparent disagreement in high-latitude cells.
+On a 0.25° grid the two products correlate at R ≈ 0.71 with near-zero bias. The scatter (RMSD ~18 %sat) reflects genuine differences between the two products: different native footprint sizes (12.5 km vs ~25 km) produce different cell means when averaged to 0.25°, and the retrieval algorithms differ between H121 and the Legacy BUFR product.
 
 ---
 
