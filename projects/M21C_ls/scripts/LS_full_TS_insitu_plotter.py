@@ -275,7 +275,8 @@ def plot_maps(output_dir, insitu_lat, insitu_lon, R, anomR, ubRMSE, insitu_tag, 
 def run_for_tag(insitu_tag):
     """One complete run for a given in-situ tag, reproducing your outputs."""
     # Per-tag output directory so filenames can remain identical
-    out_dir = os.path.join('outputs_refactor_exact', insitu_tag.strip('_'))
+    _repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    out_dir = os.path.join(_repo_root, 'projects', 'M21C_ls', 'output', 'refactor_exact', insitu_tag.strip('_'))
     os.makedirs(out_dir, exist_ok=True)
 
     # Build stats file list (OL, DA)
