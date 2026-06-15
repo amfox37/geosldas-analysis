@@ -71,13 +71,13 @@ The H121 obs count (~3× Legacy per platform on the M36 tile grid) is consistent
 
 After applying the Legacy z-score scaling factors to both products, observations are brought into model space: obs means shift from ~0.35–0.40 to ~0.15, closely matching the model forecast (~0.15 m³/m³). Innovation means collapse to near-zero for both products, confirming that the scaling infrastructure is functioning correctly for H121.
 
-H121 loses approximately 25% of observations during scaling (from ~40k to ~31k per platform), likely reflecting observations that fall outside the valid range of the Legacy scaling parameters. This will be resolved once H121-specific scaling factors are derived.
+H121 loses approximately 25% of observations during scaling (from ~40k to ~31k per platform). The GEOSldas z-score scaling routine rejects any observation whose 0.25° grid cell has no valid scaling parameters — specifically, cells where `o_mean ≤ 0` or `m_mean ≤ 0` in the parameter file. Because the scaling parameters were derived from the Legacy BUFR climatology, cells that Legacy never sampled (due to its sparser native grid or stricter QC) have no valid statistics. H121's denser 12.5 km Fibonacci DGG places observations in many of those cells, and they are silently dropped. The observations themselves are valid; the problem is purely one of missing coverage in the Legacy-derived parameter file. This will be resolved once H121-specific scaling factors are derived.
 
 ### 3.1 Post-scaling gridded innovation comparison
 
 ![Post-scaling scatter](fig5_postscaling_scatter.png)
 
-After scaling, the gridded Legacy and H121 innovations show improved agreement (R ≈ 0.77 on the 0.25° scaling grid) with near-zero bias. The remaining scatter reflects genuine differences between the two products (resolution, retrieval algorithm, QC) and the approximation involved in applying Legacy scaling factors to H121. This scatter will reduce once product-specific scaling parameters are in place.
+After scaling, the gridded Legacy and H121 innovations both have near-zero bias, confirming the scaling is functioning correctly for both products. However, the cell-by-cell correlation between Legacy and H121 scaled innovations is modest (R ≈ 0.28 on the 0.25° grid). This is expected: the two products have different swath coverage on any given day, different native footprint sizes, and different retrieval algorithms, so individual grid cells will rarely contain observations from both products at the same local time. The comparison is also limited by applying Legacy scaling parameters to H121, which introduces additional distortion in H121 innovations in cells where the Legacy climatology is a poor approximation. The key result is the near-zero bias, not the cell-by-cell correlation.
 
 ---
 
@@ -93,7 +93,7 @@ The analysis increment (A−F) maps for the two assimilation experiments show sp
 
 ![Increment scatter and distributions](fig7_increment_scatter.png)
 
-The gridded increment scatter between the two experiments is well-correlated (R ≈ 0.76) with very small bias (~0.00). The increment distributions are similar in width and shape. This is the most direct test of whether the two products will produce similar DA corrections to the model, and the results are encouraging.
+The gridded increment scatter between the two experiments shows moderate agreement (R ≈ 0.43) with very small bias (~0.00) and RMSD of ~0.011 deg. sat. The increment distributions are similar in width and shape. Some scatter is expected: the two assimilation experiments use different observations covering different swath locations, so many 0.25° cells contain increments from only one experiment. The small bias and similar distribution shapes are the more meaningful result — they confirm both products drive the model in similar directions.
 
 ---
 
