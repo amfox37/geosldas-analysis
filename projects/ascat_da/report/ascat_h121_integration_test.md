@@ -48,7 +48,7 @@ On a 0.25° grid the two products correlate at R ≈ 0.71 with near-zero bias. T
 
 ![Innovation distributions](fig3_innovation_distributions.png)
 
-In the unscaled monitor run, both Legacy and H121 innovations (O−F) are large and positive (~+0.19–0.22 deg. sat.). This is expected: without scaling, the ASCAT degree-of-saturation observations (0–1) are being compared directly to model surface volumetric soil moisture (m³/m³, ~0.15). The systematic offset reflects the unit mismatch, not a problem with the reader. Crucially, the innovation distributions for Legacy and H121 have similar shape and spread, indicating the new H121 reader is producing physically consistent observations.
+In the unscaled monitor run, both Legacy and H121 innovations (O−F) are large and positive (~+0.19–0.22 deg. sat.). This is expected: without scaling, the ASCAT degree-of-saturation observations (0–1) are being compared directly to model surface volumetric soil moisture (m³/m³, ~0.15). The systematic offset reflects both the unit difference and climatological biases between the ASCAT retrievals and GEOSldas — the z-score scaling corrects for both. This is not a problem with the reader. Crucially, the innovation distributions for Legacy and H121 have similar shape and spread, indicating the new H121 reader is producing physically consistent observations.
 
 **Per-platform summary (unscaled monitor run):**
 
