@@ -15,7 +15,6 @@ Default environment for almost all work:
 Has: `eccodes`, `cartopy`, `xarray`, `netCDF4`, `numpy`, `matplotlib`, `scipy`, `pyproj`.
 
 Other environments (use only if specifically needed):
-- `xr` — Anaconda, xarray/netCDF4 only, no eccodes
 - `cygnss` — CYGNSS-specific dependencies
 
 **OpenMP / MKL errors on macOS** (e.g. `OMP: Error #15`):

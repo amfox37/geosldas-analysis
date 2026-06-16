@@ -24,21 +24,26 @@ Note: all experiments use the existing Legacy z-score scaling factors as a tempo
 
 ## 1. Raw observation comparison
 
-### 1.1 SSM distributions (Metop-C, point obs)
+### 1.1 SSM distributions (all platforms, point obs)
 
 ![SSM distributions](fig1_ssm_distributions.png)
 
-Both products show broadly similar SSM distributions after QC. The notable difference is the H121 spike near 0% in Legacy BUFR, which reflects frozen soil observations that pass BUFR QC flags but are removed by the H121 processing flag. H121 has approximately 7× more observations than Legacy BUFR at the point level, consistent with the 12.5 km vs ~25 km resolution and fixed Discrete Global Grid structure.
+Both products show broadly similar SSM distributions after QC. The notable difference is the spike near 0% in Legacy BUFR, which reflects frozen soil observations that pass BUFR QC flags but are removed by the H121 processing flag. H121 has approximately 7× more observations than Legacy BUFR in the raw satellite files (before aggregation to the model grid), consistent with the 12.5 km vs ~25 km resolution and fixed Discrete Global Grid structure.
 
-**Obs counts after QC (Metop-C, 2020-01-01):**
-- Legacy BUFR: ~59,000
-- H121 CDR: ~435,000
+**Obs counts after QC (all platforms, 2020-01-01):**
 
-### 1.2 Gridded comparison (0.25° means, Metop-C)
+| Platform | Legacy BUFR | H121 CDR |
+|---|---|---|
+| Metop-A | 65,369 | 426,615 |
+| Metop-B | 56,065 | 446,834 |
+| Metop-C | 58,871 | 435,126 |
+| **Total** | **180,305** | **1,308,575** |
+
+### 1.2 Gridded comparison (0.25° means, all platforms)
 
 ![Gridded SSM scatter](fig2_gridded_ssm_scatter.png)
 
-On a 0.25° grid the two products correlate at R ≈ 0.71 with near-zero bias. The scatter (RMSD ~18 %sat) reflects genuine differences between the two products: different native footprint sizes (12.5 km vs ~25 km) produce different cell means when averaged to 0.25°, and the retrieval algorithms differ between H121 and the Legacy BUFR product.
+Aggregating all three platforms on a 0.25° grid, the two products correlate at R = 0.68 with a small bias of −1.5 %sat (H121 slightly drier) and RMSD = 18.7 %sat. The scatter reflects genuine differences between the two products: different native footprint sizes (12.5 km vs ~25 km) produce different cell means when averaged to 0.25°, and the retrieval algorithms differ between H121 and the Legacy BUFR product.
 
 ---
 
@@ -71,13 +76,13 @@ The H121 obs count (~3× Legacy per platform on the M36 tile grid) is consistent
 
 After applying the Legacy z-score scaling factors to both products, observations are brought into model space: obs means shift from ~0.35–0.40 to ~0.15, closely matching the model forecast (~0.15 m³/m³). Innovation means collapse to near-zero for both products, confirming that the scaling infrastructure is functioning correctly for H121.
 
-H121 loses approximately 25% of observations during scaling (from ~40k to ~31k per platform). The GEOSldas z-score scaling routine rejects any observation whose 0.25° grid cell has no valid scaling parameters — specifically, cells where `o_mean ≤ 0` or `m_mean ≤ 0` in the parameter file. Because the scaling parameters were derived from the Legacy BUFR climatology, cells that Legacy never sampled (due to its sparser native grid or stricter QC) have no valid statistics. H121's denser 12.5 km Fibonacci DGG places observations in many of those cells, and they are silently dropped. The observations themselves are valid; the problem is purely one of missing coverage in the Legacy-derived parameter file. This will be resolved once H121-specific scaling factors are derived.
+H121 loses approximately 22–25% of observations during scaling (39,487→30,774 for Metop-A, 41,489→31,960 for Metop-B, 42,214→33,296 for Metop-C), while Legacy loses fewer than 10 obs per platform. The GEOSldas z-score scaling routine rejects any observation whose 0.25° grid cell has no valid scaling parameters — specifically, cells where `o_mean ≤ 0` or `m_mean ≤ 0` in the parameter file. Because the scaling parameters were derived from the Legacy BUFR climatology, cells that Legacy never sampled (due to its sparser native grid or stricter QC) have no valid statistics. H121's denser 12.5 km Fibonacci DGG places observations in many of those cells, and they are silently dropped. The observations themselves are valid; the problem is purely one of missing coverage in the Legacy-derived parameter file. This will be resolved once H121-specific scaling factors are derived.
 
 ### 3.1 Post-scaling gridded innovation comparison
 
 ![Post-scaling scatter](fig5_postscaling_scatter.png)
 
-After scaling, the gridded Legacy and H121 innovations both have near-zero bias, confirming the scaling is functioning correctly for both products. However, the cell-by-cell correlation between Legacy and H121 scaled innovations is modest (R ≈ 0.28 on the 0.25° grid). This is expected: the two products have different swath coverage on any given day, different native footprint sizes, and different retrieval algorithms, so individual grid cells will rarely contain observations from both products at the same local time. The comparison is also limited by applying Legacy scaling parameters to H121, which introduces additional distortion in H121 innovations in cells where the Legacy climatology is a poor approximation. The key result is the near-zero bias, not the cell-by-cell correlation.
+After scaling, the gridded Legacy and H121 innovations both have near-zero bias, confirming the scaling infrastructure is functioning. However, the cell-by-cell correlation between Legacy and H121 scaled innovations is only R ≈ 0.28 — strikingly lower than the R = 0.77 correlation between their unscaled innovations in the monitor run. Both products derive from the same ASCAT instrument on the same Metop passes, so the degradation is not a sampling issue: the Legacy scaling parameters are actively distorting the spatial pattern of H121 innovations. The z-score transformation uses Legacy climatological means and standard deviations to map H121 into model space; because H121 has a different climatological distribution (different retrieval algorithm, finer footprint averaging), applying Legacy parameters imposes the wrong correction cell by cell, scrambling the spatial structure that was coherent before scaling. This is the clearest argument for deriving H121-specific scaling parameters — the Legacy approximation not only fails to improve H121 but worsens its spatial agreement with Legacy.
 
 ---
 

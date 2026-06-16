@@ -14,16 +14,21 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 
 # ── Config ───────────────────────────────────────────────────────────────────
-BUFR_DIR   = '/Users/amfox/Desktop/ASCAT_SSM_CDR/legacy_bufr/metop_c/2020/01'
-H121_DIR   = '/Users/amfox/Desktop/ASCAT_SSM_CDR/H121/metop_c/2020/01'
+BUFR_BASE  = '/Users/amfox/Desktop/ASCAT_SSM_CDR/legacy_bufr'
+H121_BASE  = '/Users/amfox/Desktop/ASCAT_SSM_CDR/H121'
 OFA_BASE   = '/Users/amfox/Desktop/geosldas-analysis/data/hsaf_cdr_test'
 OFA_SUFFIX = 'output/SMAP_EASEv2_M36_GLOBAL/ana/ens_avg/Y2020/M01'
 OUT_DIR    = os.path.dirname(os.path.abspath(__file__))
 
 DATE     = datetime(2020, 1, 1)
 DATE_STR = '2020-01-01'
-BUFR_PREFIX = 'M03-ASCA-ASCSMO02-NA-5.0-'
 GRID_RES = 0.25
+
+PLATFORMS = {
+    'Metop-A': {'bufr_prefix': 'M02-ASCA-ASCSMO02-NA-5.0-', 'subdir': 'metop_a'},
+    'Metop-B': {'bufr_prefix': 'M01-ASCA-ASCSMO02-NA-5.0-', 'subdir': 'metop_b'},
+    'Metop-C': {'bufr_prefix': 'M03-ASCA-ASCSMO02-NA-5.0-', 'subdir': 'metop_c'},
+}
 
 EXPTS = {
     'monitor':        'hsaf_cdr_test_DAv8_M36',
@@ -163,15 +168,27 @@ def savefig(name):
 
 
 # ── Load data ────────────────────────────────────────────────────────────────
-print('Reading BUFR...')
-bufr_raw = read_bufr(BUFR_DIR, DATE, BUFR_PREFIX)
-bq = qc_bufr(bufr_raw)
-bufr_lat, bufr_lon, bufr_ssm = bufr_raw['lat'][bq], bufr_raw['lon'][bq], bufr_raw['ssm'][bq]
+print('Reading BUFR (all platforms)...')
+bufr_lats, bufr_lons, bufr_ssms = [], [], []
+for plat, cfg in PLATFORMS.items():
+    d = read_bufr(f'{BUFR_BASE}/{cfg["subdir"]}/2020/01', DATE, cfg['bufr_prefix'])
+    q = qc_bufr(d)
+    bufr_lats.append(d['lat'][q]); bufr_lons.append(d['lon'][q]); bufr_ssms.append(d['ssm'][q])
+    print(f'  {plat}: {q.sum():,} obs after QC')
+bufr_lat = np.concatenate(bufr_lats)
+bufr_lon = np.concatenate(bufr_lons)
+bufr_ssm = np.concatenate(bufr_ssms)
 
-print('Reading H121...')
-h121_raw = read_h121(H121_DIR, DATE)
-hq = qc_h121(h121_raw)
-h121_lat, h121_lon, h121_ssm = h121_raw['lat'][hq], h121_raw['lon'][hq], h121_raw['ssm'][hq]
+print('Reading H121 (all platforms)...')
+h121_lats, h121_lons, h121_ssms = [], [], []
+for plat, cfg in PLATFORMS.items():
+    d = read_h121(f'{H121_BASE}/{cfg["subdir"]}/2020/01', DATE)
+    q = qc_h121(d)
+    h121_lats.append(d['lat'][q]); h121_lons.append(d['lon'][q]); h121_ssms.append(d['ssm'][q])
+    print(f'  {plat}: {q.sum():,} obs after QC')
+h121_lat = np.concatenate(h121_lats)
+h121_lon = np.concatenate(h121_lons)
+h121_ssm = np.concatenate(h121_ssms)
 
 print('Reading OFA files...')
 ofa_all = {key: read_ofa(ofa_dir(key)) for key in EXPTS}
@@ -191,7 +208,7 @@ ax.hist(h121_ssm, bins=bins, density=True, alpha=0.65, color='darkorange',
         label=f'H121 CDR (n={len(h121_ssm):,})')
 ax.set_xlabel('SSM (% saturation)')
 ax.set_ylabel('Density')
-ax.set_title(f'SSM distributions after QC — Metop-C, {DATE_STR}')
+ax.set_title(f'SSM distributions after QC — all platforms (Metop-A/B/C), {DATE_STR}')
 ax.legend()
 plt.tight_layout()
 savefig('fig1_ssm_distributions.png')
@@ -206,7 +223,7 @@ ax.plot([0,100],[0,100],'r--',lw=1,label='1:1')
 ax.set_xlim(0,100); ax.set_ylim(0,100)
 ax.set_xlabel('Legacy BUFR SSM (% sat.)')
 ax.set_ylabel('H121 CDR SSM (% sat.)')
-ax.set_title(f'0.25° gridded SSM — Metop-C, {DATE_STR}')
+ax.set_title(f'0.25° gridded SSM — all platforms (Metop-A/B/C), {DATE_STR}')
 ax.legend(fontsize=9)
 ax.text(0.05, 0.95, f'n={both.sum():,}\nbias={bias:+.1f}\nRMSD={rmsd:.1f}\nR={r:.3f}',
         transform=ax.transAxes, va='top', fontsize=9,
