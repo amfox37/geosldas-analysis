@@ -12,11 +12,11 @@ notebook save names, and project READMEs.
 
 | Draft figure | Draft content | Likely source workflow | Likely output or notes |
 | --- | --- | --- | --- |
-| Figure 2 | Mean number of assimilated observations per day for MODIS SCF, ASCAT SM, SMOS Tb, SMAP Tb, and CYGNSS SM. | `projects/cygnss_da/notebooks/cygnss_da_combined_revised_paper_figures.ipynb` | CYGNSS/combined assimilation figure notebook; output figures are written to `paper_figures/`. |
-| Figure 3 | Temporal evolution of number of assimilated observations, total and by observing system. | `projects/cygnss_da/notebooks/cygnss_da_combined_revised_paper_figures.ipynb` | Same combined assimilation figure workflow. |
-| Figure 4 | Relative DA vs OL difference in time-series standard deviation of OmF residuals, by sensor. | `projects/cygnss_da/notebooks/cygnss_da_combined_revised_paper_figures.ipynb` | Same combined assimilation figure workflow. |
-| Figure 5 | Monthly time series of normalized percent difference in OmF residual standard deviation for ASCAT, SMOS, SMAP, and CYGNSS. | `projects/cygnss_da/notebooks/cygnss_da_combined_revised_paper_figures.ipynb` | Same combined assimilation figure workflow. |
-| Figure 6 | Spatial distribution of relative difference in OmF residual standard deviation, stratified by observing-system period and sensor. | `projects/cygnss_da/notebooks/cygnss_da_combined_revised_paper_figures.ipynb` or nearby CYGNSS/ObsFcstAna workflow | Mapping is less certain than Figures 7-10; confirm visually before final manuscript citation. |
+| Figure 2 | Mean number of assimilated observations per day for MODIS SCF, ASCAT SM, SMOS Tb, SMAP Tb, and CYGNSS SM — five global postage-stamp maps. | `projects/M21C_ls/notebooks/LS_ofa_figures_refactor_20260327.ipynb` | Confirmed: notebook contains exact day-count values (MODIS 8700, ASCAT 6121, SMOS 5047, SMAP 3207, CYGNSS 2131) and title string "Obs/day (mean over N days)". |
+| Figure 3 | Temporal evolution of number of assimilated observations: total (top panel) and by observing system (bottom panel), monthly, 2000–2024. | `projects/M21C_ls/notebooks/LS_ofa_figures_refactor_20260327.ipynb` | Confirmed: notebook contains title "Number of Observations (DA): LS_DAv8_M36_200006–202405" and "Total Obs / Month". |
+| Figure 4 | Spatial maps of (DA−OL)/OL O-F StdDev [%] by sensor (MODIS, ASCAT, SMOS, SMAP, CYGNSS). | `projects/M21C_ls/notebooks/LS_ofa_figures_refactor_20260327.ipynb` | Confirmed: notebook contains "Normalized Percent Difference (OL - DA)" spatial figure logic for all five sensors. |
+| Figure 5 | Monthly time series of normalized percent difference in O-F StdDev (OL−DA) for ASCAT, SMOS, SMAP, and CYGNSS, 2000–2024. | `projects/M21C_ls/notebooks/LS_ofa_figures_refactor_20260327.ipynb` | Confirmed: title string "Normalized Percent Difference (OL - DA): LS_DAv8_M36_200006_202405" with per-sensor lines. |
+| Figure 6 | (DA−OL)/OL O-F StdDev (%) by Period and Sensor — 7-row × 4-column map grid (periods I–VII, ASCAT/SMOS/SMAP/CYGNSS). | `projects/M21C_ls/notebooks/LS_ofa_figures_refactor_20260327.ipynb` | Confirmed: only notebook containing the title string "by Period and Sensor". Not in the older LS_ofa_figures.ipynb. |
 | Figure 7 | In situ soil moisture skill differences between DA and OL for surface and root-zone soil moisture, grouped by observing-system period. | `projects/M21C_ls/notebooks/insitu_skill_cached_batch_figures.ipynb` | Likely `projects/M21C_ls/outputs_ismn_network_skill/batch_figures/all_networks_custom_OL_DA_delta_surface_rz_R_anomR_ubRMSE.png` or the corresponding `all_networks_hybrid_...` version. |
 | Figure 8 | IMS categorical snow-cover skill differences between DA and OL. | `projects/IMS/scripts/run_ims_ol_da_cell_metrics.py` plus `projects/IMS/notebooks/ims_maps_and_tables_from_precomputed_outputs.ipynb` | Plotting notebook saves an `ims_all_period_delta_metrics_*_nh_robinson_2x3.png` style figure from precomputed IMS metric outputs. |
 | Figure 9 | Seasonal SWE performance at SNOTEL stations: top-row domain bars and bottom-row station maps for DA minus OL. | `projects/SNOTEL/notebooks/snow_daily_seasonal_ol_da_swe_snwd.ipynb` | Strong match to `projects/SNOTEL/outputs_snotel_ol_da_validation/figures/snotel_swe_2x3_bars_allsites_maps_da_minus_ol_elevfilt500_SMAP_EASEv2_M36_GLOBAL_20000601_20240601.png`. |
@@ -190,9 +190,6 @@ These project areas have local README files with current workflow notes:
 
 ## Items to verify before final manuscript text
 
-- Visually confirm Figures 2-6 against the CYGNSS/combined assimilation figure
-  outputs because the draft figure numbering appears to have shifted relative to
-  some saved figure names.
 - Confirm whether Figure 7 uses the `custom`, `hybrid`, or `two_period`
   all-network output.
 - Confirm the exact ERA5/ERA5-Land files used for Figures 11-14 by matching the
