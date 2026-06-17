@@ -61,3 +61,8 @@ era5l_monthly_*/
 
 # Top-level paper figure directory
 paper_figures/
+
+# CERISE public deliverables are intentionally archived in git.
+!projects/cerise/data/public_deliverables/
+!projects/cerise/data/public_deliverables/**
+projects/cerise/data/public_deliverables/**/.DS_Store

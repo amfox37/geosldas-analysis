@@ -1,0 +1,29 @@
+Source: https://www.cerise-project.eu/deliverables
+Date: 2026-06-17
+Dry run: False
+Overwrite: False
+
+Discovered document links for 17 deliverable IDs from page markup.
+  D1.1: 1 link(s)
+  D1.2: 1 link(s)
+  D1.3: 1 link(s)
+  D1.4: 1 link(s)
+  D2.1: 1 link(s)
+  D2.2: 1 link(s)
+  D2.3: 1 link(s)
+  D2.4: 1 link(s)
+  D3.1: 1 link(s)
+  D6.1: 1 link(s)
+  D6.2: 1 link(s)
+  D6.3: 1 link(s)
+  D7.4: 1 link(s)
+  D8.2: 1 link(s)
+  D8.3: 1 link(s)
+  D8.4: 1 link(s)
+  D8.6: 1 link(s)
+
+Manifest: projects/cerise/data/public_deliverables/00_manifest/cerise_deliverables_manifest.csv
+BibTeX: projects/cerise/data/public_deliverables/00_manifest/cerise_deliverables.bib
+Downloaded: 17
+No file link found: 6
+Skipped confidential: 19
