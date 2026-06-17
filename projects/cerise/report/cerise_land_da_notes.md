@@ -27,14 +27,16 @@ the useful question is broader:
 What do the CERISE reports suggest we should try in GEOS-LDAS, land-only
 reanalysis, and weakly coupled global reanalysis?
 
-The two GMAO background papers for interpreting this are:
+The GMAO background papers/drafts for interpreting this are:
 
 - Reichle et al. 2023 SMAP radiance weakly coupled land-atmosphere analysis:
   `/Users/amfox/Zotero/storage/CFNN9WYZ/Reichle et al. - 2023 - A weakly coupled land surface analysis with SMAP r.pdf`
 - CYGNSS soil-moisture DA paper:
   `/Users/amfox/Documents/Publications/CYGNSS DA paper/Revisions/As Submitted/JHM-D-26-0035_R1.pdf`
+- Soil-moisture/snow-cover-fraction land reanalysis draft:
+  `/Users/amfox/Documents/Publications/SM and SCF paper/draft/draft_052426.pdf`
 
-Current GMAO baseline from those papers:
+Current GMAO baseline from those papers/drafts:
 
 - GEOS-LDAS already has a mature ensemble land analysis around the Catchment
   land surface model.
@@ -47,9 +49,34 @@ Current GMAO baseline from those papers:
 - The weakly coupled SMAP radiance work shows that land analysis increments can
   improve near-surface atmospheric analyses and forecasts, not just offline
   land states.
+- GMAO can run controlled multi-decadal offline land replays in which forcing,
+  land model physics, perturbations, observation errors, and analysis frequency
+  are held fixed while the evolving observing system is allowed to change.
+- A current land-only replay capability spans 2000-2024 on the 36-km EASEv2
+  grid using GEOS-IT forcing, precipitation correction, GEOS-LDAS/CLSM, MODIS
+  snow-cover fraction, ASCAT and CYGNSS soil-moisture retrievals, and SMOS/SMAP
+  brightness temperatures.
+- The GEOS-LDAS soil-moisture/Tb analysis uses a 24-member spatially
+  distributed EnKF with 3-hourly analysis windows, while MODIS snow-cover
+  fraction is handled through a separate basic/rules-based snow-cover analysis.
+- In other words, GMAO already does snow-cover DA, but the current capability is
+  a relatively simple SCF-based snow adjustment rather than an ensemble snow DA
+  system or a direct SWE/snow-depth assimilation system.
+- Existing evaluation machinery includes OmF diagnostics, ISMN soil-moisture
+  validation, IMS snow-cover validation, station snow-depth/SWE comparisons,
+  and ERA5-Land comparisons.
+- The clearest current land-only reanalysis lesson is a
+  directness-of-constraint relationship: surface soil moisture and snow-cover
+  occurrence improve most directly, while root-zone soil moisture, SWE, and
+  snow depth respond more weakly through model physics and forcing.
+- The observing system itself is nonstationary. Major observing-system
+  transitions, especially the introduction of SMAP in 2015, can create step
+  changes in land-analysis behavior even when the assimilation configuration is
+  otherwise fixed.
 - Known GMAO limitations/opportunities include observation-error tuning,
   representativeness, active-sensor behavior in dry/arid regions, direct use of
-  GNSS-R/scatterometer signals, and stronger land-atmosphere ensemble coupling.
+  GNSS-R/scatterometer signals, snow-mass constraints, flux/runoff evaluation,
+  and stronger land-atmosphere ensemble coupling.
 
 ## Land Reanalysis Questions
 
@@ -65,12 +92,17 @@ tool. The key questions for GMAO are:
 - How should land-only reanalysis be evaluated: against in situ networks,
   independent satellite products, triple collocation, ERA5-Land, operational
   analyses, and downstream forecasts?
+- How should time-varying observational influence be diagnosed, documented, and
+  separated from geophysical trends in long reanalysis records?
 - How should land-only reanalysis connect to global atmospheric reanalysis:
   as independent land initial conditions, weakly coupled cycling, or a more
   integrated land-atmosphere analysis?
 - How should time-varying vegetation, land cover, snow, soil temperature, and
   other boundary/state variables be represented so that the reanalysis is
   physically consistent over decades?
+- Which missing constraints are needed for integrated reservoirs and fluxes:
+  root-zone soil moisture, SWE, snow depth, runoff, evapotranspiration, and
+  surface energy fluxes?
 
 For global reanalysis, the most relevant CERISE idea is not any one filter. It
 is the idea that land can be treated as an active part of the global analysis
@@ -141,7 +173,30 @@ problem, with land-only and coupled evaluation happening together.
    a useful framing around consistency of land-only reanalysis, operational
    analysis, ERA5/ERA5-Land, seasonal initial conditions, and trends.
 
-9. Soil/snow temperature and screen-level information.
+9. Observing-system transition diagnostics.
+
+   The 2000-2024 GMAO replay draft shows that land reanalysis behavior changes
+   as MODIS, ASCAT, SMOS, SMAP, and CYGNSS enter the record. A high-value next
+   step is to make this diagnostic standard: track observation counts,
+   increments, OmF reductions, analysis-minus-open-loop differences, and
+   changepoints by sensor era before interpreting trends.
+
+10. Snow mass constraints beyond basic snow-cover DA.
+
+   GMAO already has a basic MODIS SCF assimilation capability that improves snow
+   occurrence and persistence, but it only weakly constrains SWE and snow depth.
+   Future land reanalysis work should test whether additional snow observations,
+   ensemble snow DA, or model-error treatments can improve snow mass without
+   damaging snow-cover timing.
+
+11. Flux and hydrological evaluation.
+
+   Current GMAO land-only reanalysis evaluation is strong for soil moisture and
+   snow states, but the draft notes that runoff, evapotranspiration, and surface
+   energy flux impacts are not yet evaluated directly. CERISE D6.1 may help
+   expand the scorecard from states to downstream water and energy budgets.
+
+12. Soil/snow temperature and screen-level information.
 
    This is where the CERISE SEKF material matters, but the GMAO question is not
    "copy SEKF." The question is whether analysed near-surface atmospheric
@@ -550,6 +605,37 @@ necessarily improving atmospheric forecasts, and a coupled global reanalysis
 can improve near-surface weather while still needing independent land-state
 validation.
 
+### Observing-system evolution is part of the reanalysis signal
+
+The GMAO 2000-2024 replay draft is a useful warning for future land
+reanalyses. Even with fixed forcing, model physics, perturbations, observation
+errors, and analysis cycling, the analysis behavior changes as MODIS, ASCAT,
+SMOS, SMAP, and CYGNSS enter the observing system. The SMAP era is especially
+important because it marks a step toward dense, sustained L-band microwave
+constraint.
+
+For trend and drought applications, the analysis should therefore carry
+observing-system diagnostics alongside the land states: observation counts,
+sensor-era masks, increments, OmF reductions, and possibly changepoint tests.
+Otherwise, part of the apparent land-surface trend may be an observing-system
+transition.
+
+### Directness of constraint matters
+
+The GMAO draft gives a useful organizing rule: DA most strongly improves the
+variables that are directly sensed. Surface soil moisture improves more
+strongly than root-zone soil moisture because ASCAT, CYGNSS, SMOS, and SMAP
+mainly sense the upper few centimeters. Snow-cover occurrence improves more
+strongly than SWE or snow depth because the current basic MODIS SCF analysis
+constrains snow presence and extent more directly than snow mass.
+
+This should shape future GMAO experiments. If the target is root-zone storage,
+SWE, runoff, evapotranspiration, or surface energy fluxes, then surface soil
+moisture and snow-cover observations may not be enough by themselves. The
+experiment needs either additional observations, better model-error treatment,
+or a clear hypothesis for how surface increments propagate into the target
+variable.
+
 ## Search Terms That Paid Off
 
 Useful terms for PDF/text searches:
@@ -572,6 +658,13 @@ Useful terms for PDF/text searches:
 - `LETKF`
 - `EnSRKF`
 - `snow depth`
+- `SWE`
+- `SCF`
+- `MODIS`
+- `IMS`
+- `OmF`
+- `changepoint`
+- `directness`
 - `ERA5-Land`
 - `land reanalysis`
 - `global reanalysis`
@@ -601,16 +694,19 @@ rg -n -i "SEKF|2D.?OI|screen.?level|pseudo.?observ|ASCAT|SMOS|ERA5-Land" \
 
 1. Build a one-page GMAO opportunity matrix: observation/source, current GEOS
    capability, CERISE idea, possible experiment, and evaluation metric.
-2. Mine D1.4 first for observation-operator ideas that could matter for SMAP,
+2. Add the 2000-2024 GMAO replay draft to that matrix as the current
+   land-only reanalysis baseline, especially the observing-system-transition
+   and directness-of-constraint results.
+3. Mine D1.4 first for observation-operator ideas that could matter for SMAP,
    SMOS, CYGNSS, ASCAT, and future direct microwave DA.
-3. Mine D6.1 for reusable land-only and global-reanalysis evaluation metrics,
+4. Mine D6.1 for reusable land-only and global-reanalysis evaluation metrics,
    especially ERA5-Land, operational-analysis, trend, and seasonal-initial-state
    consistency diagnostics.
-4. Read D6.2 for vegetation and land-cover variability as a reanalysis design
+5. Read D6.2 for vegetation and land-cover variability as a reanalysis design
    issue, not just a seasonal forecast issue.
-5. Read D2.1/D2.3 only after that, focusing on how land-only analysis feeds
+6. Read D2.1/D2.3 only after that, focusing on how land-only analysis feeds
    coupled global reanalysis and atmospheric forecast impact.
-6. Use D1.2/D1.3 as implementation background, translating SEKF/SURFEX/ecLand
+7. Use D1.2/D1.3 as implementation background, translating SEKF/SURFEX/ecLand
    details into GEOS-LDAS/EnKF/Catchment questions.
-7. Check whether public future reports D2.5, D3.5, D5.6, D6.4, D6.5, and D8.7
+8. Check whether public future reports D2.5, D3.5, D5.6, D6.4, D6.5, and D8.7
    become available later and rerun the downloader.
