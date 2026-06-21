@@ -12,9 +12,12 @@ __pycache__/
 
 # Ignore possible symlinked build and install directories
 # Note: we can't use a / at the end because they might be
-# symlink to a directory
-build*
-install*
+# symlink to a directory. Narrowed to avoid catching files like
+# build_*.py / install_*.py scripts.
+build
+build-*
+install
+install-*
 
 # If you build with spack libraries, you can get spack log files
 spack*.log
