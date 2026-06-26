@@ -1,6 +1,6 @@
 # Legacy BUFR vs H121 QC flags: what we believed, what we found, what we changed
 
-Last updated: 2026-06-20
+Last updated: 2026-06-26
 
 ## Purpose
 
@@ -183,9 +183,10 @@ estimate; see "Legacy global match fraction remains around 0.70" in
 
 ---
 
-## 4. What H121's QC does today, and the two real gaps we found
+## 4. What H121's QC did at the start, and the two real gaps we found
 
-`read_obs_sm_ASCAT_HSAF` (GEOSldas H121/H139 reader) currently screens:
+The initial `read_obs_sm_ASCAT_HSAF` draft on the H121/H139 development branch
+screened:
 
 - `surface_flag` bit 0x01 (open water) → reject
 - `processing_flag` bits 0x01 | 0x02 (model_parameter_not_usable,
@@ -197,6 +198,13 @@ estimate; see "Legacy global match fraction remains around 0.70" in
   previously hurt OFA match fraction and introduced bias — see
   `h121_legacy_obs_validation_notes.md`)
 
+**Update, 2026-06-26:** on `GEOSldas_GridComp` branch
+`feature/amfox/ascat-hsaf-v8`, the Fortran reader now also screens
+`surface_soil_moisture_sensitivity <= 1 dB`, tightens
+`subsurface_scattering_probability` to `>= 5%`, and rejects
+`backscatter40_flag` bit 4 (`noise_out_of_limits`). That branch matches the
+current Python `QC_DEFAULT_H121` on these H121-specific QC additions.
+
 We compared this against two explicit, quantified recommendations in
 Hahn et al. (2026):
 
@@ -204,12 +212,12 @@ Hahn et al. (2026):
    uncertainty with values below 1 dB typically pointing to densely
    vegetated areas with a low backscatter signal variation."* — H121
    exposes `surface_soil_moisture_sensitivity` as a continuous variable
-   (dB) with **no corresponding flag bit**, and GEOSldas does not screen it
-   at all today.
+   (dB) with **no corresponding flag bit**; the initial GEOSldas draft did
+   not screen it.
 2. **Sect. 3.5** (the paper's own validation methodology): *"internal
    quality flags ... are applied to mask observations affected by
-   subsurface scattering (subsurface scattering probability > 5%)."* —
-   GEOSldas currently uses `>= 10%`, twice as permissive as what the
+   subsurface scattering (subsurface scattering probability > 5%)."* — the
+   initial GEOSldas draft used `>= 10%`, twice as permissive as what the
    dataset's authors validated against.
 
 ### Why `slope40`/`curvature40` do *not* need an analogous "out of range" flag
@@ -228,7 +236,9 @@ a separate slope/curvature threshold would be redundant.
 `backscatter40_flag` (sigma0_usable / slightly_degraded / noise_out_of_limits)
 is the closest remaining analogue to legacy's "Backscatter Fore-Aft out of
 range" bit, but that legacy bit only fired on 0.9% of obs in our sample —
-minor, and not currently screened or recommended for screening.
+minor. H121's `backscatter40_flag` bit 4 is now screened on
+assimilation-design grounds because GEOSldas otherwise assigns the same fixed
+observation error to noisy and clean H121 observations.
 
 ---
 
@@ -297,20 +307,21 @@ see Sect. 4 above).
   default**, decided on assimilation-design grounds rather than the
   (inconclusive) legacy cross-check — see Sect. 9 for the full reasoning.
 
-### GEOSldas Fortran (not yet applied — instructions drafted)
+### GEOSldas Fortran (`feature/amfox/ascat-hsaf-v8`)
 
-Proposed changes to `read_obs_sm_ASCAT_HSAF` in `clsm_ensupd_read_obs.F90`:
+Implemented changes to `read_obs_sm_ASCAT_HSAF` in `clsm_ensupd_read_obs.F90`:
 
 - Add `real, parameter :: thr_sens = 1.0` and screen
   `surface_soil_moisture_sensitivity <= thr_sens` (NC_INT, scale factor
   `1e-7`, units dB; fill value is large-negative so it fails the threshold
   naturally, no separate fill check needed).
 - Change `thr_subsfc` from `10.` to `5.`.
+- Reject `backscatter40_flag` bit 4 (`noise_out_of_limits`).
 - Update the subroutine's header QC-summary comment to match.
 
 Recommendation: validate both the Python-side and Fortran-side changes
 against OFA bias/match-fraction (the same way the original H121
-`correction_flag` decision was validated) before merging either.
+`correction_flag` decision was validated) before promoting the feature branch.
 
 ---
 
@@ -521,8 +532,9 @@ evidence *against* the change either.
   read as showing harm either. See Sect. 9.
 - **All three changes are now baked into `QC_DEFAULT_H121`** in
   `projects/ascat_da/lib/qc.py` (`sens_min=1.0`, `subsfc_max=5`,
-  `bsflag_bad_bits=4`). Fortran handoff instructions for all three are in
-  `geosldas_fortran_handoff_h121_qc.md`, not yet applied to GEOSldas.
+  `bsflag_bad_bits=4`) and implemented in the Fortran HSAF reader on
+  `GEOSldas_GridComp` branch `feature/amfox/ascat-hsaf-v8`. The companion
+  implementation/rationale note is `geosldas_fortran_handoff_h121_qc.md`.
 
 ---
 

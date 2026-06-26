@@ -85,7 +85,8 @@ The Python readers now return both:
 - `cycle`: day-aware cycle index so next-day `0000z` is not mixed with same-day
   `0000z`
 
-For H121/HSAF QC, the current GEOSldas reader `read_obs_sm_ASCAT_HSAF` applies:
+For H121/HSAF QC, the GEOSldas reader version mirrored by the
+`geos_cycle_global_v2_geos_hsaf_qc` cache applied:
 
 - reject if `surface_flag` open-water bit `0x01` is set,
 - reject if `processing_flag` bad bits `0x01|0x02` are set,
@@ -98,6 +99,13 @@ This matters. The first Python cache screened `correction_flag` and did not
 mirror the GEOS HSAF QC exactly. Rebuilding with the looser GEOS-style H121 QC
 substantially improved the global H121/OFA match fraction and removed most of
 the global mean bias.
+
+Update, 2026-06-26: the active H121/H139 development branch
+`GEOSldas_GridComp:feature/amfox/ascat-hsaf-v8` now tightens H121 QC beyond
+this v2 cache baseline: `subsurface_scattering_probability >= 5%`,
+`surface_soil_moisture_sensitivity <= 1 dB`, and `backscatter40_flag` bit 4
+are rejected. Those changes match the current Python `QC_DEFAULT_H121`; v2
+cache results should be read as the pre-tightening GEOS-style baseline.
 
 ## OFA species mapping
 

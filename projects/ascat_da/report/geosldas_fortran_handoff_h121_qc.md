@@ -1,4 +1,9 @@
-# Handoff: H121/H139 ASCAT reader QC updates (sensitivity, subsurface scattering, backscatter quality)
+# H121/H139 ASCAT reader QC updates (sensitivity, subsurface scattering, backscatter quality)
+
+Status update, 2026-06-26: these changes are implemented in
+`GEOSldas_GridComp` on branch `feature/amfox/ascat-hsaf-v8`. This note is
+kept as the implementation checklist and rationale; older branches may still
+lack this reader or carry the pre-update QC.
 
 ## File / subroutine
 
@@ -11,11 +16,10 @@
 Hahn et al. (2026, ESSD discussion paper essd-2025-746, Sect. 4.1.1) state that
 `surface_soil_moisture_sensitivity` values below 1 dB indicate unreliable
 retrievals (typically dense vegetation with low backscatter signal
-variation), but this field is currently read nowhere in the reader and isn't
-screened at all. Separately, the same paper's own validation methodology
-(Sect. 3.5) masks `subsurface_scattering_probability > 5%`, but the reader
-currently uses `thr_subsfc = 10.` — twice as permissive as what the
-dataset's authors validated against.
+variation). Separately, the same paper's own validation methodology
+(Sect. 3.5) masks `subsurface_scattering_probability > 5%`. The original
+H121/H139 reader draft did not screen sensitivity and used `thr_subsfc = 10.`,
+twice as permissive as what the dataset's authors validated against.
 
 Tested locally against a 10-day global sample (all three Metop satellites,
 2020-06-01 to 06-10): sensitivity <=1 dB removes ~5% of currently-passing
@@ -29,7 +33,7 @@ read as validated-or-rejected by that comparison alone. See
 and rationale, including a third change (Sect. 9 below) decided on
 assimilation-design grounds rather than that cross-check.
 
-## Changes
+## Implemented Changes
 
 ### 1. Add a new threshold parameter
 
@@ -181,14 +185,14 @@ Update the header "QC applied" comment block to add:
 !   backscatter40_flag bit 4 (noise_out_of_limits)            -> reject (new)
 ```
 
-## Before merging
+## Before promoting/merging
 
 These three changes came from a mix of the paper's stated recommendations
 (sensitivity, subsurface scattering) and an assimilation-design argument
 specific to this codebase (backscatter noise has no down-weighting
 fallback, so hard QC is the only lever) — not from tuning against GEOSldas
 innovations directly. Please validate with the usual OFA-bias/match-fraction
-check before committing (the Fortran/production-side equivalent of
+check before promoting beyond the feature branch (the Fortran/production-side equivalent of
 `check_global_superobs_vs_ofa.py`) in case any of the three thresholds need
 adjusting for this use case. The Python-mirror side of all three changes is
 implemented and validated in `projects/ascat_da/` (see
