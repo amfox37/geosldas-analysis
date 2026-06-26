@@ -547,25 +547,98 @@ def bootstrap_compare_table_from_pair_days(
     return pd.DataFrame(rows)
 
 
-def build_scope_metadata(year_start: int, year_end: int) -> tuple[pd.DataFrame, dict[str, dict]]:
+def parse_custom_period_scopes(
+    scope_specs: list[str] | None,
+    year_start: int,
+    year_end: int,
+) -> list[dict[str, object]]:
+    """
+    Parse custom inclusive date-window scopes.
+
+    Expected syntax is NAME:YYYY-MM-DD:YYYY-MM-DD. These scopes are useful for
+    manuscript periods that do not align with calendar years or seasons.
+    """
+    periods: list[dict[str, object]] = []
+    for raw in scope_specs or []:
+        parts = str(raw).split(":")
+        if len(parts) != 3:
+            raise ValueError(
+                "Invalid --custom-period-scope. Expected NAME:YYYY-MM-DD:YYYY-MM-DD, "
+                f"got {raw!r}"
+            )
+        name, start_raw, end_raw = parts
+        name = name.strip()
+        if not name:
+            raise ValueError(f"Custom period scope name is empty in {raw!r}")
+        start = pd.Timestamp(start_raw).normalize()
+        end = pd.Timestamp(end_raw).normalize()
+        if end < start:
+            raise ValueError(f"Custom period scope end is before start in {raw!r}")
+        if start.year < int(year_start) or end.year > int(year_end):
+            raise ValueError(
+                f"Custom period scope {name!r} ({start.date()} to {end.date()}) "
+                f"falls outside --year-start/--year-end ({year_start}..{year_end})"
+            )
+        periods.append({"name": name, "start": start, "end": end})
+    return periods
+
+
+def build_scope_metadata(
+    year_start: int,
+    year_end: int,
+    custom_periods: list[dict[str, object]] | None = None,
+) -> tuple[pd.DataFrame, dict[str, dict]]:
     """Build scope table and index mappings used for per-cell accumulators."""
     rows = []
     sid = 0
 
     idx_all = sid
-    rows.append({"scope_id": sid, "scope": "ALL_PERIOD", "year": -1, "season": "ALL", "scope_type_code": 0, "season_code": -1})
+    rows.append(
+        {
+            "scope_id": sid,
+            "scope": "ALL_PERIOD",
+            "year": -1,
+            "season": "ALL",
+            "scope_type_code": 0,
+            "season_code": -1,
+            "start_date": "",
+            "end_date": "",
+        }
+    )
     sid += 1
 
     season_map: dict[str, int] = {}
     for s in SEASON_ORDER:
         season_map[s] = sid
-        rows.append({"scope_id": sid, "scope": "SEASON_ALL_YEARS", "year": -1, "season": s, "scope_type_code": 1, "season_code": SEASON_TO_CODE[s]})
+        rows.append(
+            {
+                "scope_id": sid,
+                "scope": "SEASON_ALL_YEARS",
+                "year": -1,
+                "season": s,
+                "scope_type_code": 1,
+                "season_code": SEASON_TO_CODE[s],
+                "start_date": "",
+                "end_date": "",
+            }
+        )
         sid += 1
 
     year_map: dict[int, int] = {}
     for y in range(year_start, year_end + 1):
         year_map[y] = sid
-        rows.append({"scope_id": sid, "scope": "YEAR", "year": int(y), "season": "ALL", "scope_type_code": 2, "season_code": -1})
+        rows.append(
+            {
+                "scope_id": sid,
+                "scope": "YEAR",
+                "year": int(y),
+                "season": "ALL",
+                "scope_type_code": 2,
+                "season_code": -1,
+                "start_date": f"{int(y):04d}-01-01",
+                "end_date": f"{int(y):04d}-12-31",
+            }
+        )
         sid += 1
 
     year_season_map: dict[tuple[int, str], int] = {}
@@ -580,9 +653,31 @@ def build_scope_metadata(year_start: int, year_end: int) -> tuple[pd.DataFrame, 
                     "season": s,
                     "scope_type_code": 3,
                     "season_code": SEASON_TO_CODE[s],
+                    "start_date": "",
+                    "end_date": "",
                 }
             )
             sid += 1
+
+    custom_period_map: dict[str, dict[str, object]] = {}
+    for period in custom_periods or []:
+        name = str(period["name"])
+        start = pd.Timestamp(period["start"]).normalize()
+        end = pd.Timestamp(period["end"]).normalize()
+        custom_period_map[name] = {"scope_id": sid, "start": start, "end": end}
+        rows.append(
+            {
+                "scope_id": sid,
+                "scope": name,
+                "year": -1,
+                "season": "ALL",
+                "scope_type_code": 4,
+                "season_code": -1,
+                "start_date": start.strftime("%Y-%m-%d"),
+                "end_date": end.strftime("%Y-%m-%d"),
+            }
+        )
+        sid += 1
 
     meta = pd.DataFrame(rows)
     maps = {
@@ -590,6 +685,7 @@ def build_scope_metadata(year_start: int, year_end: int) -> tuple[pd.DataFrame, 
         "season": season_map,
         "year": year_map,
         "year_season": year_season_map,
+        "custom_period": custom_period_map,
     }
     return meta, maps
 
@@ -723,7 +819,10 @@ def write_cell_counts_netcdf(
 
         scope_type_code = ds.createVariable("scope_type_code", "i4", ("scope",))
         scope_type_code[:] = scope_meta["scope_type_code"].to_numpy(dtype=np.int32)
-        scope_type_code.codes = "0:ALL_PERIOD,1:SEASON_ALL_YEARS,2:YEAR,3:YEAR_SEASON"
+        scope_type_code.codes = "0:ALL_PERIOD,1:SEASON_ALL_YEARS,2:YEAR,3:YEAR_SEASON,4:CUSTOM_PERIOD"
+
+        scope_name = ds.createVariable("scope_name", str, ("scope",))
+        scope_name[:] = np.asarray(scope_meta["scope"].astype(str).to_list(), dtype=object)
 
         scope_year = ds.createVariable("scope_year", "i4", ("scope",), fill_value=-1)
         scope_year[:] = scope_meta["year"].to_numpy(dtype=np.int32)
@@ -731,6 +830,19 @@ def write_cell_counts_netcdf(
         scope_season_code = ds.createVariable("scope_season_code", "i4", ("scope",), fill_value=-1)
         scope_season_code[:] = scope_meta["season_code"].to_numpy(dtype=np.int32)
         scope_season_code.codes = "-1:ALL,0:DJF,1:MAM,2:JJA,3:SON"
+
+        if "start_date" in scope_meta.columns:
+            start_dates = scope_meta["start_date"].fillna("").astype(str).to_list()
+        else:
+            start_dates = [""] * n_scope
+        if "end_date" in scope_meta.columns:
+            end_dates = scope_meta["end_date"].fillna("").astype(str).to_list()
+        else:
+            end_dates = [""] * n_scope
+        scope_start_date = ds.createVariable("scope_start_date", str, ("scope",))
+        scope_end_date = ds.createVariable("scope_end_date", str, ("scope",))
+        scope_start_date[:] = np.asarray(start_dates, dtype=object)
+        scope_end_date[:] = np.asarray(end_dates, dtype=object)
 
         rep_i = ds.createVariable("cell_i", "i4", ("cell",))
         rep_j = ds.createVariable("cell_j", "i4", ("cell",))
@@ -806,9 +918,32 @@ def read_scope_meta_from_cell_counts_nc(nc_path: Path) -> pd.DataFrame:
         scope_type_code = np.asarray(ds.variables["scope_type_code"][:], dtype=np.int32)
         scope_year = np.asarray(ds.variables["scope_year"][:], dtype=np.int32)
         scope_season_code = np.asarray(ds.variables["scope_season_code"][:], dtype=np.int32)
+        scope_name = (
+            [str(x) for x in ds.variables["scope_name"][:]]
+            if "scope_name" in ds.variables
+            else [None] * len(scope_id)
+        )
+        scope_start_date = (
+            [str(x) for x in ds.variables["scope_start_date"][:]]
+            if "scope_start_date" in ds.variables
+            else [""] * len(scope_id)
+        )
+        scope_end_date = (
+            [str(x) for x in ds.variables["scope_end_date"][:]]
+            if "scope_end_date" in ds.variables
+            else [""] * len(scope_id)
+        )
 
     rows = []
-    for sid, stc, yr, ssc in zip(scope_id, scope_type_code, scope_year, scope_season_code):
+    for sid, stc, yr, ssc, name, start_date, end_date in zip(
+        scope_id,
+        scope_type_code,
+        scope_year,
+        scope_season_code,
+        scope_name,
+        scope_start_date,
+        scope_end_date,
+    ):
         if int(stc) == 0:
             scope = "ALL_PERIOD"
         elif int(stc) == 1:
@@ -817,8 +952,12 @@ def read_scope_meta_from_cell_counts_nc(nc_path: Path) -> pd.DataFrame:
             scope = "YEAR"
         elif int(stc) == 3:
             scope = "YEAR_SEASON"
+        elif int(stc) == 4:
+            scope = "CUSTOM_PERIOD"
         else:
             scope = "UNKNOWN"
+        if name is not None and str(name).strip():
+            scope = str(name)
 
         season = "ALL" if int(ssc) < 0 else CODE_TO_SEASON.get(int(ssc), "ALL")
         rows.append(
@@ -829,6 +968,8 @@ def read_scope_meta_from_cell_counts_nc(nc_path: Path) -> pd.DataFrame:
                 "season": str(season),
                 "scope_type_code": int(stc),
                 "season_code": int(ssc),
+                "start_date": str(start_date),
+                "end_date": str(end_date),
             }
         )
     return pd.DataFrame(rows)
@@ -1097,6 +1238,15 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--domain", default=DEFAULT_DOMAIN)
     ap.add_argument("--year-start", type=int, default=DEFAULT_YEAR_START)
     ap.add_argument("--year-end", type=int, default=DEFAULT_YEAR_END)
+    ap.add_argument(
+        "--custom-period-scope",
+        action="append",
+        default=[],
+        help=(
+            "Optional inclusive custom date-window scope, repeated as needed. "
+            "Format: NAME:YYYY-MM-DD:YYYY-MM-DD"
+        ),
+    )
 
     ap.add_argument("--ims-regrid-dir", default=str(DEFAULT_IMS_REGRID_DIR))
     ap.add_argument("--ims-regrid-template", default=DEFAULT_IMS_REGRID_TEMPLATE)
@@ -1181,6 +1331,11 @@ def main() -> None:
 
     if args.year_end < args.year_start:
         raise ValueError(f"Invalid year range: {args.year_start}..{args.year_end}")
+    custom_periods = parse_custom_period_scopes(
+        args.custom_period_scope,
+        year_start=int(args.year_start),
+        year_end=int(args.year_end),
+    )
 
     model_var_candidates = parse_str_tuple(args.model_var_candidates)
     ims_snow_codes = parse_int_set(args.ims_snow_codes)
@@ -1237,6 +1392,11 @@ def main() -> None:
     # Fast postprocess mode: start from an existing cell-counts NetCDF, apply eligibility filter,
     # then regenerate downstream files used by the notebook pipeline.
     if args.reuse_cell_counts_nc is not None:
+        if custom_periods:
+            raise ValueError(
+                "--custom-period-scope requires a full rerun from daily IMS/model files; "
+                "--reuse-cell-counts-nc cannot reconstruct new date-window scopes."
+            )
         src_nc = Path(args.reuse_cell_counts_nc)
         if not src_nc.exists():
             raise FileNotFoundError(f"--reuse-cell-counts-nc does not exist: {src_nc}")
@@ -1338,6 +1498,10 @@ def main() -> None:
     print(f"IMS var: {args.ims_var}")
     print(f"Model SCF var candidates: {model_var_candidates}")
     print(f"Threshold: {args.scf_threshold}")
+    if custom_periods:
+        print("Custom period scopes:")
+        for period in custom_periods:
+            print(f"  {period['name']}: {period['start']} to {period['end']}")
     print(f"Tilecoord: {tilecoord}")
     for k in exp_keys:
         print(f"{k}: exp_name={experiments[k]['exp_name']} run_root={experiments[k]['run_root']}")
@@ -1354,7 +1518,7 @@ def main() -> None:
     print(f"Representative land cells: {n_cell}")
     print(f"Grid shape from tilecoord: ny={ny}, nx={nx}")
 
-    scope_meta, scope_maps = build_scope_metadata(args.year_start, args.year_end)
+    scope_meta, scope_maps = build_scope_metadata(args.year_start, args.year_end, custom_periods=custom_periods)
     n_scope = int(scope_meta.shape[0])
     print(f"Scopes configured: {n_scope}")
 
@@ -1548,6 +1712,9 @@ def main() -> None:
                         int(scope_maps["year"][int(day.year)]),
                         int(scope_maps["year_season"][(int(day.year), season)]),
                     ]
+                    for custom in scope_maps.get("custom_period", {}).values():
+                        if pd.Timestamp(custom["start"]) <= day <= pd.Timestamp(custom["end"]):
+                            scope_ids.append(int(custom["scope_id"]))
 
                     for exp_key in exp_keys:
                         A, B, C, D, valid = contingency_masks_from_vectors(
@@ -1743,6 +1910,20 @@ def main() -> None:
                 year_val=yi,
                 season_val=s,
                 seed_offset=2000 + yi * 10 + SEASON_ORDER.index(s),
+            )
+
+    if custom_periods:
+        pair_dates = pd.to_datetime(pair_daily["date"]).dt.normalize()
+        for idx, period in enumerate(custom_periods):
+            start = pd.Timestamp(period["start"]).normalize()
+            end = pd.Timestamp(period["end"]).normalize()
+            sub = pair_daily[(pair_dates >= start) & (pair_dates <= end)]
+            add_scope(
+                sub,
+                str(period["name"]),
+                year_val=-1,
+                season_val="ALL",
+                seed_offset=5000 + idx,
             )
 
     if not comparison_parts:
