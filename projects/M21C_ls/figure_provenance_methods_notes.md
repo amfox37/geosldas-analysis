@@ -14,14 +14,14 @@ notebook save names, and project READMEs.
 | --- | --- | --- | --- |
 | Figure 2 | Mean number of assimilated observations per day for MODIS SCF, ASCAT SM, SMOS Tb, SMAP Tb, and CYGNSS SM — five global postage-stamp maps. | `projects/M21C_ls/notebooks/LS_ofa_figures_refactor_20260327.ipynb` | Confirmed: notebook contains exact day-count values (MODIS 8700, ASCAT 6121, SMOS 5047, SMAP 3207, CYGNSS 2131) and title string "Obs/day (mean over N days)". |
 | Figure 3 | Temporal evolution of number of assimilated observations: total (top panel) and by observing system (bottom panel), monthly, 2000–2024. | `projects/M21C_ls/notebooks/LS_ofa_figures_refactor_20260327.ipynb` | Confirmed: notebook contains title "Number of Observations (DA): LS_DAv8_M36_200006–202405" and "Total Obs / Month". |
-| Figure 4 | Spatial maps of (DA−OL)/OL O-F StdDev [%] by sensor (MODIS, ASCAT, SMOS, SMAP, CYGNSS). | `projects/M21C_ls/notebooks/LS_ofa_figures_refactor_20260327.ipynb` | Confirmed: notebook contains "Normalized Percent Difference (OL - DA)" spatial figure logic for all five sensors. |
-| Figure 5 | Monthly time series of normalized percent difference in O-F StdDev (OL−DA) for ASCAT, SMOS, SMAP, and CYGNSS, 2000–2024. | `projects/M21C_ls/notebooks/LS_ofa_figures_refactor_20260327.ipynb` | Confirmed: title string "Normalized Percent Difference (OL - DA): LS_DAv8_M36_200006_202405" with per-sensor lines. |
-| Figure 6 | (DA−OL)/OL O-F StdDev (%) by Period and Sensor — 7-row × 4-column map grid (periods I–VII, ASCAT/SMOS/SMAP/CYGNSS). | `projects/M21C_ls/notebooks/LS_ofa_figures_refactor_20260327.ipynb` | Confirmed: only notebook containing the title string "by Period and Sensor". Not in the older LS_ofa_figures.ipynb. |
-| Figure 7 | In situ soil moisture skill differences between DA and OL for surface and root-zone soil moisture, grouped by observing-system period. | `projects/M21C_ls/notebooks/insitu_skill_cached_batch_figures.ipynb` | Likely `projects/M21C_ls/outputs_ismn_network_skill/batch_figures/all_networks_custom_OL_DA_delta_surface_rz_R_anomR_ubRMSE.png` or the corresponding `all_networks_hybrid_...` version. |
+| Figure 4 | Spatial maps of O-F StdDev improvement, `(OL−DA)/OL` [%], by sensor (MODIS, ASCAT, SMOS, SMAP, CYGNSS). | `projects/M21C_ls/notebooks/paper_figures_unified.ipynb` | Updated unified workflow makes positive/red values mean lower DA O-F StdDev than OL and masks tiny OL denominators. |
+| Figure 5 | Monthly time series of O-F StdDev improvement, `(OL−DA)/OL` [%], for MODIS, ASCAT, SMOS, SMAP, and CYGNSS, 2000–2024. | `projects/M21C_ls/notebooks/paper_figures_unified.ipynb` | Updated unified workflow uses P1-P9 shading, positive-improvement convention, 5-month centered smoothing over monthly values, and a period-mean summary strip. |
+| Figure 6 | O-F StdDev improvement, `(OL−DA)/OL` [%], by P1-P9 observing-system period and sensor. | `projects/M21C_ls/notebooks/paper_figures_unified.ipynb` | Updated unified workflow uses a 9-row x 5-column availability-aware grid for MODIS, ASCAT, SMOS, SMAP, and CYGNSS; positive/red means lower DA O-F StdDev than OL. |
+| Figure 7 | In situ soil-moisture skill changes between DA and OL for surface and root-zone soil moisture, grouped by broader validation periods mapped to P1-P9. | `projects/M21C_ls/notebooks/paper_figures_unified.ipynb` | Updated unified workflow reads the hybrid ISMN table and labels validation periods as V1 SCF-only period (P1-P2), V2 microwave pre-SMAP period (P3-P5), and V3 SMAP-era microwave period (P6-P9); positive values mean DA better for all metrics. |
 | Figure 8 | IMS categorical snow-cover skill differences between DA and OL. | `projects/IMS/scripts/run_ims_ol_da_cell_metrics.py` plus `projects/IMS/notebooks/ims_maps_and_tables_from_precomputed_outputs.ipynb` | Plotting notebook saves an `ims_all_period_delta_metrics_*_nh_robinson_2x3.png` style figure from precomputed IMS metric outputs. |
-| Figure 9 | Seasonal SWE performance at SNOTEL stations: top-row domain bars and bottom-row station maps for DA minus OL. | `projects/SNOTEL/notebooks/snow_daily_seasonal_ol_da_swe_snwd.ipynb` | Strong match to `projects/SNOTEL/outputs_snotel_ol_da_validation/figures/snotel_swe_2x3_bars_allsites_maps_da_minus_ol_elevfilt500_SMAP_EASEv2_M36_GLOBAL_20000601_20240601.png`. |
-| Figure 10 | GHCN snow depth validation: seasonal/domain bars and DA minus OL maps. | `projects/GHCN_snwd/notebooks/ghcn_snwd_daily_seasonal_ol_da_snwd_baseline_basic.ipynb` | Strong match to `projects/GHCN_snwd/outputs_ghcn_snwd_ol_da_validation/figures/ghcn_baseline_core_snodpland_2x3_bars_maps_nh_da_minus_ol_ALL_SMAP_EASEv2_M36_GLOBAL_20000101_20241231.png`. |
-| Figures 11-14 | ERA5/ERA5-Land comparison figures for soil moisture and snow variables. | `projects/era5_land/notebooks/compare_with_reanalysis_strict.ipynb` plus plotting notebooks in `projects/era5_land/notebooks/` | Candidate outputs include `figures_era5l_postage_stamps/postage_stamp_da_minus_ol_surface_rz_sm_6x3.png` and bar figures under `figures_era5l_bars/`. |
+| Figure 9 | Seasonal SWE performance at SNOTEL stations: top-row domain bars and bottom-row station maps of DA improvement. | `projects/M21C_ls/notebooks/paper_figures_unified.ipynb` | Unified workflow reads cached SNOTEL station metrics/top-row CI tables and plots map values as `OL - DA` for RMSE, ubRMSE, and absolute bias, so positive/red means DA improved. |
+| Figure 10 | GHCN snow depth validation: seasonal station bars and NH station improvement maps. | `projects/M21C_ls/notebooks/paper_figures_unified.ipynb` | Rebuilt from cached GHCN baseline-core station metrics. Map colors use `OL - DA`, so positive/red means DA improved lower-is-better snow-depth metrics. Legacy source figure used DA minus OL. |
+| Figures 11-13 | ERA5-Land comparison figures for soil moisture and snow variables. | `projects/M21C_ls/notebooks/paper_figures_unified.ipynb`, using ERA5-Land metric caches derived from `projects/era5_land/notebooks/compare_with_reanalysis_strict.ipynb`. | Unified outputs are `fig11_era5land_soil_moisture_bars.*`, `fig12_era5land_soil_moisture_improvement_maps.*`, and `fig13_era5land_snow_comparison_bars.*`. |
 
 ## Project README inventory
 
@@ -35,6 +35,39 @@ These project areas have local README files with current workflow notes:
 - `projects/SNOTEL/README.md`
 
 ## Methods details to carry forward
+
+### P1 vs P2 Terra-only / Terra+Aqua diagnostics
+
+- Dedicated notebook:
+  `projects/M21C_ls/notebooks/p1_p2_comparison_diagnostics.ipynb`.
+- Detailed written summary:
+  `projects/M21C_ls/docs/p1_p2_comparison_summary.md`.
+- Output directory:
+  `projects/M21C_ls/output/p1_p2_comparison/`.
+- This notebook isolates the early MODIS snow-cover transition:
+  P1 `2000-06-01` to `2002-06-30` (`MODIS Terra SCF`) and P2
+  `2002-07-01` to `2007-05-31` (`MODIS Terra+Aqua SCF`).
+- It is a diagnostic companion to the manuscript figure workflow, not a
+  replacement for `paper_figures_unified.ipynb`. P1+P2 together correspond to
+  the broader `SCF-only period` used in the main ISMN and ERA5-Land period
+  figures.
+- The notebook compares P1 and P2 on common support where possible:
+  common MODIS OFA tiles, common station support for SNOTEL/GHCN, and common
+  ERA5-Land grid cells for each variable/metric.
+- It writes a compact cross-dataset rollup:
+  `projects/M21C_ls/output/p1_p2_comparison/p1_p2_cross_dataset_rollup.csv`,
+  plus OFA, IMS, station, and ERA5-Land component tables.
+- Current summary: P2 has about twice the MODIS DA observation density per day
+  on common tiles, stronger MODIS OmF StdDev reduction (13.93% vs 8.28%),
+  stronger IMS snow hit-rate improvement, and generally stronger independent
+  validation support from GHCN snow depth and SNOTEL SWE. ERA5-Land is
+  supportive but more nuanced: RMSE/bias/correlation often improve more in P2,
+  while some ubRMSE metrics are flat or slightly negative.
+- Interpretive caveat: the P1/P2 result is not "DA improves every metric
+  everywhere." It is more specifically that Aqua MODIS increases useful SCF
+  constraint density and strengthens several snow-detection and bulk-error
+  diagnostics, with tradeoffs in no-snow classification and some variance-style
+  metrics.
 
 ### M21C_ls / ISMN soil moisture skill
 
@@ -64,6 +97,12 @@ These project areas have local README files with current workflow notes:
 - The validation script writes gridded count/metric NetCDF output and comparison
   tables; the plotting notebook builds the final map/table figures from those
   precomputed outputs.
+- Unified Figure 8 uses a positive-improvement convention for every metric:
+  `DA - OL` for accuracy, hit rate, and correct rejection rate; `OL - DA` for
+  miss rate and false alarm ratio.
+- The Terra-only/Terra+Aqua supplemental comparison uses the Discover rerun
+  product with custom scopes `P1_MODIS_Terra_SCF` and
+  `P2_MODIS_Terra_Aqua_SCF`.
 
 ### SNOTEL SWE and snow-depth validation
 
@@ -99,8 +138,9 @@ These project areas have local README files with current workflow notes:
   year, maximum model-tile distance of 40 km, maximum elevation difference of
   500 m, and a minimum paired-day requirement.
 - Metrics include `R`, `anomR`, RMSE, `ubRMSE`, bias, and absolute bias.
-- The likely Figure 10 output covers the Northern Hemisphere and reports DA
-  minus OL metric differences for the full analysis period and seasons.
+- The unified Figure 10 output covers the Northern Hemisphere and reports
+  station-level `OL - DA` improvements for lower-is-better metrics, so
+  positive/red values indicate lower DA error.
 
 ### ERA5 / ERA5-Land comparison
 
@@ -120,8 +160,10 @@ These project areas have local README files with current workflow notes:
   fraction, SWE, snow depth, and soil temperature.
 - ERA5-Land no-snow NaNs are treated as zeros for SWE and snow-depth statistics
   in the plotting workflow.
-- Periodized metrics are computed for pre-SMAP, SMAP-era, and full-period
-  windows. Metrics include `R`, `anomR`, `ubRMSE`, RMSE, and bias.
+- Periodized soil-moisture metrics use the manuscript validation periods:
+  V1 `SCF-only period` (P1-P2), V2 `microwave pre-SMAP period` (P3-P5),
+  and V3 `SMAP-era microwave period` (P6-P9). Metrics include `R`,
+  `anomR`, `ubRMSE`, RMSE, and bias.
 
 ### ISMN project area
 
@@ -183,10 +225,14 @@ These project areas have local README files with current workflow notes:
   network/domain/metric. The plotted deltas are paired site-level mean changes:
   `DA-OL` for `R` and `anomR`, and `OL-DA` for `ubRMSE` so positive values mean
   improved lower error.
-- Current output products:
+- Source ISMN output products:
   `outputs_ismn_network_skill/batch_figures/all_networks_hybrid_OL_DA_delta_surface_rz_R_anomR_ubRMSE.png`
   and the machine-readable table
   `outputs_ismn_network_skill/batch_figures/all_networks_hybrid_OL_DA_delta_surface_rz_R_anomR_ubRMSE_table.csv`.
+- Unified manuscript outputs:
+  `output/paper_figures/fig07_ismn_skill_by_validation_period.png`,
+  `output/paper_figures/fig07_ismn_skill_by_validation_period.pdf`, and
+  `output/paper_figures/fig07_ismn_skill_by_validation_period_table.csv`.
 
 ## Unified paper-figure notebook plan
 
@@ -231,15 +277,15 @@ existing source notebooks/scripts and be referenced in a figure registry.
 | Fig. 2 obs/day maps | `/Users/amfox/Desktop/GEOSldas_diagnostics/test_data/M21C_land_sweeper_v2/temporal_stats_DA_20000601_20240531.nc4`, `spatial_stats_DA_200006_202405.pkl`, and `LS_OLv8_M36.ldas_tilecoord.bin`. The NetCDF has `tile=112573`, `species=14`, and variables including `N_data`, `OmF_stdv`, and `OmF_norm_stdv`; the pickle has monthly arrays such as `N_data`, `OmF_stdv`, and `date_vec` with shape `(288, 14)`. | `projects/M21C_ls/notebooks/LS_ofa_figures_refactor_20260327.ipynb` or the underlying ObsFcstAna stats generation. |
 | Fig. 3 obs/month time series | Same full-period DA temporal/spatial OFA stats as Fig. 2, especially monthly `N_data` grouped by species. | Same as Fig. 2. |
 | Fig. 4 full-period OmF maps | Full-period OL and DA temporal stats: `temporal_stats_OL_20000601_20240531.nc4`, `temporal_stats_DA_20000601_20240531.nc4`, plus tilecoord. Uses variables such as `OmF_stdv` and `N_data`. | `LS_ofa_figures_refactor_20260327.ipynb`. |
-| Fig. 5 monthly OmF evolution | Full-period OL/DA spatial-stat pickles: `spatial_stats_OL_200006_202405.pkl` and `spatial_stats_DA_200006_202405.pkl`. Uses monthly `OmF_stdv`, `N_data`, and `date_vec`. | `LS_ofa_figures_refactor_20260327.ipynb`. |
-| Fig. 6 OmF maps by period and sensor | Period-split OL/DA temporal stats under `/Users/amfox/Desktop/GEOSldas_diagnostics/test_data/M21C_land_sweeper_v2/`, e.g. `temporal_stats_{OL,DA}_20070601_20100430.nc4`, `20100501_20130331.nc4`, `20130401_20150331.nc4`, `20150401_20180731.nc4`, `20180801_20191031.nc4`, `20191101_20211130.nc4`, and `20211201_20240531.nc4`, plus tilecoord. | `LS_ofa_figures_refactor_20260327.ipynb`. |
-| Fig. 7 ISMN skill | Prefer the already assembled local table `projects/M21C_ls/output/ismn_network_skill/batch_figures/all_networks_hybrid_OL_DA_delta_surface_rz_R_anomR_ubRMSE_table.csv` and, if needed, the raw caches in `projects/M21C_ls/output/ismn_network_skill/*_raw_timeseries.nc`. The table has network/domain/metric/window/delta columns and 108 rows. | `projects/M21C_ls/notebooks/insitu_skill_cached_batch_figures.ipynb`; raw caches from `insitu_skill_ismn_network_ol_da.ipynb`. |
-| Fig. 8 IMS snow-cover skill | Precomputed IMS products on Discover: `/discover/nobackup/projects/land_da/geosldas-analysis/projects/IMS/output/ims_ol_da_cell_counts_metrics_SMAP_EASEv2_M36_GLOBAL_2000_2024_thr0p50_imsSnowDaysGe10.nc4` and `/discover/nobackup/projects/land_da/geosldas-analysis/projects/IMS/output/ims_ol_da_comparison_table_SMAP_EASEv2_M36_GLOBAL_2000_2024_thr0p50_imsSnowDaysGe10.csv`. The existing Fig. 8-style PNG is `/discover/nobackup/projects/land_da/geosldas-analysis/projects/IMS/output/figures_ims_maps_and_tables/ims_all_period_delta_metrics_SMAP_EASEv2_M36_GLOBAL_2000_2024_thr0p50_imsSnowDaysGe10_nh_robinson_2x3.png`. Local checkout only has partial 2024 IMS raw/conversion files. | `projects/IMS/scripts/run_ims_ol_da_cell_metrics.py`, then `projects/IMS/notebooks/ims_maps_and_tables_from_precomputed_outputs.ipynb`. |
-| Fig. 9 SNOTEL SWE | `projects/SNOTEL/outputs_snotel_ol_da_validation/snotel_station_metrics_SMAP_EASEv2_M36_GLOBAL_20000601_20240601.csv` or parquet, plus `tables/snotel_swe_toprow_bar_values_ci_...csv` if reusing existing bootstrapped bar values. | `projects/SNOTEL/notebooks/snow_daily_seasonal_ol_da_swe_snwd.ipynb`. |
-| Fig. 10 GHCN snow depth | `projects/GHCN_snwd/outputs_ghcn_snwd_ol_da_validation/ghcn_station_metrics_baseline_core_SMAP_EASEv2_M36_GLOBAL_20000101_20241231.csv`, plus station selection/tile-map CSVs if rebuilding map annotations. | `projects/GHCN_snwd/notebooks/ghcn_snwd_daily_seasonal_ol_da_snwd_baseline_basic.ipynb`; build inputs from `ghcn_snwd_global_1998_present_build.ipynb`. |
-| Fig. 11 ERA5-Land soil-moisture bars | `projects/era5_land/notebooks/ERA5L_vs_OLv8_M36_strict_summary.nc` and `ERA5L_vs_DAv8_M36_strict_summary.nc`. Each strict summary has `time=288`, `y=379`, `x=964`, and variables `SM_model`, `SM_era`, `RZ_model`, `RZ_era`, `SCF_model`, `SCF_era`, `SWE_model`, `SWE_era`, `SNWD_model`, `SNWD_era`, and `mask_both`. | `projects/era5_land/notebooks/compare_with_reanalysis_strict.ipynb`, then `plot_ERA5L_comparison_bars.ipynb`. |
-| Fig. 12 ERA5-Land soil-moisture maps | Same strict ERA5-Land summaries as Fig. 11, plus `LS_OLv8_M36.ldas_tilecoord.bin` or another resolved M36 tilecoord file for weighted spatial means/map masking. | `projects/era5_land/notebooks/plot_ERA5L_postage_stamp_maps.ipynb`. |
-| Fig. 13 ERA5-Land snow comparison | Same strict ERA5-Land summaries as Fig. 11, using `SCF_*`, `SWE_*`, and `SNWD_*`. | `projects/era5_land/notebooks/plot_ERA5L_comparison_bars.ipynb`. |
+| Fig. 5 monthly OmF evolution | Full-period OL/DA spatial-stat pickles: `spatial_stats_OL_200006_202405.pkl` and `spatial_stats_DA_200006_202405.pkl`. Uses monthly `OmF_stdv`, `N_data`, and `date_vec`. | `paper_figures_unified.ipynb`; outputs `fig05_monthly_omf_stddev_improvement_evolution.*`, monthly time-series CSV, and P1-P9 period-mean CSV. |
+| Fig. 6 OmF maps by period and sensor | P1-P9 period-split OL/DA temporal stats under `/Users/amfox/Desktop/GEOSldas_diagnostics/test_data/M21C_land_sweeper_v2/`, named `temporal_stats_{OL,DA}_YYYYMMDD_YYYYMMDD.nc4`, plus tilecoord. | `paper_figures_unified.ipynb`; outputs `fig06_period_sensor_omf_stddev_improvement_maps.*` and `fig06_period_sensor_omf_stddev_improvement_summary.csv`. |
+| Fig. 7 ISMN skill | Assembled local table `projects/M21C_ls/output/ismn_network_skill/batch_figures/all_networks_hybrid_OL_DA_delta_surface_rz_R_anomR_ubRMSE_table.csv`; raw caches in `projects/M21C_ls/output/ismn_network_skill/*_raw_timeseries.nc` remain the rebuild source. The table has network/domain/metric/window/delta columns and 108 rows. | `paper_figures_unified.ipynb`; outputs `fig07_ismn_skill_by_validation_period.*` and a relabeled plot table. Raw caches from `insitu_skill_ismn_network_ol_da.ipynb`; source table from `insitu_skill_cached_batch_figures.ipynb`. |
+| Fig. 8 IMS snow-cover skill | Local precomputed IMS products under `projects/IMS/output/`: full-record count NetCDF/table/metadata `ims_ol_da_*_SMAP_EASEv2_M36_GLOBAL_2000_2024_thr0p50_imsSnowDaysGe10.*`, plus Terra/Aqua custom-scope products `ims_ol_da_*_SMAP_EASEv2_M36_GLOBAL_2000_2007_thr0p50_imsSnowDaysGe10_terraAquaScopes.*`. The Terra/Aqua files were generated on Discover by `projects/IMS/scripts/run_ims_terra_aqua_period_scopes_discover.sh`. | `paper_figures_unified.ipynb`; outputs `fig08_ims_snow_cover_skill_maps.*`, `fig08_ims_snow_cover_skill_map_summary.csv`, `fig08_supp_ims_terra_aqua_scope_maps.*`, `fig08_supp_ims_terra_aqua_scope_map_summary.csv`, `fig08_supp_ims_terra_aqua_scope_bars.*`, and `fig08_supp_ims_terra_aqua_scope_bar_values.csv`. Red/positive means DA improved for every metric; miss rate and false alarm ratio are sign-flipped to `OL - DA`. |
+| Fig. 9 SNOTEL SWE | `projects/SNOTEL/outputs_snotel_ol_da_validation/snotel_station_metrics_SMAP_EASEv2_M36_GLOBAL_20000601_20240601.csv` plus `tables/snotel_swe_toprow_bar_values_ci_SMAP_EASEv2_M36_GLOBAL_20000601_20240601.csv`. | `paper_figures_unified.ipynb`; outputs `fig09_snotel_swe_skill.*`, `fig09_snotel_swe_bar_values_ci.csv`, `fig09_snotel_swe_station_improvement_table.csv`, and `fig09_snotel_swe_station_improvement_summary.csv`. Map colors use `OL - DA`, so positive/red means DA improved lower-is-better SWE metrics. |
+| Fig. 10 GHCN snow depth | `projects/GHCN_snwd/outputs_ghcn_snwd_ol_da_validation/ghcn_station_metrics_baseline_core_SMAP_EASEv2_M36_GLOBAL_20000101_20241231.csv`. | `paper_figures_unified.ipynb`; outputs `fig10_ghcn_snow_depth_skill.*`, `fig10_ghcn_snow_depth_bar_values_ci.csv`, `fig10_ghcn_snow_depth_station_improvement_table.csv`, and `fig10_ghcn_snow_depth_station_improvement_summary.csv`. Map colors use `OL - DA`, so positive/red means DA improved lower-is-better snow-depth metrics. Raw GHCN build inputs come from `ghcn_snwd_global_1998_present_build.ipynb`; legacy plotting was in `ghcn_snwd_daily_seasonal_ol_da_snwd_baseline_basic.ipynb`. |
+| Fig. 11 ERA5-Land soil-moisture bars | ERA5-Land periodized metric caches in `projects/era5_land/cache/era5l_periodized_metrics_bars/`, currently `ERA5L_vs_OLv8_M36_strict_summary__e5c443a4ae1b.nc` and `ERA5L_vs_DAv8_M36_strict_summary__27bfb9f0eb98.nc`, derived from strict OL/DA summaries. | `paper_figures_unified.ipynb`; outputs `fig11_era5land_soil_moisture_bars.*` and `fig11_era5land_soil_moisture_bar_stats.csv`. Uses V1/V2/V3 period labels matching Fig. 7; surface/root-zone are distinguished with blue/orange shade pairs. |
+| Fig. 12 ERA5-Land soil-moisture maps | Same ERA5-Land periodized metric caches as Fig. 11, plus canonical finite M36 EASE grid coordinates for map plotting. | `paper_figures_unified.ipynb`; outputs `fig12_era5land_soil_moisture_improvement_maps.*` and `fig12_era5land_soil_moisture_map_summary.csv`. Red/positive means DA improved: `DA - OL` for `R`/`anomR`, `OL - DA` for `ubRMSE`. |
+| Fig. 13 ERA5-Land snow comparison | Same ERA5-Land periodized metric caches as Fig. 11, using full-period snow metrics over the snow-possible domain. | `paper_figures_unified.ipynb`; outputs `fig13_era5land_snow_comparison_bars.*` and `fig13_era5land_snow_comparison_stats.csv`. Labels use OL/DA consistently; RMSE and ubRMSE improvement are `OL - DA`, while bias annotation reports absolute-bias improvement. |
 
 ### Implementation notes
 
@@ -290,9 +336,9 @@ P1/P2 OFA temporal-stat regeneration:
 - The unified notebook expects Fig. 6 period files named
   `temporal_stats_{OL,DA}_YYYYMMDD_YYYYMMDD.nc4` in
   `/Users/amfox/Desktop/GEOSldas_diagnostics/test_data/M21C_land_sweeper_v2/`.
-- Local laptop inputs currently include the P3-P9 temporal-stat files, but not
-  the P1/P2 split temporal-stat files. Regenerate P1/P2 on Discover from the
-  monthly ObsFcstAna sum files in the M21C run output directories using
+- Local laptop inputs now include the P1/P2 split temporal-stat files generated
+  on Discover from the monthly ObsFcstAna sum files in the M21C run output
+  directories using
   `projects/M21C_ls/scripts/build_p1p2_ofa_temporal_stats_discover.sh`.
 - Default Discover input roots in that driver are
   `/discover/nobackup/projects/land_da/M21C_land_sweeper/LS_OLv8_M36_v2/LS_OLv8_M36/output/SMAP_EASEv2_M36_GLOBAL/ana/ens_avg`
@@ -313,14 +359,13 @@ Three-period validation summaries:
 
 | ID | Dates | Label | Fine-period mapping |
 | --- | --- | --- | --- |
-| V1 | 2000-06-01 to 2007-05-31 | SCF-only era | P1 + P2 |
-| V2 | 2007-06-01 to 2015-03-31 | pre-SMAP microwave era | P3 + P4 + P5 |
-| V3 | 2015-04-01 to 2024-05-31 | SMAP-era multi-sensor era | P6 + P7 + P8 + P9 |
+| V1 | 2000-06-01 to 2007-05-31 | SCF-only period | P1 + P2 |
+| V2 | 2007-06-01 to 2015-03-31 | microwave pre-SMAP period | P3 + P4 + P5 |
+| V3 | 2015-04-01 to 2024-05-31 | SMAP-era microwave period | P6 + P7 + P8 + P9 |
 
 ## Items to verify before final manuscript text
 
 - Confirm whether Figure 7 uses the `custom`, `hybrid`, or `two_period`
   all-network output.
-- Confirm the exact ERA5/ERA5-Land files used for Figures 11-14 by matching the
-  draft panels against the `figures_era5l_bars/` and
-  `figures_era5l_postage_stamps/` outputs.
+- Confirm whether the final text should call ERA5-Land a reanalysis reference
+  or a land-surface analysis reference in Figures 11-13 captions.
