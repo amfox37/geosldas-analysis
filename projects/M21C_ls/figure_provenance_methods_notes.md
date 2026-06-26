@@ -188,6 +188,131 @@ These project areas have local README files with current workflow notes:
   and the machine-readable table
   `outputs_ismn_network_skill/batch_figures/all_networks_hybrid_OL_DA_delta_surface_rz_R_anomR_ubRMSE_table.csv`.
 
+## Unified paper-figure notebook plan
+
+Recommended new notebook:
+
+- `projects/M21C_ls/notebooks/paper_figures_unified.ipynb`
+
+The notebook should be a paper-figure assembly layer, not a full raw-data
+processing workflow. By default it should read existing analysis products and
+regenerate final manuscript figures with shared style, period definitions, sign
+conventions, and output naming. Heavy upstream rebuilds should remain in the
+existing source notebooks/scripts and be referenced in a figure registry.
+
+### Notebook structure
+
+1. Shared configuration:
+   repository root, local/Discover path resolution, output directory, manuscript
+   figure list, and a `RUN_FIGURES` switch for rerunning a subset.
+2. Canonical observing-system periods:
+   one table with period IDs, dates, labels, sensor availability, and display
+   colors. Use this table for Fig. 1 and all later shaded periods/labels.
+3. Shared plotting conventions:
+   global map projection helpers, period shading, panel labels, color maps, and
+   an explicit improvement convention. The coauthor-feedback target is red =
+   improvement wherever possible.
+4. Dataset registry:
+   a machine-readable dictionary mapping each figure to required files, upstream
+   workflow, and missing-file message.
+5. Figure sections:
+   one section per manuscript figure, each reading only the files it needs and
+   writing to a single paper-figure output directory such as
+   `projects/M21C_ls/output/paper_figures/`.
+6. Manifest:
+   write a CSV or JSON manifest with figure filename, source files, source-file
+   mtimes, periods, key settings, and upstream workflow.
+
+### Dataset registry by figure
+
+| Figure | Main inputs for unified notebook | Upstream workflow if products need rebuilding |
+| --- | --- | --- |
+| Fig. 1 observing-system timeline | Manual/canonical period table in the notebook or a small CSV/YAML. Should include MODIS Terra start, Terra+Aqua transition, ASCAT/SMOS/SMAP/CYGNSS starts and major ASCAT platform transitions. | None, unless timeline dates are derived from OFA counts. |
+| Fig. 2 obs/day maps | `/Users/amfox/Desktop/GEOSldas_diagnostics/test_data/M21C_land_sweeper_v2/temporal_stats_DA_20000601_20240531.nc4`, `spatial_stats_DA_200006_202405.pkl`, and `LS_OLv8_M36.ldas_tilecoord.bin`. The NetCDF has `tile=112573`, `species=14`, and variables including `N_data`, `OmF_stdv`, and `OmF_norm_stdv`; the pickle has monthly arrays such as `N_data`, `OmF_stdv`, and `date_vec` with shape `(288, 14)`. | `projects/M21C_ls/notebooks/LS_ofa_figures_refactor_20260327.ipynb` or the underlying ObsFcstAna stats generation. |
+| Fig. 3 obs/month time series | Same full-period DA temporal/spatial OFA stats as Fig. 2, especially monthly `N_data` grouped by species. | Same as Fig. 2. |
+| Fig. 4 full-period OmF maps | Full-period OL and DA temporal stats: `temporal_stats_OL_20000601_20240531.nc4`, `temporal_stats_DA_20000601_20240531.nc4`, plus tilecoord. Uses variables such as `OmF_stdv` and `N_data`. | `LS_ofa_figures_refactor_20260327.ipynb`. |
+| Fig. 5 monthly OmF evolution | Full-period OL/DA spatial-stat pickles: `spatial_stats_OL_200006_202405.pkl` and `spatial_stats_DA_200006_202405.pkl`. Uses monthly `OmF_stdv`, `N_data`, and `date_vec`. | `LS_ofa_figures_refactor_20260327.ipynb`. |
+| Fig. 6 OmF maps by period and sensor | Period-split OL/DA temporal stats under `/Users/amfox/Desktop/GEOSldas_diagnostics/test_data/M21C_land_sweeper_v2/`, e.g. `temporal_stats_{OL,DA}_20070601_20100430.nc4`, `20100501_20130331.nc4`, `20130401_20150331.nc4`, `20150401_20180731.nc4`, `20180801_20191031.nc4`, `20191101_20211130.nc4`, and `20211201_20240531.nc4`, plus tilecoord. | `LS_ofa_figures_refactor_20260327.ipynb`. |
+| Fig. 7 ISMN skill | Prefer the already assembled local table `projects/M21C_ls/output/ismn_network_skill/batch_figures/all_networks_hybrid_OL_DA_delta_surface_rz_R_anomR_ubRMSE_table.csv` and, if needed, the raw caches in `projects/M21C_ls/output/ismn_network_skill/*_raw_timeseries.nc`. The table has network/domain/metric/window/delta columns and 108 rows. | `projects/M21C_ls/notebooks/insitu_skill_cached_batch_figures.ipynb`; raw caches from `insitu_skill_ismn_network_ol_da.ipynb`. |
+| Fig. 8 IMS snow-cover skill | Precomputed IMS products on Discover: `/discover/nobackup/projects/land_da/geosldas-analysis/projects/IMS/output/ims_ol_da_cell_counts_metrics_SMAP_EASEv2_M36_GLOBAL_2000_2024_thr0p50_imsSnowDaysGe10.nc4` and `/discover/nobackup/projects/land_da/geosldas-analysis/projects/IMS/output/ims_ol_da_comparison_table_SMAP_EASEv2_M36_GLOBAL_2000_2024_thr0p50_imsSnowDaysGe10.csv`. The existing Fig. 8-style PNG is `/discover/nobackup/projects/land_da/geosldas-analysis/projects/IMS/output/figures_ims_maps_and_tables/ims_all_period_delta_metrics_SMAP_EASEv2_M36_GLOBAL_2000_2024_thr0p50_imsSnowDaysGe10_nh_robinson_2x3.png`. Local checkout only has partial 2024 IMS raw/conversion files. | `projects/IMS/scripts/run_ims_ol_da_cell_metrics.py`, then `projects/IMS/notebooks/ims_maps_and_tables_from_precomputed_outputs.ipynb`. |
+| Fig. 9 SNOTEL SWE | `projects/SNOTEL/outputs_snotel_ol_da_validation/snotel_station_metrics_SMAP_EASEv2_M36_GLOBAL_20000601_20240601.csv` or parquet, plus `tables/snotel_swe_toprow_bar_values_ci_...csv` if reusing existing bootstrapped bar values. | `projects/SNOTEL/notebooks/snow_daily_seasonal_ol_da_swe_snwd.ipynb`. |
+| Fig. 10 GHCN snow depth | `projects/GHCN_snwd/outputs_ghcn_snwd_ol_da_validation/ghcn_station_metrics_baseline_core_SMAP_EASEv2_M36_GLOBAL_20000101_20241231.csv`, plus station selection/tile-map CSVs if rebuilding map annotations. | `projects/GHCN_snwd/notebooks/ghcn_snwd_daily_seasonal_ol_da_snwd_baseline_basic.ipynb`; build inputs from `ghcn_snwd_global_1998_present_build.ipynb`. |
+| Fig. 11 ERA5-Land soil-moisture bars | `projects/era5_land/notebooks/ERA5L_vs_OLv8_M36_strict_summary.nc` and `ERA5L_vs_DAv8_M36_strict_summary.nc`. Each strict summary has `time=288`, `y=379`, `x=964`, and variables `SM_model`, `SM_era`, `RZ_model`, `RZ_era`, `SCF_model`, `SCF_era`, `SWE_model`, `SWE_era`, `SNWD_model`, `SNWD_era`, and `mask_both`. | `projects/era5_land/notebooks/compare_with_reanalysis_strict.ipynb`, then `plot_ERA5L_comparison_bars.ipynb`. |
+| Fig. 12 ERA5-Land soil-moisture maps | Same strict ERA5-Land summaries as Fig. 11, plus `LS_OLv8_M36.ldas_tilecoord.bin` or another resolved M36 tilecoord file for weighted spatial means/map masking. | `projects/era5_land/notebooks/plot_ERA5L_postage_stamp_maps.ipynb`. |
+| Fig. 13 ERA5-Land snow comparison | Same strict ERA5-Land summaries as Fig. 11, using `SCF_*`, `SWE_*`, and `SNWD_*`. | `projects/era5_land/notebooks/plot_ERA5L_comparison_bars.ipynb`. |
+
+### Implementation notes
+
+- Keep raw-data rebuilding out of the unified notebook unless a small figure
+  truly needs it. For example, ISMN should use the hybrid table first; SNOTEL
+  and GHCN should use station-metric CSVs; ERA5-Land should use strict summary
+  NetCDFs; IMS should use the precomputed cell-count NetCDF/table products.
+- Add a `resolve_path()` helper that checks local laptop paths first and then
+  Discover paths. This is essential for IMS, whose manuscript-ready precomputed
+  outputs are documented on Discover but are not present in the local checkout.
+- Add a `require_files(fig_id, paths)` helper that prints exactly which upstream
+  notebook/script must be run when a product is missing.
+- Prefer regenerating figures from tables/NetCDFs over embedding existing PNGs.
+  Existing PNGs remain useful for visual regression checks.
+
+### Period decisions
+
+- Use `2024-05-31` as the common manuscript end date for figure labeling.
+- The OFA monthly count file
+  `/Users/amfox/Desktop/GEOSldas_diagnostics/test_data/M21C_land_sweeper_v2/spatial_stats_DA_200006_202405.pkl`
+  stores `date_vec` as monthly `YYYYMM` values from `200006` through `202405`.
+- In that monthly count product, MODIS species `12` is present from
+  `2000-06-01` through `2024-05-01`, while MODIS species `11` first appears in
+  `2002-07-01` and continues through `2024-05-01`.
+- The companion obs-species notebook labels the MODIS products as `MYD10C1`
+  and `MOD10C1`; the timing therefore supports using `2002-07-01` as the
+  Terra-only to Terra+Aqua transition for assimilation/count figures.
+- Use two linked period definitions:
+  a fine-grain observing-system timeline for Fig. 1/Fig. 3/Fig. 5/Fig. 6, and
+  a three-period validation summary for Fig. 7/Fig. 11/Fig. 12.
+
+Fine-grain observing-system periods:
+
+| ID | Dates | Label |
+| --- | --- | --- |
+| P1 | 2000-06-01 to 2002-06-30 | MODIS Terra SCF |
+| P2 | 2002-07-01 to 2007-05-31 | MODIS Terra+Aqua SCF |
+| P3 | 2007-06-01 to 2010-04-30 | SCF + ASCAT-A |
+| P4 | 2010-05-01 to 2013-03-31 | SCF + ASCAT-A + SMOS |
+| P5 | 2013-04-01 to 2015-03-31 | SCF + ASCAT-A/B + SMOS |
+| P6 | 2015-04-01 to 2018-07-31 | SCF + ASCAT-A/B + SMOS + SMAP |
+| P7 | 2018-08-01 to 2019-10-31 | SCF + ASCAT-A/B + SMOS + SMAP + CYGNSS |
+| P8 | 2019-11-01 to 2021-11-30 | SCF + ASCAT-A/B/C + SMOS + SMAP + CYGNSS |
+| P9 | 2021-12-01 to 2024-05-31 | SCF + ASCAT-B/C + SMOS + SMAP + CYGNSS |
+
+P1/P2 OFA temporal-stat regeneration:
+
+- The unified notebook expects Fig. 6 period files named
+  `temporal_stats_{OL,DA}_YYYYMMDD_YYYYMMDD.nc4` in
+  `/Users/amfox/Desktop/GEOSldas_diagnostics/test_data/M21C_land_sweeper_v2/`.
+- Local laptop inputs currently include the P3-P9 temporal-stat files, but not
+  the raw/monthly ObsFcstAna files needed to build P1/P2. Regenerate P1/P2 on
+  Discover from monthly ObsFcstAna sum files using
+  `projects/M21C_ls/scripts/build_p1p2_ofa_temporal_stats_discover.sh`.
+- Default Discover input roots in that driver are
+  `/discover/nobackup/qliu/SMAP_diag/LS_OLv8_M36/output/SMAP_EASEv2_M36_GLOBAL/ana/ens_avg`
+  and
+  `/discover/nobackup/qliu/SMAP_diag/LS_DAv8_M36/output/SMAP_EASEv2_M36_GLOBAL/ana/ens_avg`;
+  override `OL_MONTHLY_ROOT` or `DA_MONTHLY_ROOT` if the monthly stats are
+  stored elsewhere.
+- The driver writes to
+  `/discover/nobackup/projects/land_da/geosldas-analysis/projects/M21C_ls/output/ofa_temporal_stats/`
+  by default. Copy the four regenerated files back to the local diagnostic
+  directory before rerunning the unified notebook availability checks.
+
+Three-period validation summaries:
+
+| ID | Dates | Label | Fine-period mapping |
+| --- | --- | --- | --- |
+| V1 | 2000-06-01 to 2007-05-31 | SCF-only era | P1 + P2 |
+| V2 | 2007-06-01 to 2015-03-31 | pre-SMAP microwave era | P3 + P4 + P5 |
+| V3 | 2015-04-01 to 2024-05-31 | SMAP-era multi-sensor era | P6 + P7 + P8 + P9 |
+
 ## Items to verify before final manuscript text
 
 - Confirm whether Figure 7 uses the `custom`, `hybrid`, or `two_period`
