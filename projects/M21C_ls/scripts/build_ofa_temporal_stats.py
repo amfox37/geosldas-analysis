@@ -2,9 +2,12 @@
 """Aggregate monthly ObsFcstAna sums into temporal_stats NetCDF files.
 
 This is intended for the M21C Land Sweeper paper figures. It reads monthly
-``*.ens_avg.ldas_ObsFcstAna.YYYYMM*_stats*.nc4`` files and writes the
+ObsFcstAna sum/stat files and writes the
 ``temporal_stats_{OL,DA}_YYYYMMDD_YYYYMMDD.nc4`` products expected by the
-paper plotting notebooks.
+paper plotting notebooks. Supported monthly input names include the M21C
+run-local ``DA.ens_avg.ldas_ObsFcstAna_sums.YYYYMM.nc4`` convention and, when
+explicitly requested, the older ``EXPID.ens_avg.ldas_ObsFcstAna.YYYYMM_stats.nc4``
+convention.
 """
 
 from __future__ import annotations
@@ -12,7 +15,7 @@ from __future__ import annotations
 import argparse
 import calendar
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime as dt_datetime
 from pathlib import Path
 
 import numpy as np
@@ -62,7 +65,7 @@ class Period:
 def parse_date(value: str) -> date:
     for fmt in ("%Y-%m-%d", "%Y%m%d"):
         try:
-            return datetime.strptime(value, fmt).date()
+            return dt_datetime.strptime(value, fmt).date()
         except ValueError:
             pass
     raise argparse.ArgumentTypeError(
@@ -102,19 +105,42 @@ def monthly_suffix_candidates(exp_tag: str, suffix: str | None) -> list[str]:
     return ["_stats.nc4", "_stats_CROSSMASKED.nc4"]
 
 
-def find_monthly_file(
-    monthly_root: Path, expid: str, month: date, suffixes: list[str]
-) -> Path:
-    stem = f"{expid}.ens_avg.ldas_ObsFcstAna.{month:%Y%m}"
-    month_dir = monthly_root / f"Y{month:%Y}" / f"M{month:%m}"
+def monthly_name_candidates(
+    expid: str, exp_tag: str, month: date, suffix: str | None, patterns: list[str] | None
+) -> list[str]:
+    ym = month.strftime("%Y%m")
+    if patterns:
+        return [
+            pattern.format(expid=expid, tag=exp_tag, ym=ym, year=month.year, month=month.month)
+            for pattern in patterns
+        ]
 
-    for suffix in suffixes:
-        candidate = month_dir / f"{stem}{suffix}"
+    stem = f"{expid}.ens_avg.ldas_ObsFcstAna.{ym}"
+    candidates = [
+        f"{exp_tag}.ens_avg.ldas_ObsFcstAna_sums.{ym}.nc4",
+    ]
+    candidates.extend(f"{stem}{suffix}" for suffix in monthly_suffix_candidates(exp_tag, suffix))
+    return candidates
+
+
+def find_monthly_file(
+    monthly_root: Path,
+    expid: str,
+    exp_tag: str,
+    month: date,
+    suffix: str | None,
+    patterns: list[str] | None,
+) -> Path:
+    month_dir = monthly_root / f"Y{month:%Y}" / f"M{month:%m}"
+    names = monthly_name_candidates(expid, exp_tag, month, suffix, patterns)
+
+    for name in names:
+        candidate = month_dir / name
         if candidate.exists():
             return candidate
 
-    tried = ", ".join(str(month_dir / f"{stem}{suffix}") for suffix in suffixes)
-    raise FileNotFoundError(f"Missing monthly stats file for {month:%Y-%m}: {tried}")
+    tried = ", ".join(str(month_dir / name) for name in names)
+    raise FileNotFoundError(f"Missing monthly sum/stat file for {month:%Y-%m}: {tried}")
 
 
 def as_float_array(value, fill_value=np.nan) -> np.ndarray:
@@ -145,9 +171,13 @@ def read_monthly_sums(path: Path) -> tuple[
 
 
 def aggregate_monthlies(
-    monthly_root: Path, expid: str, exp_tag: str, period: Period, suffix: str | None
+    monthly_root: Path,
+    expid: str,
+    exp_tag: str,
+    period: Period,
+    suffix: str | None,
+    patterns: list[str] | None,
 ) -> tuple[dict[str, np.ndarray], list[Path]]:
-    suffixes = monthly_suffix_candidates(exp_tag, suffix)
     monthly_files = []
 
     n_data = None
@@ -158,7 +188,7 @@ def aggregate_monthlies(
     data2_sum = {}
 
     for month in iter_month_starts(period):
-        path = find_monthly_file(monthly_root, expid, month, suffixes)
+        path = find_monthly_file(monthly_root, expid, exp_tag, month, suffix, patterns)
         monthly_files.append(path)
         mn_data, mdata_sum, mdata2_sum, moxf_sum, moxa_sum, mfxa_sum = read_monthly_sums(path)
 
@@ -271,7 +301,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument(
         "--monthly-suffix",
-        help="Force a monthly suffix, e.g. _stats.nc4 or _stats_CROSSMASKED.nc4",
+        help="Force an old-style monthly suffix, e.g. _stats.nc4 or _stats_CROSSMASKED.nc4",
+    )
+    parser.add_argument(
+        "--monthly-pattern",
+        action="append",
+        help=(
+            "Monthly file-name pattern relative to YYYYY/MM directory. May be repeated. "
+            "Available fields: {expid}, {tag}, {ym}, {year}, {month}."
+        ),
     )
     parser.add_argument(
         "--overwrite",
@@ -291,7 +329,12 @@ def main() -> None:
         raise FileExistsError(f"{output} exists; pass --overwrite to replace it")
 
     stats, monthly_files = aggregate_monthlies(
-        args.monthly_root, args.expid, args.exp_tag, period, args.monthly_suffix
+        args.monthly_root,
+        args.expid,
+        args.exp_tag,
+        period,
+        args.monthly_suffix,
+        args.monthly_pattern,
     )
     write_temporal_stats(output, stats)
 

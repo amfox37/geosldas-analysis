@@ -291,15 +291,19 @@ P1/P2 OFA temporal-stat regeneration:
   `temporal_stats_{OL,DA}_YYYYMMDD_YYYYMMDD.nc4` in
   `/Users/amfox/Desktop/GEOSldas_diagnostics/test_data/M21C_land_sweeper_v2/`.
 - Local laptop inputs currently include the P3-P9 temporal-stat files, but not
-  the raw/monthly ObsFcstAna files needed to build P1/P2. Regenerate P1/P2 on
-  Discover from monthly ObsFcstAna sum files using
+  the P1/P2 split temporal-stat files. Regenerate P1/P2 on Discover from the
+  monthly ObsFcstAna sum files in the M21C run output directories using
   `projects/M21C_ls/scripts/build_p1p2_ofa_temporal_stats_discover.sh`.
 - Default Discover input roots in that driver are
-  `/discover/nobackup/qliu/SMAP_diag/LS_OLv8_M36/output/SMAP_EASEv2_M36_GLOBAL/ana/ens_avg`
+  `/discover/nobackup/projects/land_da/M21C_land_sweeper/LS_OLv8_M36_v2/LS_OLv8_M36/output/SMAP_EASEv2_M36_GLOBAL/ana/ens_avg`
   and
-  `/discover/nobackup/qliu/SMAP_diag/LS_DAv8_M36/output/SMAP_EASEv2_M36_GLOBAL/ana/ens_avg`;
+  `/discover/nobackup/projects/land_da/M21C_land_sweeper/LS_DAv8_M36_v3/LS_DAv8_M36/output/SMAP_EASEv2_M36_GLOBAL/ana/ens_avg`;
   override `OL_MONTHLY_ROOT` or `DA_MONTHLY_ROOT` if the monthly stats are
   stored elsewhere.
+- The M21C run-local monthly files used for this build are the non-deduplicated
+  sum products, e.g. `OL.ens_avg.ldas_ObsFcstAna_sums.200006.nc4` and
+  `DA.ens_avg.ldas_ObsFcstAna_sums.200006.nc4`. The P1/P2 driver passes this
+  filename pattern explicitly and does not use the `_dedup` products.
 - The driver writes to
   `/discover/nobackup/projects/land_da/geosldas-analysis/projects/M21C_ls/output/ofa_temporal_stats/`
   by default. Copy the four regenerated files back to the local diagnostic
