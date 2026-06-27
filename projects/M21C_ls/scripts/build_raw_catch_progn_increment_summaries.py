@@ -106,6 +106,9 @@ def summarize_month(files: list[Path], month: pd.Timestamp, engine: str, thresho
         out["snow_event_count"] = ((abs(snow_step) > threshold) & snow_step.notnull()).sum("time")
         out["time_step_count"] = snow_step.notnull().sum("time")
 
+        # CATDEF is a deficit: positive CATDEF_INCR means drier, opposite the
+        # water-content sign of SRFEXC_INCR/RZEXC_INCR. Do not sum catdef_net
+        # with the other two net fields without flipping its sign.
         soil_vars = ["SRFEXC_INCR", "RZEXC_INCR", "CATDEF_INCR"]
         if all(v in ds for v in soil_vars):
             srf = ds["SRFEXC_INCR"]
@@ -116,6 +119,24 @@ def summarize_month(files: list[Path], month: pd.Timestamp, engine: str, thresho
             out["catdef_net"] = sum_or_nan(catdef)
             out["soil_water_net_approx"] = sum_or_nan(srf + rz - catdef)
             out["soil_water_abs_activity"] = sum_or_nan(abs(srf) + abs(rz) + abs(catdef))
+
+            out["srfexc_net"].attrs.update(
+                long_name="cumulative surface-excess increment, raw catch_progn_incr",
+                units="kg m-2",
+            )
+            out["rzexc_net"].attrs.update(
+                long_name="cumulative root-zone-excess increment, raw catch_progn_incr",
+                units="kg m-2",
+            )
+            out["catdef_net"].attrs.update(
+                long_name="cumulative catchment-deficit increment, raw catch_progn_incr",
+                units="kg m-2",
+                note=(
+                    "CATDEF is a deficit variable: positive values mean drier, "
+                    "opposite the water-content sign of srfexc_net/rzexc_net. "
+                    "Flip sign before adding to those fields; see soil_water_net_approx."
+                ),
+            )
 
         if "lat" in ds:
             out = out.assign_coords(lat=("tile", ds["lat"].values))
