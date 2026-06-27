@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+xr.set_options(keep_attrs=True)
 
 FILL_THRESHOLD = 1.0e10
 DEFAULT_ROOT = (
@@ -80,7 +81,7 @@ def open_month(files: list[Path], engine: str) -> xr.Dataset:
     )
     for name in needed:
         if name in ds:
-            ds[name] = ds[name].where(ds[name] < FILL_THRESHOLD)
+            ds[name] = ds[name].where(ds[name] < FILL_THRESHOLD, other=np.float32(np.nan))
     return ds
 
 
