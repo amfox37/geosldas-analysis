@@ -64,17 +64,14 @@ def open_month(files: list[Path], engine: str) -> xr.Dataset:
     ]
 
     def preprocess(ds: xr.Dataset) -> xr.Dataset:
-        keep = [v for v in needed if v in ds.variables]
-        if "lat" in ds:
-            keep.append("lat")
-        if "lon" in ds:
-            keep.append("lon")
-        return ds[keep]
+        return ds[[v for v in needed if v in ds.variables]]
 
     ds = xr.open_mfdataset(
         [str(f) for f in files],
         combine="nested",
         concat_dim="time",
+        data_vars="minimal",
+        coords="minimal",
         preprocess=preprocess,
         engine=engine,
         parallel=False,
@@ -91,7 +88,19 @@ def sum_or_nan(da: xr.DataArray) -> xr.DataArray:
     return out.where(count > 0)
 
 
+def _read_latlon(path: Path, engine: str) -> tuple[np.ndarray, np.ndarray]:
+    with xr.open_dataset(str(path), engine=engine) as ds0:
+        lat = ds0["lat"].values
+        lon = ds0["lon"].values
+    if lat.ndim > 1:
+        lat = lat[0]
+    if lon.ndim > 1:
+        lon = lon[0]
+    return lat, lon
+
+
 def summarize_month(files: list[Path], month: pd.Timestamp, engine: str, threshold: float) -> xr.Dataset:
+    lat, lon = _read_latlon(files[0], engine)
     with open_month(files, engine=engine) as ds:
         missing = [v for v in ["WESNN1_INCR", "WESNN2_INCR", "WESNN3_INCR"] if v not in ds]
         if missing:
@@ -139,10 +148,7 @@ def summarize_month(files: list[Path], month: pd.Timestamp, engine: str, thresho
                 ),
             )
 
-        if "lat" in ds:
-            out = out.assign_coords(lat=("tile", ds["lat"].values))
-        if "lon" in ds:
-            out = out.assign_coords(lon=("tile", ds["lon"].values))
+        out = out.assign_coords(lat=("tile", lat), lon=("tile", lon))
         out = out.load()
 
     out = out.expand_dims(time=[np.datetime64(f"{month:%Y-%m}-01")])
@@ -180,7 +186,11 @@ def summarize_month(files: list[Path], month: pd.Timestamp, engine: str, thresho
             long_name="cumulative absolute native soil prognostic increment activity",
             units="kg m-2",
         )
-    return out.astype({v: "float32" for v in out.data_vars if v not in {"snow_event_count", "time_step_count"}})
+    skip = {"snow_event_count", "time_step_count"}
+    for v in list(out.data_vars):
+        if v not in skip:
+            out[v] = out[v].astype("float32")
+    return out
 
 
 def write_output(ds: xr.Dataset, output: Path, engine: str, complevel: int) -> None:

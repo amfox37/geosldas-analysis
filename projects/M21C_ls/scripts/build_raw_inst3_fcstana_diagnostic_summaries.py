@@ -58,17 +58,14 @@ def open_month(files: list[Path], state_vars: list[str], engine: str) -> xr.Data
         needed.extend([f"{state_var}_ANA", f"{state_var}_FCST"])
 
     def preprocess(ds: xr.Dataset) -> xr.Dataset:
-        keep = [v for v in needed if v in ds.variables]
-        if "lat" in ds:
-            keep.append("lat")
-        if "lon" in ds:
-            keep.append("lon")
-        return ds[keep]
+        return ds[[v for v in needed if v in ds.variables]]
 
     ds = xr.open_mfdataset(
         [str(f) for f in files],
         combine="nested",
         concat_dim="time",
+        data_vars="minimal",
+        coords="minimal",
         preprocess=preprocess,
         engine=engine,
         parallel=False,
@@ -79,7 +76,19 @@ def open_month(files: list[Path], state_vars: list[str], engine: str) -> xr.Data
     return ds
 
 
+def _read_latlon(path: Path, engine: str) -> tuple[np.ndarray, np.ndarray]:
+    with xr.open_dataset(str(path), engine=engine) as ds0:
+        lat = ds0["lat"].values
+        lon = ds0["lon"].values
+    if lat.ndim > 1:
+        lat = lat[0]
+    if lon.ndim > 1:
+        lon = lon[0]
+    return lat, lon
+
+
 def summarize_month(files: list[Path], month: pd.Timestamp, state_vars: list[str], engine: str) -> xr.Dataset:
+    lat, lon = _read_latlon(files[0], engine)
     with open_month(files, state_vars=state_vars, engine=engine) as ds:
         out = xr.Dataset()
         first_count = None
@@ -124,15 +133,14 @@ def summarize_month(files: list[Path], month: pd.Timestamp, state_vars: list[str
                 long_name="number of finite raw inst3 ANA-FCST time steps",
                 units="1",
             )
-        if "lat" in ds:
-            out = out.assign_coords(lat=("tile", ds["lat"].values))
-        if "lon" in ds:
-            out = out.assign_coords(lon=("tile", ds["lon"].values))
+        out = out.assign_coords(lat=("tile", lat), lon=("tile", lon))
         out = out.load()
 
     out = out.expand_dims(time=[np.datetime64(f"{month:%Y-%m}-01")])
-    cast_map = {v: "float32" for v in out.data_vars if v != "time_step_count"}
-    return out.astype(cast_map)
+    for v in list(out.data_vars):
+        if v != "time_step_count":
+            out[v] = out[v].astype("float32")
+    return out
 
 
 def write_output(ds: xr.Dataset, output: Path, engine: str, complevel: int) -> None:
