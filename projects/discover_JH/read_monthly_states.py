@@ -9,6 +9,8 @@ FILL_MASK_THRESHOLD = 1e10
 DEFAULT_READ_ENGINE  = "h5netcdf"   # we'll fallback to netcdf4 if needed
 DEFAULT_WRITE_ENGINE = "h5netcdf"   # you can switch to netcdf4 if you prefer
 
+xr.set_options(keep_attrs=True)
+
 def collect_monthly_files(root_dir: str, file_prefix: str, start_year: int, end_year: int):
     files, dates = [], []
     for year in range(start_year, end_year + 1):
@@ -105,7 +107,7 @@ def build_lsm_dataset(
 
     for v in varnames:
         if v in ds:
-            ds[v] = ds[v].where(ds[v] < FILL_MASK_THRESHOLD)
+            ds[v] = ds[v].where(ds[v] < FILL_MASK_THRESHOLD, other=np.float32(np.nan))
 
     ds.attrs.update(
         source_root=root_dir,
@@ -180,7 +182,7 @@ def main(argv=None):
     print("Done.")
     print("OL vars:", list(ds_ol.data_vars))
     print("DA vars:", list(ds_da.data_vars))
-    print("Dims:", dict(ds_da.dims))
+    print("Dims:", dict(ds_da.sizes))
 
 if __name__ == "__main__":
     sys.exit(main())
