@@ -9,6 +9,10 @@ __pycache__/
 *.pyc
 *.png
 
+# Report figures that are intentionally embedded in Markdown docs.
+!projects/M21C_ls/docs/monthly_synthesis_report_figures/
+!projects/M21C_ls/docs/monthly_synthesis_report_figures/*.png
+
 
 # Ignore possible symlinked build and install directories
 # Note: we can't use a / at the end because they might be
