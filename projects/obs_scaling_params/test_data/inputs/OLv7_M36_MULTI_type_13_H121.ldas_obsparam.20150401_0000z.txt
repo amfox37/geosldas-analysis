@@ -1,0 +1,361 @@
+          10
+'SMAP_L1C_Tbh_A'
+           1
+           1
+           1
+           1
+   40.00000    
+  1.4100000E+09
+   20.00000    
+'km'
+ F
+ F
+ T
+           4
+           0
+      864000
+      432000
+  -9999.000    
+'Tb'
+'K'
+'Tb'
+'K'
+'/discover/nobackup/projects/gmao/smap/SMAP_L4/SMAP/OPS/L1C_TB/'
+''
+''
+''
+'/discover/nobackup/amfox/Experiments/OLv7_M36_MULTI_type_13_comb_fp/OLv7_M36_MULTI_type_13_comb_fp/output/SMAP_EASEv2_M36_GLOBAL/stats/'
+'ScMO_OLv7_M36_MULTI_L1C_zscore_stats'
+'/discover/nobackup/projects/gmao/smap/Operations/SPL4SM/SPL4SM_Vv7032/import/obs/SMAP/L1C_TB'
+'SMAP_L1C_TB_A_list.txt'
+   4.000000    
+   2.500000    
+ T
+ T
+  0.2500000    
+  0.2500000    
+           0
+'SMAP_L1C_Tbh_D'
+           2
+           2
+           1
+           1
+   40.00000    
+  1.4100000E+09
+   20.00000    
+'km'
+ F
+ F
+ T
+           4
+           0
+      864000
+      432000
+  -9999.000    
+'Tb'
+'K'
+'Tb'
+'K'
+'/discover/nobackup/projects/gmao/smap/SMAP_L4/SMAP/OPS/L1C_TB/'
+''
+''
+''
+'/discover/nobackup/amfox/Experiments/OLv7_M36_MULTI_type_13_comb_fp/OLv7_M36_MULTI_type_13_comb_fp/output/SMAP_EASEv2_M36_GLOBAL/stats/'
+'ScMO_OLv7_M36_MULTI_L1C_zscore_stats'
+'/discover/nobackup/projects/gmao/smap/Operations/SPL4SM/SPL4SM_Vv7032/import/obs/SMAP/L1C_TB'
+'SMAP_L1C_TB_D_list.txt'
+   4.000000    
+   2.500000    
+ T
+ T
+  0.2500000    
+  0.2500000    
+           0
+'SMAP_L1C_Tbv_A'
+           3
+           1
+           2
+           1
+   40.00000    
+  1.4100000E+09
+   20.00000    
+'km'
+ F
+ F
+ T
+           4
+           0
+      864000
+      432000
+  -9999.000    
+'Tb'
+'K'
+'Tb'
+'K'
+'/discover/nobackup/projects/gmao/smap/SMAP_L4/SMAP/OPS/L1C_TB/'
+''
+''
+''
+'/discover/nobackup/amfox/Experiments/OLv7_M36_MULTI_type_13_comb_fp/OLv7_M36_MULTI_type_13_comb_fp/output/SMAP_EASEv2_M36_GLOBAL/stats/'
+'ScMO_OLv7_M36_MULTI_L1C_zscore_stats'
+'/discover/nobackup/projects/gmao/smap/Operations/SPL4SM/SPL4SM_Vv7032/import/obs/SMAP/L1C_TB'
+'SMAP_L1C_TB_A_list.txt'
+   4.000000    
+   2.500000    
+ T
+ T
+  0.2500000    
+  0.2500000    
+           0
+'SMAP_L1C_Tbv_D'
+           4
+           2
+           2
+           1
+   40.00000    
+  1.4100000E+09
+   20.00000    
+'km'
+ F
+ F
+ T
+           4
+           0
+      864000
+      432000
+  -9999.000    
+'Tb'
+'K'
+'Tb'
+'K'
+'/discover/nobackup/projects/gmao/smap/SMAP_L4/SMAP/OPS/L1C_TB/'
+''
+''
+''
+'/discover/nobackup/amfox/Experiments/OLv7_M36_MULTI_type_13_comb_fp/OLv7_M36_MULTI_type_13_comb_fp/output/SMAP_EASEv2_M36_GLOBAL/stats/'
+'ScMO_OLv7_M36_MULTI_L1C_zscore_stats'
+'/discover/nobackup/projects/gmao/smap/Operations/SPL4SM/SPL4SM_Vv7032/import/obs/SMAP/L1C_TB'
+'SMAP_L1C_TB_D_list.txt'
+   4.000000    
+   2.500000    
+ T
+ T
+  0.2500000    
+  0.2500000    
+           0
+'ASCAT_META_SM'
+           5
+           3
+           0
+           1
+   174.7718    
+  0.0000000E+00
+   20.00000    
+'km'
+ F
+ F
+ T
+           0
+           0
+           0
+           0
+  -9999.000    
+'sfds'
+'%'
+'sfmc'
+'m3 m-3'
+'/discover/nobackup/projects/gmao/smap/SMAP_Nature/ASCAT_EUMETSAT/Metop_A/'
+'M02-ASCA-ASCSMO02'
+'/discover/nobackup/amfox/ASCAT_fname_lists'
+'ascat_combined_mask_p1.nc'
+'/discover/nobackup/amfox/Experiments/OLv7_M36_MULTI_type_13_comb_fp/OLv7_M36_MULTI_type_13_comb_fp/output/SMAP_EASEv2_M36_GLOBAL/stats/'
+'OLv7_M36_MULTI_ASCAT_zscore_stats_all_pentads'
+'/discover/nobackup/amfox/ASCAT_fname_lists'
+'M02-ASCA-ASCSMO02.txt'
+   9.000000    
+   2.500000    
+ T
+ F
+  0.2500000    
+  0.2500000    
+           0
+'ASCAT_METB_SM'
+           6
+           3
+           0
+           1
+   1.000000    
+  0.0000000E+00
+   20.00000    
+'km'
+ F
+ F
+ T
+           0
+           0
+           0
+           0
+  -9999.000    
+'sfds'
+'%'
+'sfmc'
+'m3 m-3'
+'/discover/nobackup/projects/gmao/smap/SMAP_Nature/ASCAT_EUMETSAT/Metop_B/'
+'M01-ASCA-ASCSMO02'
+'/discover/nobackup/amfox/ASCAT_fname_lists'
+'ascat_combined_mask_p1.nc'
+'/discover/nobackup/amfox/Experiments/OLv7_M36_MULTI_type_13_comb_fp/OLv7_M36_MULTI_type_13_comb_fp/output/SMAP_EASEv2_M36_GLOBAL/stats/'
+'OLv7_M36_MULTI_ASCAT_zscore_stats_all_pentads'
+'/discover/nobackup/amfox/ASCAT_fname_lists'
+'M01-ASCA-ASCSMO02.txt'
+   9.000000    
+   2.500000    
+ T
+ F
+  0.2500000    
+  0.2500000    
+           0
+'ASCAT_METC_SM'
+           7
+           3
+           0
+           1
+   175.7054    
+  0.0000000E+00
+   20.00000    
+'km'
+ F
+ F
+ T
+           0
+           0
+           0
+           0
+  -9999.000    
+'sfds'
+'%'
+'sfmc'
+'m3 m-3'
+'/discover/nobackup/projects/gmao/smap/SMAP_Nature/ASCAT_EUMETSAT/Metop_C/'
+'M03-ASCA-ASCSMO02'
+'/discover/nobackup/amfox/ASCAT_fname_lists'
+'ascat_combined_mask_p1.nc'
+'/discover/nobackup/amfox/Experiments/OLv7_M36_MULTI_type_13_comb_fp/OLv7_M36_MULTI_type_13_comb_fp/output/SMAP_EASEv2_M36_GLOBAL/stats/'
+'OLv7_M36_MULTI_ASCAT_zscore_stats_all_pentads'
+'/discover/nobackup/amfox/ASCAT_fname_lists'
+'M03-ASCA-ASCSMO02.txt'
+   9.000000    
+   2.500000    
+ T
+ F
+  0.2500000    
+  0.2500000    
+           0
+'ASCAT_HSAF_META_SM'
+           8
+           3
+           0
+           1
+   65.99080    
+  0.0000000E+00
+   25.00000    
+'km'
+ F
+ F
+ T
+           0
+           0
+      864000
+      432000
+  -9999.000    
+'sfds'
+'%'
+'sfmc'
+'m3 m-3'
+'/discover/nobackup/projects/land_da/ASCAT_SSM_CDR/H121/metop_a/'
+''
+''
+''
+'/discover/nobackup/amfox/Experiments/M21C_land_sweeper_OLv8_M36/LS_OLv8_M36/output/SMAP_EASEv2_M36_GLOBAL/stats'
+'LS_OLv8_M36_ASCAT_zscore_stats_AD_all_pentads'
+'/discover/nobackup/projects/land_da/ASCAT_SSM_CDR/flists/'
+'H121_METOPA.txt'
+   9.000000    
+   2.500000    
+ T
+ T
+  0.3125000    
+  0.3125000    
+           0
+'ASCAT_HSAF_METB_SM'
+           9
+           3
+           0
+           1
+   330.5284    
+  0.0000000E+00
+   25.00000    
+'km'
+ F
+ F
+ T
+           0
+           0
+      864000
+      432000
+  -9999.000    
+'sfds'
+'%'
+'sfmc'
+'m3 m-3'
+'/discover/nobackup/projects/land_da/ASCAT_SSM_CDR/H121/metop_b/'
+''
+''
+''
+'/discover/nobackup/amfox/Experiments/M21C_land_sweeper_OLv8_M36/LS_OLv8_M36/output/SMAP_EASEv2_M36_GLOBAL/stats'
+'LS_OLv8_M36_ASCAT_zscore_stats_AD_all_pentads'
+'/discover/nobackup/projects/land_da/ASCAT_SSM_CDR/flists/'
+'H121_H139_METOPB.txt'
+   9.000000    
+   2.500000    
+ T
+ T
+  0.3125000    
+  0.3125000    
+           0
+'ASCAT_HSAF_METC_SM'
+          10
+           3
+           0
+           1
+   177.3859    
+  0.0000000E+00
+   25.00000    
+'km'
+ F
+ F
+ T
+           0
+           0
+      864000
+      432000
+  -9999.000    
+'sfds'
+'%'
+'sfmc'
+'m3 m-3'
+'/discover/nobackup/projects/land_da/ASCAT_SSM_CDR/H121/metop_c/'
+''
+''
+''
+'/discover/nobackup/amfox/Experiments/M21C_land_sweeper_OLv8_M36/LS_OLv8_M36/output/SMAP_EASEv2_M36_GLOBAL/stats'
+'LS_OLv8_M36_ASCAT_zscore_stats_AD_all_pentads'
+'/discover/nobackup/projects/land_da/ASCAT_SSM_CDR/flists/'
+'H121_H139_METOPC.txt'
+   9.000000    
+   2.500000    
+ T
+ T
+  0.3125000    
+  0.3125000    
+           0

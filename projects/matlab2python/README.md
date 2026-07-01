@@ -1,6 +1,9 @@
 # matlab2python
 
-Staging area for migrating legacy MATLAB workflows into Python. The `python_calc_plot_ObsFcstAna` subfolder already contains Python equivalents of common MATLAB notebooks, while `matlab_postprocess/` and `obs_scaling_params/` retain reference MATLAB assets used during translation.
+Staging area for migrating legacy MATLAB workflows into Python. The `python_calc_plot_ObsFcstAna` subfolder already contains Python equivalents of common MATLAB notebooks, while `matlab_postprocess/` retains reference MATLAB assets used during translation.
+
+Observation scaling-parameter generation has been promoted out of this staging
+area into `projects/obs_scaling_params/`.
 
 ## Key assets
 - `python_calc_plot_ObsFcstAna/OFA_figure_maker_041125.ipynb` – Python port of the OFA figure generator.

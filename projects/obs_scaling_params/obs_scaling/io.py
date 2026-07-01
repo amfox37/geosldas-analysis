@@ -62,6 +62,8 @@ class ObsParam:
     nodata: float
     varname: str
     units: str
+    fcstvarname: str
+    fcstunits: str
     path: str
     name: str
     maskpath: str
@@ -199,7 +201,7 @@ def read_obs_param(fname: str | Path) -> list[ObsParam]:
         raise FileNotFoundError(f"ldas_obsparam file not found: {path}")
 
     with path.open() as f:
-        lexer = shlex.shlex(f, posix=True)
+        lexer = shlex.shlex(f, posix=False)
         lexer.whitespace_split = True
         lexer.commenters = ""
         tokens = list(lexer)
@@ -227,6 +229,8 @@ def read_obs_param(fname: str | Path) -> list[ObsParam]:
         nodata = float(next(token_iter))
         varname = _strip_quotes(next(token_iter))
         units = _strip_quotes(next(token_iter))
+        fcstvarname = _strip_quotes(next(token_iter))
+        fcstunits = _strip_quotes(next(token_iter))
         path_str = _strip_quotes(next(token_iter))
         name = _strip_quotes(next(token_iter))
         maskpath = _strip_quotes(next(token_iter))
@@ -264,6 +268,8 @@ def read_obs_param(fname: str | Path) -> list[ObsParam]:
                 nodata=nodata,
                 varname=varname,
                 units=units,
+                fcstvarname=fcstvarname,
+                fcstunits=fcstunits,
                 path=path_str,
                 name=name,
                 maskpath=maskpath,

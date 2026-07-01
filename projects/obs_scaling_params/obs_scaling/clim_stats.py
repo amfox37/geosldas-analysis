@@ -9,31 +9,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import ceil, floor
-from pathlib import Path
 from typing import Sequence
 
 import numpy as np
 
-try:
-    from .obs_scaling_utils import (
-        DateTime,
-        augment_date_time,
-        read_obs_fcst_ana,
-        write_netcdf_latlon_grid,
-    )
-except ImportError:
-    import sys
-    from pathlib import Path
+from pathlib import Path
 
-    THIS_DIR = Path(__file__).resolve().parent
-    if str(THIS_DIR) not in sys.path:
-        sys.path.append(str(THIS_DIR))
-    from obs_scaling_utils import (  # type: ignore
-        DateTime,
-        augment_date_time,
-        read_obs_fcst_ana,
-        write_netcdf_latlon_grid,
-    )
+from .io import (
+    DateTime,
+    augment_date_time,
+    read_obs_fcst_ana,
+    write_netcdf_latlon_grid,
+)
 
 
 @dataclass
@@ -181,6 +168,7 @@ def get_model_and_obs_clim_stats_latlon_grid(
 
     cycle_id = 0
     dedup_tracker: dict[tuple[int, ...], _DedupEntry] = {}
+    t0_assim = t0_assim % dt_assim
 
     for imonth, month in enumerate(run_months.tolist()):
         month_days = _days_in_month_non_leap(month)
@@ -307,6 +295,8 @@ def get_model_and_obs_clim_stats_latlon_grid(
             if count >= w_days:
                 end_time = DateTime(2014, month, day, hour, minute, second)
                 start_time = augment_date_time(-int(w_days * 86400), end_time)
+                o_data_sum[np.abs(o_data_sum - nodata) <= 1e-4] = np.nan
+                m_data_sum[np.abs(m_data_sum - nodata) <= 1e-4] = np.nan
                 for scnt in range(n_species):
                     window_n = np.nansum(n_data[scnt, :, :], axis=1)
                     obs_sum = np.nansum(o_data_sum[scnt, :, :], axis=1)
