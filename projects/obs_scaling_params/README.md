@@ -69,14 +69,20 @@ python scripts/run_scaling_params.py \
   --domain SMAP_EASEv2_M36_GLOBAL \
   --start 2007-06 \
   --end 2024-05 \
-  --species ASCAT_META_SM,ASCAT_METB_SM,ASCAT_METC_SM
+  --species ASCAT_META_SM,ASCAT_METB_SM,ASCAT_METC_SM \
+  --obsfcstana-format auto
 ```
+
+ObsFcstAna input format can be selected with `--obsfcstana-format auto|bin|nc4`.
+The default `auto` preserves legacy behavior by trying `.bin` first and then
+`.nc4`. Use `--obsfcstana-format nc4` to force NetCDF ObsFcstAna input.
 
 On Discover:
 
 ```bash
 cd /path/to/geosldas-analysis/projects/obs_scaling_params
 sbatch jobs/run_scaling_params.sbatch
+sbatch jobs/run_scaling_params.sbatch --obsfcstana-format nc4
 ```
 
 ## MATLAB/Python Fixture on Discover
@@ -96,6 +102,7 @@ Both jobs honor these optional environment variables:
 ```bash
 REPO_ROOT=/path/to/geosldas-analysis
 FIXTURE_ROOT=/discover/nobackup/$USER/obs_scaling_fixture
+OFA_FORMAT=auto
 MATLAB_MODULE=matlab
 ```
 

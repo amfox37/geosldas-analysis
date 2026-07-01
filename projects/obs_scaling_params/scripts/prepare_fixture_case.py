@@ -20,10 +20,11 @@ def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     fixture_root = args.fixture_root.resolve()
 
-    input_obsfcstana = INPUTS / f"{EXP_RUN}.ens_avg.ldas_ObsFcstAna.{TIMESTAMP}.bin"
+    input_obsfcstana_bin = INPUTS / f"{EXP_RUN}.ens_avg.ldas_ObsFcstAna.{TIMESTAMP}.bin"
+    input_obsfcstana_nc4 = INPUTS / f"{EXP_RUN}.ens_avg.ldas_ObsFcstAna.{TIMESTAMP}.nc4"
     input_obsparam = INPUTS / f"{EXP_RUN}.ldas_obsparam.{OBS_PARAM_TIMESTAMP}.txt"
     input_tilecoord = INPUTS / f"{EXP_RUN}.ldas_tilecoord.bin"
-    for path in (input_obsfcstana, input_obsparam, input_tilecoord):
+    for path in (input_obsfcstana_bin, input_obsfcstana_nc4, input_obsparam, input_tilecoord):
         if not path.exists():
             raise FileNotFoundError(f"Required fixture input is missing: {path}")
 
@@ -35,7 +36,8 @@ def main(argv: list[str] | None = None) -> None:
     rc_dir.mkdir(parents=True, exist_ok=True)
     stats_dir.mkdir(parents=True, exist_ok=True)
 
-    shutil.copy2(input_obsfcstana, ana_dir / input_obsfcstana.name)
+    shutil.copy2(input_obsfcstana_bin, ana_dir / input_obsfcstana_bin.name)
+    shutil.copy2(input_obsfcstana_nc4, ana_dir / input_obsfcstana_nc4.name)
     shutil.copy2(input_obsparam, rc_dir / input_obsparam.name)
     shutil.copy2(input_tilecoord, rc_dir / input_tilecoord.name)
 

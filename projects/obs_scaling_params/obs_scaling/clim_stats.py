@@ -98,6 +98,7 @@ def get_model_and_obs_clim_stats_latlon_grid(
     print_all_pentads: bool,
     out_dir: str,
     enable_dedup: bool = True,
+    obsfcstana_format: str = "auto",
 ) -> None:
     nodata = -9999.0
     overwrite = True
@@ -169,6 +170,7 @@ def get_model_and_obs_clim_stats_latlon_grid(
     cycle_id = 0
     dedup_tracker: dict[tuple[int, ...], _DedupEntry] = {}
     t0_assim = t0_assim % dt_assim
+    obsfcstana_format = _normalize_obsfcstana_format(obsfcstana_format)
 
     for imonth, month in enumerate(run_months.tolist()):
         month_days = _days_in_month_non_leap(month)
@@ -186,13 +188,15 @@ def get_model_and_obs_clim_stats_latlon_grid(
                     cycle_id += 1
                     _prune_dedup(dedup_tracker, cycle_id, dedup_keep_cycles)
                 for year in range(start_year[imonth], end_year[imonth] + 1):
-                    fname = (
-                        inpath
-                        / "ana"
-                        / "ens_avg"
-                        / f"Y{year:04d}"
-                        / f"M{month:02d}"
-                        / f"{exp_run}.ens_avg.ldas_ObsFcstAna.{year:04d}{month:02d}{day:02d}_{hour:02d}{minute:02d}z.bin"
+                    fname = _obsfcstana_path(
+                        inpath,
+                        exp_run,
+                        year,
+                        month,
+                        day,
+                        hour,
+                        minute,
+                        obsfcstana_format,
                     )
                     record = read_obs_fcst_ana(fname)
                     if record is None:
@@ -439,6 +443,42 @@ def _pentad_bounds(month: int, start: bool) -> int:
 def _days_in_month_non_leap(month: int) -> int:
     days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
     return days[month - 1]
+
+
+def _normalize_obsfcstana_format(obsfcstana_format: str) -> str:
+    normalized = obsfcstana_format.lower()
+    if normalized not in {"auto", "bin", "nc4"}:
+        raise ValueError(f"obsfcstana_format must be one of auto, bin, nc4; got {obsfcstana_format!r}")
+    return normalized
+
+
+def _obsfcstana_path(
+    inpath: Path,
+    exp_run: str,
+    year: int,
+    month: int,
+    day: int,
+    hour: int,
+    minute: int,
+    obsfcstana_format: str,
+) -> Path:
+    base = (
+        inpath
+        / "ana"
+        / "ens_avg"
+        / f"Y{year:04d}"
+        / f"M{month:02d}"
+        / f"{exp_run}.ens_avg.ldas_ObsFcstAna.{year:04d}{month:02d}{day:02d}_{hour:02d}{minute:02d}z"
+    )
+    if obsfcstana_format == "bin":
+        return Path(f"{base}.bin")
+    if obsfcstana_format == "nc4":
+        return Path(f"{base}.nc4")
+
+    bin_path = Path(f"{base}.bin")
+    if bin_path.exists():
+        return bin_path
+    return Path(f"{base}.nc4")
 
 
 def _accumulate(arr: np.ndarray, scnt: int, cell: int, idx: int, delta: float) -> None:

@@ -57,13 +57,19 @@ def test_obsfcstana_binary_matches_netcdf_sample():
     )
 
     record = read_obs_fcst_ana(binary_path)
+    netcdf_record = read_obs_fcst_ana(netcdf_path)
     assert record is not None
+    assert netcdf_record is not None
     assert record.date_time.year == 2020
     assert record.date_time.month == 5
     assert record.date_time.day == 2
     assert record.date_time.hour == 9
     assert record.date_time.dofyr == 123
     assert record.date_time.pentad == 25
+    assert netcdf_record.date_time == record.date_time
+    np.testing.assert_array_equal(netcdf_record.obs_assim, record.obs_assim)
+    np.testing.assert_array_equal(netcdf_record.obs_species, record.obs_species)
+    np.testing.assert_array_equal(netcdf_record.obs_tilenum, record.obs_tilenum)
 
     with nc.Dataset(netcdf_path) as dataset:
         assert record.obs_obs.size == len(dataset.dimensions["n_obs"])
@@ -88,6 +94,21 @@ def test_obsfcstana_binary_matches_netcdf_sample():
             expected = np.ma.filled(dataset.variables[name][:], np.nan)
             if name in {"obsvar", "fcst", "fcstvar", "ana", "anavar"}:
                 expected = np.where(expected == -9999.0, np.nan, expected)
+            np.testing.assert_allclose(
+                values, expected, rtol=0.0, atol=0.0, equal_nan=True
+            )
+
+        record_pairs = {
+            "lon": (netcdf_record.obs_lon, record.obs_lon),
+            "lat": (netcdf_record.obs_lat, record.obs_lat),
+            "obs": (netcdf_record.obs_obs, record.obs_obs),
+            "obsvar": (netcdf_record.obs_obsvar, record.obs_obsvar),
+            "fcst": (netcdf_record.obs_fcst, record.obs_fcst),
+            "fcstvar": (netcdf_record.obs_fcstvar, record.obs_fcstvar),
+            "ana": (netcdf_record.obs_ana, record.obs_ana),
+            "anavar": (netcdf_record.obs_anavar, record.obs_anavar),
+        }
+        for _, (values, expected) in record_pairs.items():
             np.testing.assert_allclose(
                 values, expected, rtol=0.0, atol=0.0, equal_nan=True
             )

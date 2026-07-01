@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Iterable, Iterator, List, Sequence
 
 import math
+import re
 import shlex
 import struct
 
@@ -301,6 +302,8 @@ def read_obs_fcst_ana(fname: str | Path, is_ldassa: bool | None = None) -> ObsFc
     path = Path(fname)
     if not path.exists():
         return None
+    if path.suffix == ".nc4":
+        return _read_obs_fcst_ana_netcdf(path)
 
     attempts = []
     if is_ldassa is None:
@@ -318,6 +321,61 @@ def read_obs_fcst_ana(fname: str | Path, is_ldassa: bool | None = None) -> ObsFc
     if last_error is not None:
         raise last_error
     return None
+
+
+def _read_obs_fcst_ana_netcdf(path: Path) -> ObsFcstAnaRecord:
+    with nc.Dataset(path) as dataset:
+        date_time = _obsfcstana_datetime_from_path(path, dataset)
+        obs_obsvar = _nodata_to_nan(_read_nc_array(dataset, "obsvar").astype(np.float32))
+        obs_fcst = _nodata_to_nan(_read_nc_array(dataset, "fcst").astype(np.float32))
+        obs_fcstvar = _nodata_to_nan(_read_nc_array(dataset, "fcstvar").astype(np.float32))
+        obs_ana = _nodata_to_nan(_read_nc_array(dataset, "ana").astype(np.float32))
+        obs_anavar = _nodata_to_nan(_read_nc_array(dataset, "anavar").astype(np.float32))
+        return ObsFcstAnaRecord(
+            date_time=date_time,
+            obs_assim=_read_nc_array(dataset, "assim_flag").astype(bool),
+            obs_species=_read_nc_array(dataset, "species").astype(np.int32),
+            obs_tilenum=_read_nc_array(dataset, "tilenum").astype(np.int32),
+            obs_lon=_read_nc_array(dataset, "lon").astype(np.float32),
+            obs_lat=_read_nc_array(dataset, "lat").astype(np.float32),
+            obs_obs=_read_nc_array(dataset, "obs").astype(np.float32),
+            obs_obsvar=obs_obsvar,
+            obs_fcst=obs_fcst,
+            obs_fcstvar=obs_fcstvar,
+            obs_ana=obs_ana,
+            obs_anavar=obs_anavar,
+        )
+
+
+def _obsfcstana_datetime_from_path(path: Path, dataset: nc.Dataset) -> DateTime:
+    candidates = [path.name]
+    filename_attr = getattr(dataset, "Filename", "")
+    if filename_attr:
+        candidates.append(Path(str(filename_attr)).name)
+    for candidate in candidates:
+        match = re.search(r"(\d{8})_(\d{4})z", candidate)
+        if match:
+            yyyymmdd, hhmm = match.groups()
+            date_time = DateTime(
+                year=int(yyyymmdd[0:4]),
+                month=int(yyyymmdd[4:6]),
+                day=int(yyyymmdd[6:8]),
+                hour=int(hhmm[0:2]),
+                minute=int(hhmm[2:4]),
+                second=0,
+            )
+            return get_dofyr_pentad(date_time)
+    raise ValueError(f"Could not infer ObsFcstAna timestamp from {path}")
+
+
+def _read_nc_array(dataset: nc.Dataset, name: str) -> np.ndarray:
+    if name not in dataset.variables:
+        raise KeyError(f"ObsFcstAna NetCDF variable is missing: {name}")
+    return np.asarray(np.ma.filled(dataset.variables[name][...], np.nan))
+
+
+def _nodata_to_nan(values: np.ndarray) -> np.ndarray:
+    return np.where(values == -9999.0, np.nan, values)
 
 
 def _read_obs_fcst_ana_struct(path: Path, endian: str) -> ObsFcstAnaRecord:

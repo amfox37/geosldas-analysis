@@ -60,6 +60,7 @@ def main(argv: list[str] | None = None) -> None:
     print("  grid_resolution:", args.grid_resolution)
     print("  window_days:", args.window_days)
     print("  ndata_min:", args.ndata_min)
+    print("  obsfcstana_format:", args.obsfcstana_format)
     print("  out_dir:", args.out_dir)
 
     get_model_and_obs_clim_stats_latlon_grid(
@@ -83,6 +84,7 @@ def main(argv: list[str] | None = None) -> None:
         print_all_pentads=args.print_all_pentads,
         out_dir=args.out_dir,
         enable_dedup=args.enable_dedup,
+        obsfcstana_format=args.obsfcstana_format,
     )
 
 
@@ -110,6 +112,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--ndata-min", type=int, default=20, help="Minimum samples required per grid cell/window.")
     parser.add_argument("--dt-assim", type=int, default=3 * 60 * 60, help="Assimilation timestep in seconds.")
     parser.add_argument("--t0-assim", type=int, default=0, help="Assimilation reference offset in seconds.")
+    parser.add_argument(
+        "--obsfcstana-format",
+        choices=("auto", "bin", "nc4"),
+        default="auto",
+        help="ObsFcstAna input format. auto tries .bin first, then .nc4.",
+    )
     parser.add_argument(
         "--run-months",
         default="",

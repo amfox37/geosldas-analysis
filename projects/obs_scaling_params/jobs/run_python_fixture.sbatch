@@ -13,6 +13,7 @@ set -euo pipefail
 
 REPO_ROOT="${REPO_ROOT:-/discover/nobackup/projects/land_da/geosldas-analysis}"
 FIXTURE_ROOT="${FIXTURE_ROOT:-/discover/nobackup/${USER}/obs_scaling_fixture}"
+OFA_FORMAT="${OFA_FORMAT:-auto}"
 
 cd "${REPO_ROOT}/projects/obs_scaling_params"
 
@@ -31,6 +32,7 @@ python -u scripts/run_scaling_params.py \
   --ndata-min 1 \
   --dt-assim 86400 \
   --t0-assim 32400 \
+  --obsfcstana-format "${OFA_FORMAT}" \
   --prefix fixture_python_zscore_stats_ \
   --out-dir python_fixture_zscore_1deg \
   --no-all-pentads
