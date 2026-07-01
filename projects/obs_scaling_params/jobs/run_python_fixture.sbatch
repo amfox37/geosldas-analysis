@@ -13,7 +13,7 @@ set -euo pipefail
 
 REPO_ROOT="${REPO_ROOT:-/discover/nobackup/projects/land_da/geosldas-analysis}"
 FIXTURE_ROOT="${FIXTURE_ROOT:-/discover/nobackup/${USER}/obs_scaling_fixture}"
-OFA_FORMAT="${OFA_FORMAT:-auto}"
+OFA_FORMAT="${OFA_FORMAT:-nc4}"
 
 cd "${REPO_ROOT}/projects/obs_scaling_params"
 

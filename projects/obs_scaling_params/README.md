@@ -47,7 +47,7 @@ From this project directory:
 python scripts/run_scaling_params.py
 ```
 
-The defaults match the local parity-test configuration:
+The defaults target the current production ASCAT scaling configuration:
 
 ```text
 Experiment: /discover/nobackup/projects/land_da/Experiment_archive/M21C_land_sweeper_OLv8_M36/LS_OLv8_M36
@@ -69,13 +69,13 @@ python scripts/run_scaling_params.py \
   --domain SMAP_EASEv2_M36_GLOBAL \
   --start 2007-06 \
   --end 2024-05 \
-  --species ASCAT_META_SM,ASCAT_METB_SM,ASCAT_METC_SM \
-  --obsfcstana-format auto
+  --species ASCAT_META_SM,ASCAT_METB_SM,ASCAT_METC_SM
 ```
 
 ObsFcstAna input format can be selected with `--obsfcstana-format auto|bin|nc4`.
-The default `auto` preserves legacy behavior by trying `.bin` first and then
-`.nc4`. Use `--obsfcstana-format nc4` to force NetCDF ObsFcstAna input.
+The default is `nc4` for current production archives. Use
+`--obsfcstana-format bin` for legacy binary ObsFcstAna archives, or `auto` to
+try `.bin` first and then `.nc4`.
 
 Legacy observation de-duplication is available with `--dedup`, but is off by
 default. The de-dup path matches the MATLAB reference behavior by using a
@@ -87,7 +87,12 @@ On Discover:
 ```bash
 cd /path/to/geosldas-analysis/projects/obs_scaling_params
 sbatch jobs/run_scaling_params.sbatch
-sbatch jobs/run_scaling_params.sbatch --obsfcstana-format nc4
+```
+
+For legacy binary ObsFcstAna archives:
+
+```bash
+sbatch jobs/run_scaling_params.sbatch --obsfcstana-format bin
 ```
 
 ## MATLAB/Python Fixture on Discover
@@ -107,7 +112,7 @@ Both jobs honor these optional environment variables:
 ```bash
 REPO_ROOT=/path/to/geosldas-analysis
 FIXTURE_ROOT=/discover/nobackup/$USER/obs_scaling_fixture
-OFA_FORMAT=auto
+OFA_FORMAT=nc4
 MATLAB_MODULE=matlab
 ```
 

@@ -117,8 +117,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--obsfcstana-format",
         choices=("auto", "bin", "nc4"),
-        default="auto",
-        help="ObsFcstAna input format. auto tries .bin first, then .nc4.",
+        default="nc4",
+        help="ObsFcstAna input format. Defaults to nc4; bin and auto are kept for legacy archives.",
     )
     parser.add_argument(
         "--run-months",

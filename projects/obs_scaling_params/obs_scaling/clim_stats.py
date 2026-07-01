@@ -98,7 +98,7 @@ def get_model_and_obs_clim_stats_latlon_grid(
     print_all_pentads: bool,
     out_dir: str,
     enable_dedup: bool = False,
-    obsfcstana_format: str = "auto",
+    obsfcstana_format: str = "nc4",
 ) -> None:
     nodata = -9999.0
     overwrite = True
@@ -234,67 +234,96 @@ def get_model_and_obs_clim_stats_latlon_grid(
                         obs_fcst = obs_fcst[inside]
                         obs_cells = j_idx * grid.n_lon + i_idx
 
-                        obs_species = record.obs_species[mask][inside]
-                        obs_tile = record.obs_tilenum[mask][inside]
-                        obs_lon_sel = obs_lon[inside]
-                        obs_lat_sel = obs_lat[inside]
+                        if not enable_dedup:
+                            obs_obs_float = obs_obs.astype(float, copy=False)
+                            obs_fcst_float = obs_fcst.astype(float, copy=False)
+                            _accumulate_weighted_cells(
+                                o_data_sum, scnt, idx, obs_cells, obs_obs_float, n_gridcells
+                            )
+                            _accumulate_weighted_cells(
+                                o_data_sum2,
+                                scnt,
+                                idx,
+                                obs_cells,
+                                obs_obs_float * obs_obs_float,
+                                n_gridcells,
+                            )
+                            _accumulate_counts(n_data, scnt, idx, obs_cells, ~np.isnan(obs_obs_float), n_gridcells)
+                            _accumulate_weighted_cells(
+                                m_data_sum, scnt, idx, obs_cells, obs_fcst_float, n_gridcells
+                            )
+                            _accumulate_weighted_cells(
+                                m_data_sum2,
+                                scnt,
+                                idx,
+                                obs_cells,
+                                obs_fcst_float * obs_fcst_float,
+                                n_gridcells,
+                            )
+                            _accumulate_cell_min(m_data_min, scnt, idx, obs_cells, obs_fcst_float, n_gridcells)
+                            _accumulate_cell_max(m_data_max, scnt, idx, obs_cells, obs_fcst_float, n_gridcells)
+                        else:
+                            obs_species = record.obs_species[mask][inside]
+                            obs_tile = record.obs_tilenum[mask][inside]
+                            obs_lon_sel = obs_lon[inside]
+                            obs_lat_sel = obs_lat[inside]
 
-                        for cell, obs_val, fcst_val, tile, species_id, lon, lat in zip(
-                            obs_cells, obs_obs, obs_fcst, obs_tile, obs_species, obs_lon_sel, obs_lat_sel
-                        ):
-                            obs_contrib = np.nan if np.isnan(obs_val) else float(obs_val)
-                            obs_sq = np.nan if np.isnan(obs_val) else obs_contrib * obs_contrib
-                            mod_contrib = np.nan if np.isnan(fcst_val) else float(fcst_val)
-                            mod_sq = np.nan if np.isnan(fcst_val) else mod_contrib * mod_contrib
+                            for cell, obs_val, fcst_val, tile, species_id, lon, lat in zip(
+                                obs_cells, obs_obs, obs_fcst, obs_tile, obs_species, obs_lon_sel, obs_lat_sel
+                            ):
+                                obs_contrib = np.nan if np.isnan(obs_val) else float(obs_val)
+                                obs_sq = np.nan if np.isnan(obs_val) else obs_contrib * obs_contrib
+                                mod_contrib = np.nan if np.isnan(fcst_val) else float(fcst_val)
+                                mod_sq = np.nan if np.isnan(fcst_val) else mod_contrib * mod_contrib
 
-                            key = None
-                            obs_valid = not np.isnan(obs_contrib)
-                            mod_valid = not np.isnan(mod_contrib)
-                            obs_delta = obs_contrib if obs_valid else 0.0
-                            obs2_delta = obs_sq if obs_valid else 0.0
-                            mod_delta = mod_contrib if mod_valid else 0.0
-                            mod2_delta = mod_sq if mod_valid else 0.0
-                            n_delta = 1.0 if obs_valid else 0.0
+                                key = None
+                                obs_valid = not np.isnan(obs_contrib)
+                                mod_valid = not np.isnan(mod_contrib)
+                                obs_delta = obs_contrib if obs_valid else 0.0
+                                obs2_delta = obs_sq if obs_valid else 0.0
+                                mod_delta = mod_contrib if mod_valid else 0.0
+                                mod2_delta = mod_sq if mod_valid else 0.0
+                                n_delta = 1.0 if obs_valid else 0.0
 
-                            if enable_dedup and obs_valid:
-                                key = (
-                                    int(tile),
-                                    int(species_id),
-                                    int(round(lon * lonlat_q)),
-                                    int(round(lat * lonlat_q)),
-                                    int(round(obs_contrib * obs_q)),
-                                    int(year),
-                                )
-                                prev = dedup_tracker.get(key)
-                                if prev is not None:
-                                    _accumulate(o_data_sum, prev.scnt, prev.cell, prev.idx, -prev.obs)
-                                    _accumulate(m_data_sum, prev.scnt, prev.cell, prev.idx, -prev.mod)
-                                    _accumulate(o_data_sum2, prev.scnt, prev.cell, prev.idx, -prev.obs2)
-                                    _accumulate(m_data_sum2, prev.scnt, prev.cell, prev.idx, -prev.mod2)
-                                    _accumulate(n_data, prev.scnt, prev.cell, prev.idx, -prev.count)
+                                if obs_valid:
+                                    key = (
+                                        int(tile),
+                                        int(species_id),
+                                        int(round(lon * lonlat_q)),
+                                        int(round(lat * lonlat_q)),
+                                        int(round(obs_contrib * obs_q)),
+                                        int(year),
+                                    )
+                                    prev = dedup_tracker.get(key)
+                                    if prev is not None:
+                                        _accumulate(o_data_sum, prev.scnt, prev.cell, prev.idx, -prev.obs)
+                                        _accumulate(m_data_sum, prev.scnt, prev.cell, prev.idx, -prev.mod)
+                                        _accumulate(o_data_sum2, prev.scnt, prev.cell, prev.idx, -prev.obs2)
+                                        _accumulate(m_data_sum2, prev.scnt, prev.cell, prev.idx, -prev.mod2)
+                                        _accumulate(n_data, prev.scnt, prev.cell, prev.idx, -prev.count)
 
-                            if obs_valid:
-                                _accumulate(o_data_sum, scnt, cell, idx, obs_delta)
-                                _accumulate(o_data_sum2, scnt, cell, idx, obs2_delta)
-                                _accumulate(n_data, scnt, cell, idx, n_delta)
-                            if mod_valid:
-                                _accumulate(m_data_sum, scnt, cell, idx, mod_delta)
-                                _accumulate(m_data_sum2, scnt, cell, idx, mod2_delta)
-                                m_data_min[scnt, cell, idx] = _nan_min(m_data_min[scnt, cell, idx], mod_contrib)
-                                m_data_max[scnt, cell, idx] = _nan_max(m_data_max[scnt, cell, idx], mod_contrib)
+                                if obs_valid:
+                                    _accumulate(o_data_sum, scnt, cell, idx, obs_delta)
+                                    _accumulate(o_data_sum2, scnt, cell, idx, obs2_delta)
+                                    _accumulate(n_data, scnt, cell, idx, n_delta)
+                                if mod_valid:
+                                    _accumulate(m_data_sum, scnt, cell, idx, mod_delta)
+                                    _accumulate(m_data_sum2, scnt, cell, idx, mod2_delta)
+                                    m_data_min[scnt, cell, idx] = _nan_min(m_data_min[scnt, cell, idx], mod_contrib)
+                                    m_data_max[scnt, cell, idx] = _nan_max(m_data_max[scnt, cell, idx], mod_contrib)
 
-                            if key is not None:
-                                dedup_tracker[key] = _DedupEntry(
-                                    scnt=scnt,
-                                    cell=cell,
-                                    idx=idx,
-                                    obs=obs_delta,
-                                    obs2=obs2_delta,
-                                    mod=mod_delta,
-                                    mod2=mod2_delta,
-                                    count=n_delta,
-                                    cycle_id=cycle_id,
-                                )
+                                if key is not None:
+                                    dedup_tracker[key] = _DedupEntry(
+                                        scnt=scnt,
+                                        cell=cell,
+                                        idx=idx,
+                                        obs=obs_delta,
+                                        obs2=obs2_delta,
+                                        mod=mod_delta,
+                                        mod2=mod2_delta,
+                                        count=n_delta,
+                                        cycle_id=cycle_id,
+                                    )
 
             if count >= w_days:
                 end_time = DateTime(2014, month, day, hour, minute, second)
@@ -488,6 +517,81 @@ def _accumulate(arr: np.ndarray, scnt: int, cell: int, idx: int, delta: float) -
     if np.isnan(current):
         current = 0.0
     arr[scnt, cell, idx] = current + delta
+
+
+def _accumulate_weighted_cells(
+    arr: np.ndarray,
+    scnt: int,
+    idx: int,
+    cells: np.ndarray,
+    weights: np.ndarray,
+    n_gridcells: int,
+) -> None:
+    valid = ~np.isnan(weights)
+    if not np.any(valid):
+        return
+    valid_cells = cells[valid]
+    counts = np.bincount(valid_cells, minlength=n_gridcells)
+    touched = counts > 0
+    target = arr[scnt, :, idx]
+    current = target[touched]
+    target[touched] = np.where(np.isnan(current), 0.0, current)
+    np.add.at(target, valid_cells, weights[valid])
+
+
+def _accumulate_counts(
+    arr: np.ndarray,
+    scnt: int,
+    idx: int,
+    cells: np.ndarray,
+    valid: np.ndarray,
+    n_gridcells: int,
+) -> None:
+    if not np.any(valid):
+        return
+    increments = np.bincount(cells[valid], minlength=n_gridcells).astype(float)
+    touched = increments > 0
+    target = arr[scnt, :, idx]
+    current = target[touched]
+    target[touched] = np.where(np.isnan(current), 0.0, current) + increments[touched]
+
+
+def _accumulate_cell_min(
+    arr: np.ndarray,
+    scnt: int,
+    idx: int,
+    cells: np.ndarray,
+    values: np.ndarray,
+    n_gridcells: int,
+) -> None:
+    valid = ~np.isnan(values)
+    if not np.any(valid):
+        return
+    valid_cells = cells[valid]
+    touched = np.bincount(valid_cells, minlength=n_gridcells) > 0
+    target = arr[scnt, :, idx]
+    current = target[touched]
+    target[touched] = np.where(np.isnan(current), np.inf, current)
+    np.minimum.at(target, valid_cells, values[valid])
+
+
+def _accumulate_cell_max(
+    arr: np.ndarray,
+    scnt: int,
+    idx: int,
+    cells: np.ndarray,
+    values: np.ndarray,
+    n_gridcells: int,
+) -> None:
+    valid = ~np.isnan(values)
+    if not np.any(valid):
+        return
+    valid_cells = cells[valid]
+    touched = np.bincount(valid_cells, minlength=n_gridcells) > 0
+    target = arr[scnt, :, idx]
+    current = target[touched]
+    target[touched] = np.where(np.isnan(current), -np.inf, current)
+    np.maximum.at(target, valid_cells, values[valid])
 
 
 def _prune_dedup(dedup_tracker: dict[tuple[int, ...], _DedupEntry], cycle_id: int, keep_cycles: int) -> None:
