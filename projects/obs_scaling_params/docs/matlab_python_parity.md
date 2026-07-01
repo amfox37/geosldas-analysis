@@ -45,6 +45,10 @@ The Python core keeps MATLAB behavior for:
 - treating `-9999` observation/model sentinels as missing before statistics
 - rolling 75-day window accumulation
 - combined-species handling
-- de-duplication by rounded tile/species/lon/lat/obs/year key, keeping the
-  later recent occurrence
+- optional de-duplication by rounded tile/species/lon/lat/obs/year key,
+  keeping the later recent occurrence
 - output fields and dimensions compatible with existing scaling files
+
+Note: de-duplication was enabled during the parity comparison above because the
+MATLAB reference enables it by default. The maintained Python CLI now leaves
+de-duplication off by default; pass `--dedup` for legacy parity runs.

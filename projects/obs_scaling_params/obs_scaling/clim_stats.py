@@ -97,7 +97,7 @@ def get_model_and_obs_clim_stats_latlon_grid(
     print_each_pentad: bool,
     print_all_pentads: bool,
     out_dir: str,
-    enable_dedup: bool = True,
+    enable_dedup: bool = False,
     obsfcstana_format: str = "auto",
 ) -> None:
     nodata = -9999.0

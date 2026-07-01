@@ -57,7 +57,7 @@ Species:    ASCAT_META_SM, ASCAT_METB_SM, ASCAT_METC_SM
 Window:     75 days
 Nmin:       20
 Grid:       0.25 degree lat/lon
-Output:     output/<domain>/stats/python_z_score_dedup_clim_quarter_degree/
+Output:     output/<domain>/stats/python_z_score_clim_quarter_degree/
 ```
 
 For another experiment/species set, pass explicit arguments:
@@ -76,6 +76,11 @@ python scripts/run_scaling_params.py \
 ObsFcstAna input format can be selected with `--obsfcstana-format auto|bin|nc4`.
 The default `auto` preserves legacy behavior by trying `.bin` first and then
 `.nc4`. Use `--obsfcstana-format nc4` to force NetCDF ObsFcstAna input.
+
+Legacy observation de-duplication is available with `--dedup`, but is off by
+default. The de-dup path matches the MATLAB reference behavior by using a
+rounded tile/species/lon/lat/obs/year key and keeping the later recent
+occurrence.
 
 On Discover:
 

@@ -1,8 +1,9 @@
 """Run z-score observation scaling climatology generation.
 
 This is the project driver for the Python port of the legacy MATLAB
-`get_model_and_obs_clim_stats_latlon_grid.m` workflow. Defaults match the
-land-sweeper ASCAT configuration used during MATLAB/Python parity checks.
+`get_model_and_obs_clim_stats_latlon_grid.m` workflow. Defaults target the
+land-sweeper ASCAT configuration, with legacy de-duplication available as an
+explicit option.
 """
 
 from __future__ import annotations
@@ -61,6 +62,7 @@ def main(argv: list[str] | None = None) -> None:
     print("  window_days:", args.window_days)
     print("  ndata_min:", args.ndata_min)
     print("  obsfcstana_format:", args.obsfcstana_format)
+    print("  dedup:", args.enable_dedup)
     print("  out_dir:", args.out_dir)
 
     get_model_and_obs_clim_stats_latlon_grid(
@@ -123,20 +125,31 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="",
         help="Optional comma-separated month override. Defaults to annual climatology months plus window padding.",
     )
-    parser.add_argument("--prefix", default="M36_python_dedup_zscore_stats_", help="Output filename prefix.")
+    parser.add_argument("--prefix", default="M36_python_zscore_stats_", help="Output filename prefix.")
     parser.add_argument(
         "--out-dir",
-        default="python_z_score_dedup_clim_quarter_degree",
+        default="python_z_score_clim_quarter_degree",
         help="Output subdirectory under EXP/DOMAIN/stats.",
     )
     parser.add_argument("--no-combine-species", dest="combine_species", action="store_false")
-    parser.add_argument("--no-dedup", dest="enable_dedup", action="store_false")
+    parser.add_argument(
+        "--dedup",
+        dest="enable_dedup",
+        action="store_true",
+        help="Enable legacy observation de-duplication by rounded tile/species/lon/lat/obs/year key.",
+    )
+    parser.add_argument(
+        "--no-dedup",
+        dest="enable_dedup",
+        action="store_false",
+        help=argparse.SUPPRESS,
+    )
     parser.add_argument("--no-each-doy", dest="print_each_doy", action="store_false")
     parser.add_argument("--each-pentad", dest="print_each_pentad", action="store_true")
     parser.add_argument("--no-all-pentads", dest="print_all_pentads", action="store_false")
     parser.set_defaults(
         combine_species=True,
-        enable_dedup=True,
+        enable_dedup=False,
         print_each_doy=True,
         print_each_pentad=False,
         print_all_pentads=True,
