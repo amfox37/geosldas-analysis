@@ -79,9 +79,16 @@ N_data      = NaN(N_species, N_gridcells, w_days);
 data_out    = NaN(N_species, Nf, N_gridcells, N_pentads);
 data2D      = NaN(Nf, N_gridcells);
 
-% For pentad outputs (filled lazily)
-start_time_p = struct([]); %#ok<NASGU>
-end_time_p   = struct([]); %#ok<NASGU>
+% For pentad outputs (filled lazily).
+% Pre-initialise with the correct field sets so that R2023b does not raise
+% "Subscripted assignment between dissimilar structures" on first write.
+% start_time comes from augment_date_time (8 fields); end_time is set
+% directly (6 fields).
+tmp_st = struct('year',2014,'month',1,'day',1,'hour',0,'min',0,'sec',0,'dofyr',1,'pentad',1);
+tmp_et = struct('year',2014,'month',1,'day',1,'hour',0,'min',0,'sec',0);
+start_time_p = repmat(tmp_st, 1, N_pentads);
+end_time_p   = repmat(tmp_et, 1, N_pentads);
+clear tmp_st tmp_et
 
 % ---------------- de-dup state (optional, persists across cycles) ----------------
 if enable_dedup

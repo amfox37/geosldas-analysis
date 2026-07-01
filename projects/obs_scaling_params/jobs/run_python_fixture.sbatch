@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=obs_scaling_python_fixture
-#SBATCH --account=s2519
+#SBATCH --account=g0610
 #SBATCH --partition=compute
 #SBATCH --time=00:20:00
 #SBATCH --ntasks=1
