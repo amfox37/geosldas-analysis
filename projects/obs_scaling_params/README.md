@@ -106,3 +106,15 @@ $FIXTURE_ROOT/LS_DAv8_M36_as_test2/output/SMAP_EASEv2_M36_GLOBAL/stats/
   python_fixture_zscore_1deg/
   matlab_fixture_zscore_1deg/
 ```
+
+After both jobs finish, compare the NetCDF outputs:
+
+```bash
+python scripts/compare_fixture_outputs.py \
+  --fixture-root "$FIXTURE_ROOT" \
+  --key-contains DOY121
+```
+
+The comparison reports dimensions, finite-cell counts, finite-mask mismatches,
+and max/mean absolute differences for `o_mean`, `o_std`, `m_mean`, `m_std`,
+`n_data`, `m_min`, and `m_max`.
