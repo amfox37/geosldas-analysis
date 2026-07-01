@@ -1,4 +1,5 @@
 from pathlib import Path
+import shutil
 import sys
 
 import netCDF4 as nc
@@ -92,7 +93,7 @@ def test_obsfcstana_binary_matches_netcdf_sample():
         }
         for name, values in float_pairs.items():
             expected = np.ma.filled(dataset.variables[name][:], np.nan)
-            if name in {"obsvar", "fcst", "fcstvar", "ana", "anavar"}:
+            if name in {"obs", "obsvar", "fcst", "fcstvar", "ana", "anavar"}:
                 expected = np.where(expected == -9999.0, np.nan, expected)
             np.testing.assert_allclose(
                 values, expected, rtol=0.0, atol=0.0, equal_nan=True
@@ -112,3 +113,19 @@ def test_obsfcstana_binary_matches_netcdf_sample():
             np.testing.assert_allclose(
                 values, expected, rtol=0.0, atol=0.0, equal_nan=True
             )
+
+
+def test_obsfcstana_netcdf_literal_obs_nodata_becomes_nan(tmp_path):
+    source = (
+        INPUTS / "LS_DAv8_M36_as_test2.ens_avg.ldas_ObsFcstAna.20200502_0900z.nc4"
+    )
+    target = tmp_path / source.name
+    shutil.copy2(source, target)
+
+    with nc.Dataset(target, "r+") as dataset:
+        dataset.variables["obs"][0] = -9999.0
+
+    record = read_obs_fcst_ana(target)
+
+    assert record is not None
+    assert np.isnan(record.obs_obs[0])

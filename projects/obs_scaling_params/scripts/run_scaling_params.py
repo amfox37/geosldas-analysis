@@ -63,6 +63,8 @@ def main(argv: list[str] | None = None) -> None:
     print("  ndata_min:", args.ndata_min)
     print("  obsfcstana_format:", args.obsfcstana_format)
     print("  dedup:", args.enable_dedup)
+    print("  each_doy:", args.print_each_doy)
+    print("  all_pentads:", args.print_all_pentads)
     print("  out_dir:", args.out_dir)
 
     get_model_and_obs_clim_stats_latlon_grid(
@@ -144,13 +146,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_false",
         help=argparse.SUPPRESS,
     )
-    parser.add_argument("--no-each-doy", dest="print_each_doy", action="store_false")
+    parser.add_argument(
+        "--each-doy",
+        dest="print_each_doy",
+        action="store_true",
+        help="Write one NetCDF file for each output DOY. Default is all-pentads output only.",
+    )
+    parser.add_argument(
+        "--no-each-doy",
+        dest="print_each_doy",
+        action="store_false",
+        help=argparse.SUPPRESS,
+    )
     parser.add_argument("--each-pentad", dest="print_each_pentad", action="store_true")
     parser.add_argument("--no-all-pentads", dest="print_all_pentads", action="store_false")
     parser.set_defaults(
         combine_species=True,
         enable_dedup=False,
-        print_each_doy=True,
+        print_each_doy=False,
         print_each_pentad=False,
         print_all_pentads=True,
     )

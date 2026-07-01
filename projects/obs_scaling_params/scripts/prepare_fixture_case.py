@@ -24,7 +24,13 @@ def main(argv: list[str] | None = None) -> None:
     input_obsfcstana_nc4 = INPUTS / f"{EXP_RUN}.ens_avg.ldas_ObsFcstAna.{TIMESTAMP}.nc4"
     input_obsparam = INPUTS / f"{EXP_RUN}.ldas_obsparam.{OBS_PARAM_TIMESTAMP}.txt"
     input_tilecoord = INPUTS / f"{EXP_RUN}.ldas_tilecoord.bin"
-    for path in (input_obsfcstana_bin, input_obsfcstana_nc4, input_obsparam, input_tilecoord):
+    obsfcstana_inputs = []
+    if args.obsfcstana_format in {"both", "bin"}:
+        obsfcstana_inputs.append(input_obsfcstana_bin)
+    if args.obsfcstana_format in {"both", "nc4"}:
+        obsfcstana_inputs.append(input_obsfcstana_nc4)
+
+    for path in (*obsfcstana_inputs, input_obsparam, input_tilecoord):
         if not path.exists():
             raise FileNotFoundError(f"Required fixture input is missing: {path}")
 
@@ -36,8 +42,8 @@ def main(argv: list[str] | None = None) -> None:
     rc_dir.mkdir(parents=True, exist_ok=True)
     stats_dir.mkdir(parents=True, exist_ok=True)
 
-    shutil.copy2(input_obsfcstana_bin, ana_dir / input_obsfcstana_bin.name)
-    shutil.copy2(input_obsfcstana_nc4, ana_dir / input_obsfcstana_nc4.name)
+    for path in obsfcstana_inputs:
+        shutil.copy2(path, ana_dir / path.name)
     shutil.copy2(input_obsparam, rc_dir / input_obsparam.name)
     shutil.copy2(input_tilecoord, rc_dir / input_tilecoord.name)
 
@@ -55,6 +61,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=Path("/tmp/obs_scaling_fixture"),
         help="Directory that will contain EXP_RUN/output/DOMAIN.",
+    )
+    parser.add_argument(
+        "--obsfcstana-format",
+        choices=("both", "bin", "nc4"),
+        default="both",
+        help="ObsFcstAna fixture input formats to require and copy.",
     )
     return parser.parse_args(argv)
 

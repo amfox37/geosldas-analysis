@@ -60,6 +60,9 @@ Grid:       0.25 degree lat/lon
 Output:     output/<domain>/stats/python_z_score_clim_quarter_degree/
 ```
 
+By default, production runs write the all-pentads NetCDF file only. Pass
+`--each-doy` when you need one NetCDF file per output DOY.
+
 For another experiment/species set, pass explicit arguments:
 
 ```bash
@@ -81,6 +84,9 @@ Legacy observation de-duplication is available with `--dedup`, but is off by
 default. The de-dup path matches the MATLAB reference behavior by using a
 rounded tile/species/lon/lat/obs/year key and keeping the later recent
 occurrence.
+
+Daily DOY output is available with `--each-doy`, but is off by default to avoid
+large numbers of intermediate NetCDF writes.
 
 On Discover:
 

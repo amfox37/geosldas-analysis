@@ -12,8 +12,13 @@ def test_dedup_is_opt_in():
     args = parse_args([])
     assert args.enable_dedup is False
     assert args.obsfcstana_format == "nc4"
+    assert args.print_each_doy is False
+    assert args.print_all_pentads is True
     assert args.prefix == "M36_python_zscore_stats_"
     assert args.out_dir == "python_z_score_clim_quarter_degree"
 
     args = parse_args(["--dedup"])
     assert args.enable_dedup is True
+
+    args = parse_args(["--each-doy"])
+    assert args.print_each_doy is True

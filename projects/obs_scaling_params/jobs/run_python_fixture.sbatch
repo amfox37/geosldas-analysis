@@ -35,4 +35,5 @@ python -u scripts/run_scaling_params.py \
   --obsfcstana-format "${OFA_FORMAT}" \
   --prefix fixture_python_zscore_stats_ \
   --out-dir python_fixture_zscore_1deg \
+  --each-doy \
   --no-all-pentads

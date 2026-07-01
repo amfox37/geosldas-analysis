@@ -536,6 +536,8 @@ def _accumulate_weighted_cells(
     target = arr[scnt, :, idx]
     current = target[touched]
     target[touched] = np.where(np.isnan(current), 0.0, current)
+    # Weighted bincount is faster, but changes summation order enough to move
+    # fixture std fields relative to the MATLAB/direct scalar path.
     np.add.at(target, valid_cells, weights[valid])
 
 
@@ -564,15 +566,9 @@ def _accumulate_cell_min(
     values: np.ndarray,
     n_gridcells: int,
 ) -> None:
-    valid = ~np.isnan(values)
-    if not np.any(valid):
-        return
-    valid_cells = cells[valid]
-    touched = np.bincount(valid_cells, minlength=n_gridcells) > 0
-    target = arr[scnt, :, idx]
-    current = target[touched]
-    target[touched] = np.where(np.isnan(current), np.inf, current)
-    np.minimum.at(target, valid_cells, values[valid])
+    _accumulate_cell_extreme(
+        arr, scnt, idx, cells, values, n_gridcells, np.minimum, np.inf
+    )
 
 
 def _accumulate_cell_max(
@@ -583,6 +579,21 @@ def _accumulate_cell_max(
     values: np.ndarray,
     n_gridcells: int,
 ) -> None:
+    _accumulate_cell_extreme(
+        arr, scnt, idx, cells, values, n_gridcells, np.maximum, -np.inf
+    )
+
+
+def _accumulate_cell_extreme(
+    arr: np.ndarray,
+    scnt: int,
+    idx: int,
+    cells: np.ndarray,
+    values: np.ndarray,
+    n_gridcells: int,
+    ufunc: np.ufunc,
+    fill_value: float,
+) -> None:
     valid = ~np.isnan(values)
     if not np.any(valid):
         return
@@ -590,8 +601,8 @@ def _accumulate_cell_max(
     touched = np.bincount(valid_cells, minlength=n_gridcells) > 0
     target = arr[scnt, :, idx]
     current = target[touched]
-    target[touched] = np.where(np.isnan(current), -np.inf, current)
-    np.maximum.at(target, valid_cells, values[valid])
+    target[touched] = np.where(np.isnan(current), fill_value, current)
+    ufunc.at(target, valid_cells, values[valid])
 
 
 def _prune_dedup(dedup_tracker: dict[tuple[int, ...], _DedupEntry], cycle_id: int, keep_cycles: int) -> None:
@@ -612,7 +623,7 @@ def _nan_min(value: float, candidate: float) -> float:
 
 def _nan_max(value: float, candidate: float) -> float:
     if np.isnan(candidate):
-        return candidate
+        return value
     if np.isnan(value):
         return candidate
     return max(value, candidate)

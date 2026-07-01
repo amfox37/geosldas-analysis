@@ -326,6 +326,7 @@ def read_obs_fcst_ana(fname: str | Path, is_ldassa: bool | None = None) -> ObsFc
 def _read_obs_fcst_ana_netcdf(path: Path) -> ObsFcstAnaRecord:
     with nc.Dataset(path) as dataset:
         date_time = _obsfcstana_datetime_from_path(path, dataset)
+        obs_obs = _nodata_to_nan(_read_nc_array(dataset, "obs").astype(np.float32))
         obs_obsvar = _nodata_to_nan(_read_nc_array(dataset, "obsvar").astype(np.float32))
         obs_fcst = _nodata_to_nan(_read_nc_array(dataset, "fcst").astype(np.float32))
         obs_fcstvar = _nodata_to_nan(_read_nc_array(dataset, "fcstvar").astype(np.float32))
@@ -338,7 +339,7 @@ def _read_obs_fcst_ana_netcdf(path: Path) -> ObsFcstAnaRecord:
             obs_tilenum=_read_nc_array(dataset, "tilenum").astype(np.int32),
             obs_lon=_read_nc_array(dataset, "lon").astype(np.float32),
             obs_lat=_read_nc_array(dataset, "lat").astype(np.float32),
-            obs_obs=_read_nc_array(dataset, "obs").astype(np.float32),
+            obs_obs=obs_obs,
             obs_obsvar=obs_obsvar,
             obs_fcst=obs_fcst,
             obs_fcstvar=obs_fcstvar,
