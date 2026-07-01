@@ -214,8 +214,8 @@ def get_model_and_obs_clim_stats_latlon_grid(
                         obs_obs = record.obs_obs[mask]
                         obs_fcst = record.obs_fcst[mask]
 
-                        i_idx = np.floor((obs_lon - grid.ll_lon) / grid.d_lon).astype(int)
-                        j_idx = np.floor((obs_lat - grid.ll_lat) / grid.d_lat).astype(int)
+                        i_idx = np.ceil((obs_lon - grid.ll_lon) / grid.d_lon).astype(int) - 1
+                        j_idx = np.ceil((obs_lat - grid.ll_lat) / grid.d_lat).astype(int) - 1
                         inside = (
                             (i_idx >= 0)
                             & (i_idx < grid.n_lon)

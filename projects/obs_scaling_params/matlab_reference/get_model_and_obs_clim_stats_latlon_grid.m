@@ -178,8 +178,8 @@ for imonth = 1:length(run_months)
               obs_lat_i     = obs_lat(    ind);
 
               % Map to grid
-              i_idx = floor((obs_lon_i - ll_lon) / d_lon) + 1;
-              j_idx = floor((obs_lat_i - ll_lat) / d_lat) + 1;
+              i_idx = ceil((obs_lon_i - ll_lon) / d_lon);
+              j_idx = ceil((obs_lat_i - ll_lat) / d_lat);
               [~, obs_idx] = ismember([i_idx, j_idx], [i_out, j_out], 'rows');
               valid = obs_idx > 0;
               obs_idx       = obs_idx(valid);
