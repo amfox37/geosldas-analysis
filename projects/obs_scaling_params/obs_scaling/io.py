@@ -616,7 +616,6 @@ def write_netcdf_latlon_grid(
             min_data = np.array(grid_legacy[5], dtype=float)
             min_data[min_data < -9998] = np.nan
             min_vals = np.nanmin(min_data, axis=0)
-        min_vals = np.where(np.isnan(min_vals), -9999.0, min_vals)
         mmin[:, :] = min_vals
     finally:
         dataset.close()
