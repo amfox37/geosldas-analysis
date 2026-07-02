@@ -126,6 +126,22 @@ The maps summarize the MODIS-only period, when snow DA is the active observation
 
 This binned summary uses seasonal-snow grid-cell/year samples from the MODIS-only period. The x-axis groups samples by MAM `snow_abs_netpack`, the cumulative absolute snow DA activity in `kg m-2`; the y-axes show later AMJ/MJJ hydrologic `DA - OL` response magnitudes. The point is not independent validation, but that stronger snow DA activity is associated with larger modeled hydrologic departures from OL.
 
+### Analysis A Percent-Change Companions
+
+The absolute-unit Analysis A figures should remain primary because they show the physical size of the snow-DA impact. The percent-change companions show where the MODIS-only snow DA response is large relative to the OL baseline, with small-denominator masking to avoid near-zero OL values dominating the result.
+
+**Supporting Figure A1. Analysis A process-chain maps, percent change**
+
+![Analysis A process-chain maps percent](monthly_synthesis_report_figures/analysisA_process_chain_maps_percent.png)
+
+The first two panels keep MAM snow DA increments in native units because the increment fields do not have an OL baseline. The response panels show AMJ/MJJ hydrologic percent changes relative to OL.
+
+**Supporting Figure A2. Analysis A binned snow activity versus hydrologic response magnitude, percent change**
+
+![Analysis A binned snow activity to response magnitude percent](monthly_synthesis_report_figures/analysisA_binned_snow_activity_to_response_magnitude_percent.png)
+
+This repeats Figure 2 with response magnitudes expressed as percent changes relative to OL. It is a relative-impact companion, not a replacement for the absolute response-magnitude figure.
+
 ## Highlight 2: Later SM DA Response Splits Into Two Claims
 
 Analysis B is now two separable results with different levels of support.
@@ -329,7 +345,7 @@ For a short report-out, use four figures.
 Optional supporting figures:
 
 - Analysis D observing-system time series.
-- Analysis C and D percent-change companions.
+- Analysis A, C, and D percent-change companions.
 - Analysis E water-budget sanity check.
 
 ## Suggested Final Takeaway
