@@ -9,15 +9,10 @@
   ruling out artifacts: confirmed it's not tile/super-ob binning, not the new QC thresholds, and
   not snow/frozen-ground screening — it correlates with degraded backscatter sensitivity over
   boreal vegetation.
-- **Revised the framing today**: comparing each product's own innovation against the same
-  Catchment background shows **Legacy diverges more from the model at high latitude, not
-  H121** — the earlier "H121 is biased" framing wasn't justified by the evidence.
 - Identified a concrete, structural QC mechanism (`smpf`/`soilMoistureProcessingFlag`) that
-  explains why Legacy obs are sparser than H121 everywhere, not just at high latitude: Legacy
+  explains why Legacy obs are sparser than H121 everywhere: Legacy
   rejects ~60% of obs on per-pass slope-estimate noise that H121's climatology-based retrieval
   doesn't have.
-- Not yet ready to assimilate H121 as-is at high latitude (no H121-specific scaling derived
-  yet, no independent ground-truth check) — ready for further monitor-mode work now.
 
 Full writeup: [`legacy_vs_h121_highlat_bias.md`](legacy_vs_h121_highlat_bias.md). QC bit-level
 detail: [`legacy_vs_h121_qc_flags.md`](legacy_vs_h121_qc_flags.md).
