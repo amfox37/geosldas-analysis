@@ -1,6 +1,6 @@
 clear
 
-addpath('/discover/nobackup/projects/land_da/ldas_code/GEOSldas/src/Components/@GEOSldas_GridComp/GEOSldas_App/util/shared/matlab/')
+addpath('/discover/nobackup/projects/land_da/GEOSldas_develop/GEOSldas/src/Components/@GEOSldas_GridComp/GEOSldas_App/util/shared/matlab/')
 % addpath('/gpfsm/dnb34/amfox/GEOSldas_diagnostics/Jupyter/Matlab_functions')
 % addpath /discover/nobackup/qliu/gdelanno_RTM/MATLAB_LDASSA
 

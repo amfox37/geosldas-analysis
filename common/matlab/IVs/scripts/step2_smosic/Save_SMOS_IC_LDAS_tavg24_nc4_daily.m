@@ -4,8 +4,8 @@ addpath /home/qliu/projects/matlab_code/SMAP/
 
 SMOSIC_nc_path = '/discover/nobackup/projects/land_da/SMOS_IC/preprocessed_m36_daily/';
 
-L4_path = '/discover/nobackup/projects/land_da/CYGNSS_Experiments/OLv8_M36_cd/';
-L4_run = 'OLv8_M36_cd';
+L4_path = '/discover/nobackup/projects/land_da/CYGNSS_Experiments/DAv8_M36_cd/';
+L4_run = 'DAv8_M36_cd';
 
 out_collection = '.tavg24_1d_lnd_Nt.';
 domain = 'SMAP_EASEv2_M36_GLOBAL';

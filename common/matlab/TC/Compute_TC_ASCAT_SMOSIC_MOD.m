@@ -8,7 +8,7 @@ addpath /discover/nobackup/qliu/gdelanno_RTM/MATLAB_LDASSA
 
 data_path = '/discover/nobackup/projects/land_da/Evaluation/IVs/output/';
 
-MOD_version = 'DAv8_M36_cd';
+MOD_version = 'OLv8_M36_cd';
 resolution = 'M36';
 
 do_year = 1;
