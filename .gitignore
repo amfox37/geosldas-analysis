@@ -56,11 +56,15 @@ spack*.log
 
 # Computed output and cache directories (any depth)
 **/outputs_*/
+**/outputs/
 **/output/
 cache/
 *_build/
 *_tmp/
 *_rec/
+
+# Jupyter checkpoint directories
+**/.ipynb_checkpoints/
 
 # ERA5 download / processing scratch directories
 era5_monthly_nc/
