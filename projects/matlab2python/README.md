@@ -11,3 +11,13 @@ area into `projects/obs_scaling_params/`.
 - `scripts/OMF_monthly_040125.py` – example of moving monthly OmF calculations from MATLAB into Python.
 
 Use this directory when cleaning up MATLAB code or experimenting with new Python replacements before integrating them into `utils/` or project-specific folders.
+
+## In progress: IV / TC (independent validation + triple collocation)
+
+`IV_TC_python_port_plan.md` in this directory is the working plan for
+porting `common/matlab/IVs/` and `common/matlab/TC/` to Python, generalized
+beyond the current 2-experiment/3-dataset-hardcoded notebook at
+`projects/SMOS_IC/notebooks/ivs_tc_ascat_smosic_python_workflow.ipynb`.
+Read it before starting work here — it has the current inventory, the
+concrete task order, and the motivating use case (3-way OL/DA-H121/DA-legacy
+comparison for the `hsaf_cdr_test` production runs).
