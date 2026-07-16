@@ -55,6 +55,63 @@ python projects/SMOS_IC/scripts/preprocess_smos_ic_daily_to_m36.py \
   --tb-rmse-max 8.0
 ```
 
+## Discover Backfill
+
+The existing Discover cache at
+`/discover/nobackup/projects/land_da/SMOS_IC/preprocessed_m36_daily` was
+originally produced from local Mac paths and synced to Discover. The raw SMOS-IC
+inputs currently available on Discover are four tar archives under
+`/discover/nobackup/projects/land_da/SMOS_IC/`; after extraction, the
+preprocessing script expects these directories directly under that same root:
+
+- `SMOS_IC_V2_ASC_2018_2021`
+- `SMOS_IC_V2_DES_2018_2021`
+- `SMOS_IC_V2_ASC`
+- `SMOS_IC_OPER_DES`
+
+The useful immediate backfill from already-present archives is 2018-01-01
+through 2018-07-31. For the full HSAF comparison window, the missing 2015-2017
+raw files must be downloaded separately.
+
+To download 2015-2017 ASC/DES raw files on a Discover compute node:
+
+```bash
+cd /discover/nobackup/projects/land_da/geosldas-analysis
+sbatch projects/SMOS_IC/jobs/download_smos_ic_2015_2017.sbatch
+```
+
+That job writes to:
+
+```text
+/discover/nobackup/projects/land_da/SMOS_IC/SMOS_IC_V2_ASC_2015_2017
+/discover/nobackup/projects/land_da/SMOS_IC/SMOS_IC_V2_DES_2015_2017
+```
+
+The preprocessing script currently indexes fixed raw directory names. After the
+download, it will also index these two 2015-2017 directories directly.
+
+After the download finishes, run the full missing-window backfill:
+
+```bash
+cd /discover/nobackup/projects/land_da/geosldas-analysis
+sbatch projects/SMOS_IC/jobs/preprocess_smos_ic_2015_2018_backfill.sbatch
+```
+
+On Discover:
+
+```bash
+cd /discover/nobackup/projects/land_da/geosldas-analysis
+sbatch projects/SMOS_IC/jobs/preprocess_smos_ic_2018_backfill.sbatch
+```
+
+The job extracts archives only when the expected extracted directory is missing
+or empty. Set `FORCE_EXTRACT=1` to re-extract. It writes daily sparse NetCDF
+files to:
+
+```text
+/discover/nobackup/projects/land_da/SMOS_IC/preprocessed_m36_daily
+```
+
 ## Data download provenance (SMOS-IC v2)
 
 SMOS-IC v2 product documentation/source:

@@ -477,6 +477,37 @@ before porting the full IV/TC math.
 - [ ] Run the fixture collector in `--dry-run` mode on Discover for a few dates,
   then use the printed missing/found list to decide what real files to copy.
 
+## Morning TODO
+
+Start here next session. Keep this operational and avoid refactoring unless a
+step truly needs it.
+
+- [ ] On Discover, confirm the copied 2018-10-15 fixture cache still has all
+  expected files and leave the large data untracked. Do not commit the standalone
+  H121 flist `.txt` files without the matching data files.
+- [ ] Add a small `projects/iv_tc/test_data/README.md` explaining that
+  `test_data/inputs/discover_sample/` is a local/Discover fixture cache and is
+  intentionally not a committed dataset.
+- [ ] If local reader development is needed, copy the 2018-10-15 fixture cache
+  from Discover to:
+  `projects/iv_tc/test_data/inputs/discover_sample/`.
+- [ ] Check what SMOS-IC dates already exist on Discover under
+  `/discover/nobackup/projects/land_da/SMOS_IC/preprocessed_m36_daily/`.
+  Confirm that prior processed output starts at 2018-08-01.
+- [ ] Download missing 2015-2017 SMOS-IC ASC/DES raw files on a Discover compute
+  node using `projects/SMOS_IC/jobs/download_smos_ic_2015_2017.sbatch`.
+- [ ] Run `projects/SMOS_IC/jobs/preprocess_smos_ic_2015_2018_backfill.sbatch`
+  on a Discover compute node after the 2015-2017 download is complete. It
+  preprocesses 2015-01-01 through 2018-07-31 into
+  `/discover/nobackup/projects/land_da/SMOS_IC/preprocessed_m36_daily` and
+  extracts the already-present 2018 archives if needed.
+- [ ] After preprocessing, rerun the IV/TC fixture collector for at least one
+  pre-2018 date and confirm SMOS-IC is found alongside H121, legacy ASCAT, SMAP,
+  and model files.
+- [ ] Begin reader implementation with the simplest real fixture: SMOS-IC daily
+  sparse NetCDF -> `SparseObservation`. Then add model daily/tilecoord reading
+  and make the first `DailyPair`.
+
 ## Staged implementation
 
 Recommended order:

@@ -118,10 +118,12 @@ def parse_date_from_name(name: str) -> date | None:
 def build_file_index(root: Path) -> tuple[dict[date, Path], dict[date, Path]]:
     """Build ASC/DES daily file indexes from expected SMOS-IC folders."""
     asc_dirs = [
+        root / "SMOS_IC_V2_ASC_2015_2017",
         root / "SMOS_IC_V2_ASC_2018_2021",
         root / "SMOS_IC_V2_ASC",
     ]
     des_dirs = [
+        root / "SMOS_IC_V2_DES_2015_2017",
         root / "SMOS_IC_V2_DES_2018_2021",
         root / "SMOS_IC_OPER_DES",
     ]
