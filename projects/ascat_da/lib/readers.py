@@ -25,7 +25,6 @@ import glob
 import os
 from datetime import datetime, timedelta, timezone
 
-import eccodes as ecc
 import netCDF4 as nc
 
 from .qc import apply_bufr_qc, apply_h121_qc, QC_DEFAULT_BUFR, QC_DEFAULT_H121
@@ -107,6 +106,11 @@ def read_bufr(bufr_dir, date, prefix, domain=None, qc=None):
     -------
     dict with arrays: lat, lon, ssm, window
     """
+    try:
+        import eccodes as ecc
+    except ImportError as exc:
+        raise ImportError("eccodes is required to read ASCAT BUFR .bfr files") from exc
+
     if qc is None:
         qc = QC_DEFAULT_BUFR
 
