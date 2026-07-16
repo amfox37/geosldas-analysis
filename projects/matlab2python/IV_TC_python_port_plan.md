@@ -455,24 +455,24 @@ documented tolerance.
 Next concrete task: build the project skeleton and a dry-run fixture collector
 before porting the full IV/TC math.
 
-- [ ] Create `projects/iv_tc/` with package, scripts, tests, and a short README.
-- [ ] Add shared dataclasses/config objects: `SparseObservation`, `DailyPair`,
+- [x] Create `projects/iv_tc/` with package, scripts, tests, and a short README.
+- [x] Add shared dataclasses/config objects: `SparseObservation`, `DailyPair`,
   sensor config, run config, and date parsing helpers.
-- [ ] Add `projects/iv_tc/scripts/collect_discover_fixtures.py` with a
+- [x] Add `projects/iv_tc/scripts/collect_discover_fixtures.py` with a
   `--dry-run` mode that prints source/destination paths without copying.
-- [ ] Implement fixture path resolution for H121 using the confirmed
+- [x] Implement fixture path resolution for H121 using the confirmed
   `ASCAT_SSM_CDR/flists/Y{YYYY}/M{MM}/D{DD}/...txt` manifests. Do not date-glob
   raw H121 filenames.
-- [ ] Implement fixture path resolution for legacy ASCAT H119/H120 daily `.mat`
+- [x] Implement fixture path resolution for legacy ASCAT H119/H120 daily `.mat`
   files.
-- [ ] Implement fixture path resolution for SMOS-IC daily M36 NetCDF files,
+- [x] Implement fixture path resolution for SMOS-IC daily M36 NetCDF files,
   excluding `._*.nc` AppleDouble sidecars.
-- [ ] Implement fixture path resolution for SMAP L3 SPL3SMP v009/R19240 using
+- [x] Implement fixture path resolution for SMAP L3 SPL3SMP v009/R19240 using
   the flat `SPL3SMP_v009/Y{YYYY}/...` MATLAB-parity tree, with the nested NSIDC
   mirror only as an optional fallback.
-- [ ] Implement fixture path resolution for GEOSldas model daily files and
+- [x] Implement fixture path resolution for GEOSldas model daily files and
   `<run>.ldas_tilecoord.bin`.
-- [ ] Add local tests for the path resolver using fake directories/files, so the
+- [x] Add local tests for the path resolver using fake directories/files, so the
   dry-run behavior can be checked without Discover access.
 - [ ] Run the fixture collector in `--dry-run` mode on Discover for a few dates,
   then use the printed missing/found list to decide what real files to copy.
