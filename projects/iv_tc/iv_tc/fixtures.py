@@ -163,12 +163,17 @@ def _smap_l3_files(day: date, output_root: Path, roots: ProductRoots) -> list[Fi
 
 
 def _model_files(day: date, output_root: Path, roots: ProductRoots, run: RunConfig) -> list[FixtureFile]:
+    # GEOSldas names output files after EXP_ID, which by convention equals the
+    # run root's directory basename -- not the CLI label used to organize
+    # fixture output. Using the label here silently produces "found" nothing
+    # for any run whose label doesn't happen to match its EXP_ID exactly.
+    exp_id = run.root.name
     yyyy, mm, _, yyyymmdd = _date_parts(day)
     base = run.root / "output" / roots.domain
     model_dir = base / "cat" / "ens_avg" / f"Y{yyyy}" / f"M{mm}"
     candidates = [
-        model_dir / f"{run.name}{roots.collection}{yyyymmdd}_1200z.nc4",
-        model_dir / f"{run.name}{roots.collection}{yyyymmdd}.nc4",
+        model_dir / f"{exp_id}{roots.collection}{yyyymmdd}_1200z.nc4",
+        model_dir / f"{exp_id}{roots.collection}{yyyymmdd}.nc4",
     ]
     model_source = _first_existing_or_first(candidates)
     model_dest = (
@@ -184,7 +189,7 @@ def _model_files(day: date, output_root: Path, roots: ProductRoots, run: RunConf
         / model_source.name
     )
 
-    tilecoord = base / "rc_out" / f"{run.name}.ldas_tilecoord.bin"
+    tilecoord = base / "rc_out" / f"{exp_id}.ldas_tilecoord.bin"
     tilecoord_dest = (
         output_root
         / "runs"
