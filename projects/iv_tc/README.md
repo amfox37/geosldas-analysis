@@ -12,6 +12,8 @@ and, once checked, copy a few representative files into `test_data/inputs/`.
 - `iv_tc/`: importable Python package.
 - `scripts/collect_discover_fixtures.py`: dry-run/copy helper for small Discover
   fixtures.
+- `scripts/generate_daily_pairs.py`: date/run/sensor loop that writes step-2
+  daily obs/model pair files.
 - `tests/`: local tests using fake files, so path logic can be checked without
   Discover access.
 
@@ -51,3 +53,34 @@ python projects/iv_tc/scripts/collect_discover_fixtures.py \
 The default mode is dry-run: it prints found/missing source files and the
 portable destination path it would use. Add `--copy` only after reviewing the
 dry-run output.
+
+## Daily Pair Generation
+
+Step 2 pair generation resolves the observation product, model daily file, and
+tilecoord for each requested date/run/sensor, reads a `DailyPair`, then writes:
+
+```text
+output_root/step2_pairs/{sensor}/{run_name}/YYYYMMDD.npz
+```
+
+Each `.npz` contains the compact downstream arrays used by the Python IV/TC/Rdiff
+workflow:
+
+- `idx0`: zero-based M36 sparse cell index (`i + j * 964`)
+- `sm_obs`: observation values
+- `sm_mod`: matched GEOSldas model values
+
+Example:
+
+```bash
+python projects/iv_tc/scripts/generate_daily_pairs.py \
+  --start-date 2018-10-15 \
+  --end-date 2018-10-15 \
+  --sensor smosic \
+  --sensor ascat_h121 \
+  --run OL=/discover/nobackup/projects/land_da/hsaf_cdr_test/OLv7_M36_MULTI_type_13_H121 \
+  --output-root /discover/nobackup/projects/land_da/Evaluation/IVs/output_python
+```
+
+Use explicit ASCAT product names (`ascat_h121` or `ascat_h119_h120`) so the
+current CDR NetCDF and processed HSAF `.mat` paths cannot be mixed up silently.
