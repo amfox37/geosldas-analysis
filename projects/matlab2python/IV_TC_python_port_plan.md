@@ -191,9 +191,10 @@ Initial adapters:
   `projects/SMOS_IC/scripts/preprocess_smos_ic_daily_to_m36.py`. Exclude
   macOS AppleDouble `._*.nc` files if globbing the flat preprocessed directory.
 - **SMAP L3**: port the live MATLAB SPL3SMP v009/R19240 reader. Do not port the
-  disconnected R18290/v008 path except as reference while checking logic. The
-  real NSIDC-downloaded path includes the extra
-  `n5eil01u.ecs.nsidc.org/SMAP/SPL3SMP.009/YYYY.MM.DD/` nesting.
+  disconnected R18290/v008 path except as reference while checking logic. For
+  MATLAB parity, read the flat convenience tree used by the live MATLAB step2
+  script. The nested NSIDC downloader mirror also exists, but should be treated
+  as an alternate/raw archive source.
 - **CYGNSS**: include the adapter slot and interface from the start. It does not
   need to be the first production adapter, but the design must not require a TC
   rewrite when CYGNSS is added.
@@ -263,15 +264,22 @@ Ignore `._smos_ic_sm_m36_*.nc` AppleDouble sidecar files if present.
 
 ### SMAP L3
 
-The live SMAP product is SPL3SMP v009 / R19240 under the NSIDC downloader
-directory structure:
+The live SMAP product is SPL3SMP v009 / R19240. For MATLAB parity, the Python
+adapter should read the flat convenience tree that the live MATLAB step2 script
+uses:
+
+```text
+/discover/nobackup/projects/land_da/Evaluation/IVs/data/SPL3SMP_v009/Y{YYYY}/SMAP_L3_SM_P_{YYYYMMDD}_R19240_*.h5
+```
+
+The raw NSIDC downloader mirror also exists side by side:
 
 ```text
 /discover/nobackup/projects/land_da/Evaluation/IVs/data/SPL3SMP_v009/n5eil01u.ecs.nsidc.org/SMAP/SPL3SMP.009/{YYYY.MM.DD}/SMAP_L3_SM_P_{YYYYMMDD}_R19240_*.h5
 ```
 
-Do not use the older simplified `SPL3SMP_v009/Y{YYYY}/...` pattern; that was a
-MATLAB-script assumption and not the confirmed on-disk structure.
+Use the nested mirror only as a fallback or archive source. The flat `Y{YYYY}`
+tree is the canonical source for reproducing MATLAB IV/TC step2 behavior.
 
 ### GEOSldas model output
 
@@ -441,6 +449,33 @@ This needs testing at three levels.
 For TC, exact bitwise parity may not be realistic if masking/order differs, but
 the valid-cell mask, covariance inputs, and final metrics should agree within a
 documented tolerance.
+
+## Immediate TODO
+
+Next concrete task: build the project skeleton and a dry-run fixture collector
+before porting the full IV/TC math.
+
+- [ ] Create `projects/iv_tc/` with package, scripts, tests, and a short README.
+- [ ] Add shared dataclasses/config objects: `SparseObservation`, `DailyPair`,
+  sensor config, run config, and date parsing helpers.
+- [ ] Add `projects/iv_tc/scripts/collect_discover_fixtures.py` with a
+  `--dry-run` mode that prints source/destination paths without copying.
+- [ ] Implement fixture path resolution for H121 using the confirmed
+  `ASCAT_SSM_CDR/flists/Y{YYYY}/M{MM}/D{DD}/...txt` manifests. Do not date-glob
+  raw H121 filenames.
+- [ ] Implement fixture path resolution for legacy ASCAT H119/H120 daily `.mat`
+  files.
+- [ ] Implement fixture path resolution for SMOS-IC daily M36 NetCDF files,
+  excluding `._*.nc` AppleDouble sidecars.
+- [ ] Implement fixture path resolution for SMAP L3 SPL3SMP v009/R19240 using
+  the flat `SPL3SMP_v009/Y{YYYY}/...` MATLAB-parity tree, with the nested NSIDC
+  mirror only as an optional fallback.
+- [ ] Implement fixture path resolution for GEOSldas model daily files and
+  `<run>.ldas_tilecoord.bin`.
+- [ ] Add local tests for the path resolver using fake directories/files, so the
+  dry-run behavior can be checked without Discover access.
+- [ ] Run the fixture collector in `--dry-run` mode on Discover for a few dates,
+  then use the printed missing/found list to decide what real files to copy.
 
 ## Staged implementation
 
