@@ -21,6 +21,7 @@ FORCE_EXTRACT="${FORCE_EXTRACT:-0}"
 
 cd "${REPO_ROOT}"
 
+module purge
 module load python/GEOSpyD
 
 extract_if_needed() {
@@ -47,8 +48,6 @@ extract_if_needed() {
 
 extract_if_needed "SMOS_IC_V2_ASC_2018_2021.tar.gz" "SMOS_IC_V2_ASC_2018_2021"
 extract_if_needed "SMOS_IC_V2_DES_2018_2021.tar.gz" "SMOS_IC_V2_DES_2018_2021"
-extract_if_needed "SMOS_IC_V2_ASC.tar.gz" "SMOS_IC_V2_ASC"
-extract_if_needed "SMOS_IC_OPER_DES.tar.gz" "SMOS_IC_OPER_DES"
 
 python -u projects/SMOS_IC/scripts/preprocess_smos_ic_daily_to_m36.py \
   --smos-root "${SMOS_ROOT}" \

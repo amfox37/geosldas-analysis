@@ -21,6 +21,7 @@ FORCE_EXTRACT="${FORCE_EXTRACT:-0}"
 
 cd "${REPO_ROOT}"
 
+module purge
 module load python/GEOSpyD
 
 extract_if_needed() {

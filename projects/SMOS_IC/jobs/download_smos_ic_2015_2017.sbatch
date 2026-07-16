@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=smos_ic_download_2015_2017
 #SBATCH --account=g0610
-#SBATCH --partition=compute
-#SBATCH --time=12:00:00
+#SBATCH --partition=datamove
+#SBATCH --time=02:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=8G
@@ -11,6 +11,8 @@
 
 set -euo pipefail
 
+# datamove has a 2-hour wall-time cap; mirror -c resumes cleanly, so resubmit
+# this job as many times as needed to complete the transfer.
 SMOS_ROOT="${SMOS_ROOT:-/discover/nobackup/projects/land_da/SMOS_IC}"
 
 if ! command -v lftp >/dev/null 2>&1; then
