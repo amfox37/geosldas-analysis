@@ -31,8 +31,8 @@ def main(argv: list[str] | None = None) -> None:
     dates = [parse_date(value) for value in args.date]
     runs = [parse_run_spec(value) for value in args.run]
     roots = ProductRoots(
-        ascat_cdr_root=args.ascat_cdr_root,
-        legacy_ascat_root=args.legacy_ascat_root,
+        ascat_h121_root=args.ascat_h121_root,
+        ascat_h119_h120_root=args.ascat_h119_h120_root,
         smosic_root=args.smosic_root,
         smap_l3_root=args.smap_l3_root,
         domain=args.domain,
@@ -81,16 +81,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Copy existing files. Without this flag, only print the plan.",
     )
     parser.add_argument(
+        "--ascat-h121-root",
         "--ascat-cdr-root",
+        dest="ascat_h121_root",
         type=Path,
-        default=ProductRoots.ascat_cdr_root,
+        default=ProductRoots.ascat_h121_root,
         help="Root containing ASCAT_SSM_CDR/H121 and ASCAT_SSM_CDR/flists.",
     )
     parser.add_argument(
-        "--legacy-ascat-root",
+        "--ascat-h119-h120-root",
+        dest="ascat_h119_h120_root",
         type=Path,
-        default=ProductRoots.legacy_ascat_root,
-        help="Root containing H119_H120_processed.",
+        default=ProductRoots.ascat_h119_h120_root,
+        help="Root containing H119_H120_processed and Auxiliary.",
     )
     parser.add_argument(
         "--smosic-root",
@@ -119,4 +122,3 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 if __name__ == "__main__":
     main()
-

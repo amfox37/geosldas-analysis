@@ -32,15 +32,15 @@ def test_collect_fixture_files_uses_known_paths(tmp_path):
     day = date(2020, 5, 15)
 
     roots = ProductRoots(
-        ascat_cdr_root=source / "ASCAT_SSM_CDR",
-        legacy_ascat_root=source / "ASCAT_HSAF",
+        ascat_h121_root=source / "ASCAT_SSM_CDR",
+        ascat_h119_h120_root=source / "ASCAT_HSAF",
         smosic_root=source / "SMOS_IC" / "preprocessed_m36_daily",
         smap_l3_root=source / "SPL3SMP_v009",
     )
     run = RunConfig("RUN_A", source / "runs" / "RUN_A")
 
     manifest = (
-        roots.ascat_cdr_root
+        roots.ascat_h121_root
         / "flists"
         / "Y2020"
         / "M05"
@@ -49,16 +49,17 @@ def test_collect_fixture_files_uses_known_paths(tmp_path):
     )
     manifest.parent.mkdir(parents=True, exist_ok=True)
     manifest.write_text("h121_a_1.nc\nh121_a_2.nc\n")
-    touch(roots.ascat_cdr_root / "H121" / "metop_a" / "Y2020" / "M05" / "h121_a_1.nc")
-    touch(roots.ascat_cdr_root / "H121" / "metop_a" / "Y2020" / "M05" / "h121_a_2.nc")
+    touch(roots.ascat_h121_root / "H121" / "metop_a" / "Y2020" / "M05" / "h121_a_1.nc")
+    touch(roots.ascat_h121_root / "H121" / "metop_a" / "Y2020" / "M05" / "h121_a_2.nc")
 
     touch(
-        roots.legacy_ascat_root
+        roots.ascat_h119_h120_root
         / "H119_H120_processed"
         / "Y2020"
         / "M05"
         / "ASCAT_HSAF_H119_SM_20200515_AD.mat"
     )
+    touch(roots.ascat_h119_h120_root / "Auxiliary" / "TUW_WARP5_grid_info_2_2.nc")
     touch(roots.smosic_root / "smos_ic_sm_m36_20200515.nc")
     touch(roots.smap_l3_root / "Y2020" / "SMAP_L3_SM_P_20200515_R19240_001.h5")
     touch(
@@ -81,6 +82,7 @@ def test_collect_fixture_files_uses_known_paths(tmp_path):
     assert "H121 manifest metop_a 2020-05-15" in labels
     assert "h121_a_1.nc" in sources
     assert "ASCAT_HSAF_H119_SM_20200515_AD.mat" in sources
+    assert "TUW_WARP5_grid_info_2_2.nc" in sources
     assert "smos_ic_sm_m36_20200515.nc" in sources
     assert "SMAP_L3_SM_P_20200515_R19240_001.h5" in sources
     assert "RUN_A.tavg24_1d_lnd_Nt.20200515_1200z.nc4" in sources
@@ -88,6 +90,7 @@ def test_collect_fixture_files_uses_known_paths(tmp_path):
 
     assert "ASCAT_SSM_CDR/flists/Y2020/M05/D15/H121_METOPA.txt" in dests
     assert "ASCAT_SSM_CDR/H121/metop_a/Y2020/M05/h121_a_1.nc" in dests
+    assert "ASCAT_HSAF/Auxiliary/TUW_WARP5_grid_info_2_2.nc" in dests
     assert "SPL3SMP_v009/Y2020/SMAP_L3_SM_P_20200515_R19240_001.h5" in dests
     assert (
         "runs/RUN_A/output/SMAP_EASEv2_M36_GLOBAL/rc_out/RUN_A.ldas_tilecoord.bin"
@@ -97,8 +100,8 @@ def test_collect_fixture_files_uses_known_paths(tmp_path):
 
 def test_missing_h121_manifest_does_not_invent_raw_files(tmp_path):
     roots = ProductRoots(
-        ascat_cdr_root=tmp_path / "ASCAT_SSM_CDR",
-        legacy_ascat_root=tmp_path / "ASCAT_HSAF",
+        ascat_h121_root=tmp_path / "ASCAT_SSM_CDR",
+        ascat_h119_h120_root=tmp_path / "ASCAT_HSAF",
         smosic_root=tmp_path / "SMOS_IC",
         smap_l3_root=tmp_path / "SPL3SMP_v009",
     )

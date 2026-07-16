@@ -13,6 +13,12 @@ sys.path.insert(0, str(PROJECT_ROOT))
 netCDF4 = pytest.importorskip("netCDF4")
 
 from iv_tc.readers import (  # noqa: E402
+    _ease2_m36_lon_lat_for_ij,
+    read_ascat_h119_h120_model_pair,
+    read_ascat_h119_h120_sparse,
+    read_ascat_h121_model_pair,
+    read_smap_l3_model_pair,
+    read_smap_l3_sparse,
     read_smosic_model_pair,
     read_smosic_sparse,
     read_tilecoord,
@@ -84,6 +90,103 @@ def test_read_smosic_model_pair_matches_representative_model_tiles(tmp_path):
     np.testing.assert_allclose(pair.model, np.array([0.14, 0.33]), rtol=1e-6)
 
 
+def test_read_smap_l3_sparse_matches_matlab_qc_and_am_pm_mean(tmp_path):
+    path = tmp_path / "SMAP_L3_SM_P_20200102_R19240_001.h5"
+    _write_smap_l3(path)
+
+    obs = read_smap_l3_sparse(path, nx=5)
+
+    assert obs.date == date(2020, 1, 2)
+    assert obs.sensor == "SMAP L3"
+    assert obs.units == "m3 m-3"
+    np.testing.assert_array_equal(obs.idx, np.array([7, 8]))
+    np.testing.assert_allclose(obs.values, np.array([0.30, 0.50]), rtol=1e-6)
+    assert obs.qc_summary["am_raw_finite"] == 3
+    assert obs.qc_summary["am_kept"] == 1
+    assert obs.qc_summary["pm_raw_finite"] == 3
+    assert obs.qc_summary["pm_kept"] == 2
+    assert obs.qc_summary["n_points"] == 2
+
+
+def test_read_smap_l3_model_pair_matches_representative_model_tiles(tmp_path):
+    smap_path = tmp_path / "SMAP_L3_SM_P_20200102_R19240_001.h5"
+    tilecoord_path = tmp_path / "test.ldas_tilecoord.bin"
+    model_path = tmp_path / "model.nc4"
+
+    _write_smap_l3(smap_path)
+    _write_tilecoord(tilecoord_path)
+    _write_model(model_path, values=[0.01, 0.02, 0.33, 0.14, 0.55])
+
+    pair = read_smap_l3_model_pair(smap_path, model_path, tilecoord_path, run="OL", nx=10)
+
+    assert pair.date == date(2020, 1, 2)
+    assert pair.sensor == "SMAP L3"
+    assert pair.run == "OL"
+    assert pair.obs_units == "m3 m-3"
+    assert pair.model_units == "m3 m-3"
+    np.testing.assert_array_equal(pair.idx, np.array([12, 13]))
+    np.testing.assert_allclose(pair.obs, np.array([0.30, 0.50]), rtol=1e-6)
+    np.testing.assert_allclose(pair.model, np.array([0.14, 0.33]), rtol=1e-6)
+
+
+def test_read_ascat_h119_h120_sparse_uses_matlab_qc_and_linear_interpolation(tmp_path):
+    mat_path = tmp_path / "ASCAT_HSAF_H119_SM_20200102_AD.mat"
+    aux_path = tmp_path / "TUW_WARP5_grid_info_2_2.nc"
+    tilecoord_path = tmp_path / "test.ldas_tilecoord.bin"
+    target_i = np.array([480, 481, 480, 481], dtype=np.int64)
+    target_j = np.array([200, 200, 201, 201], dtype=np.int64)
+    lon, lat = _ease2_m36_lon_lat_for_ij(target_i, target_j)
+
+    _write_tilecoord_cells(tilecoord_path, target_i, target_j)
+    _write_ascat_aux(aux_path, lon, lat)
+    _write_ascat_h119_h120_mat(mat_path, sm=[10.0, 20.0, 30.0, 40.0], conf=[0, 0, 0, 1])
+
+    obs = read_ascat_h119_h120_sparse(mat_path, aux_path, tilecoord_path, fill_nearest=False)
+
+    assert obs.date == date(2020, 1, 2)
+    assert obs.sensor == "ASCAT H119/H120"
+    assert obs.units == "percent saturation"
+    np.testing.assert_array_equal(obs.idx, np.array([193280, 194244, 193281]))
+    np.testing.assert_allclose(obs.values, np.array([10.0, 30.0, 20.0]), rtol=1e-6)
+    assert obs.qc_summary["raw_finite"] == 4
+    assert obs.qc_summary["kept"] == 3
+    assert obs.qc_summary["n_targets"] == 4
+    assert obs.qc_summary["n_points"] == 3
+
+
+def test_read_ascat_h119_h120_model_pair_matches_representative_model_tiles(tmp_path):
+    mat_path = tmp_path / "ASCAT_HSAF_H119_SM_20200102_AD.mat"
+    aux_path = tmp_path / "TUW_WARP5_grid_info_2_2.nc"
+    tilecoord_path = tmp_path / "test.ldas_tilecoord.bin"
+    model_path = tmp_path / "model.nc4"
+    target_i = np.array([480, 481, 480, 481], dtype=np.int64)
+    target_j = np.array([200, 200, 201, 201], dtype=np.int64)
+    lon, lat = _ease2_m36_lon_lat_for_ij(target_i, target_j)
+
+    _write_tilecoord_cells(tilecoord_path, target_i, target_j)
+    _write_ascat_aux(aux_path, lon, lat)
+    _write_ascat_h119_h120_mat(mat_path, sm=[10.0, 20.0, 30.0, 40.0], conf=[0, 0, 0, 1])
+    _write_model(model_path, values=[0.11, 0.22, 0.33, 0.44])
+
+    pair = read_ascat_h119_h120_model_pair(
+        mat_path,
+        aux_path,
+        model_path,
+        tilecoord_path,
+        run="OL",
+        fill_nearest=False,
+    )
+
+    assert pair.date == date(2020, 1, 2)
+    assert pair.sensor == "ASCAT H119/H120"
+    assert pair.run == "OL"
+    assert pair.obs_units == "percent saturation"
+    assert pair.model_units == "m3 m-3"
+    np.testing.assert_array_equal(pair.idx, np.array([193280, 194244, 193281]))
+    np.testing.assert_allclose(pair.obs, np.array([10.0, 30.0, 20.0]), rtol=1e-6)
+    np.testing.assert_allclose(pair.model, np.array([0.11, 0.33, 0.22]), rtol=1e-6)
+
+
 def test_copied_discover_sample_pairs_smosic_with_ol_model():
     smosic_path = DISCOVER_SAMPLE / "SMOS_IC" / "preprocessed_m36_daily" / "smos_ic_sm_m36_20181015.nc"
     model_path = (
@@ -124,6 +227,149 @@ def test_copied_discover_sample_pairs_smosic_with_ol_model():
     assert pair.model_units == "m3 m-3"
 
 
+def test_copied_discover_sample_pairs_smap_l3_with_ol_model():
+    smap_path = DISCOVER_SAMPLE / "SPL3SMP_v009" / "Y2018" / "SMAP_L3_SM_P_20181015_R19240_001.h5"
+    model_path = (
+        DISCOVER_SAMPLE
+        / "runs"
+        / "OL"
+        / "output"
+        / "SMAP_EASEv2_M36_GLOBAL"
+        / "cat"
+        / "ens_avg"
+        / "Y2018"
+        / "M10"
+        / "OLv7_M36_MULTI_type_13_H121.tavg24_1d_lnd_Nt.20181015_1200z.nc4"
+    )
+    tilecoord_path = (
+        DISCOVER_SAMPLE
+        / "runs"
+        / "OL"
+        / "output"
+        / "SMAP_EASEv2_M36_GLOBAL"
+        / "rc_out"
+        / "OLv7_M36_MULTI_type_13_H121.ldas_tilecoord.bin"
+    )
+    missing = [path for path in (smap_path, model_path, tilecoord_path) if not path.exists()]
+    if missing:
+        pytest.skip(f"Discover sample fixture is not present: {missing[0]}")
+
+    pair = read_smap_l3_model_pair(smap_path, model_path, tilecoord_path, run="OL")
+
+    assert pair.date == date(2018, 10, 15)
+    assert pair.sensor == "SMAP L3"
+    assert pair.run == "OL"
+    assert pair.idx.size > 1000
+    assert pair.idx.size == pair.obs.size == pair.model.size
+    assert np.isfinite(pair.obs).all()
+    assert np.isfinite(pair.model).all()
+    assert pair.obs_units == "m3 m-3"
+    assert pair.model_units == "m3 m-3"
+
+
+def test_copied_discover_sample_pairs_h119_h120_with_ol_model():
+    mat_path = (
+        DISCOVER_SAMPLE
+        / "ASCAT_HSAF"
+        / "H119_H120_processed"
+        / "Y2018"
+        / "M10"
+        / "ASCAT_HSAF_H119_SM_20181015_AD.mat"
+    )
+    aux_path = DISCOVER_SAMPLE / "ASCAT_HSAF" / "Auxiliary" / "TUW_WARP5_grid_info_2_2.nc"
+    model_path = (
+        DISCOVER_SAMPLE
+        / "runs"
+        / "OL"
+        / "output"
+        / "SMAP_EASEv2_M36_GLOBAL"
+        / "cat"
+        / "ens_avg"
+        / "Y2018"
+        / "M10"
+        / "OLv7_M36_MULTI_type_13_H121.tavg24_1d_lnd_Nt.20181015_1200z.nc4"
+    )
+    tilecoord_path = (
+        DISCOVER_SAMPLE
+        / "runs"
+        / "OL"
+        / "output"
+        / "SMAP_EASEv2_M36_GLOBAL"
+        / "rc_out"
+        / "OLv7_M36_MULTI_type_13_H121.ldas_tilecoord.bin"
+    )
+    missing = [path for path in (mat_path, aux_path, model_path, tilecoord_path) if not path.exists()]
+    if missing:
+        pytest.skip(f"Discover sample fixture is not present: {missing[0]}")
+
+    pair = read_ascat_h119_h120_model_pair(
+        mat_path,
+        aux_path,
+        model_path,
+        tilecoord_path,
+        run="OL",
+        method="nearest",
+    )
+
+    assert pair.date == date(2018, 10, 15)
+    assert pair.sensor == "ASCAT H119/H120"
+    assert pair.run == "OL"
+    assert pair.idx.size > 1000
+    assert pair.idx.size == pair.obs.size == pair.model.size
+    assert np.isfinite(pair.obs).all()
+    assert np.isfinite(pair.model).all()
+    assert np.nanmin(pair.obs) >= 0.0
+    assert np.nanmax(pair.obs) <= 100.0
+    assert pair.obs_units == "percent saturation"
+    assert pair.model_units == "m3 m-3"
+
+
+def test_copied_discover_sample_pairs_h121_with_ol_model(tmp_path):
+    h121_source_dir = DISCOVER_SAMPLE / "ASCAT_SSM_CDR" / "H121" / "metop_a" / "Y2018" / "M10"
+    model_path = (
+        DISCOVER_SAMPLE
+        / "runs"
+        / "OL"
+        / "output"
+        / "SMAP_EASEv2_M36_GLOBAL"
+        / "cat"
+        / "ens_avg"
+        / "Y2018"
+        / "M10"
+        / "OLv7_M36_MULTI_type_13_H121.tavg24_1d_lnd_Nt.20181015_1200z.nc4"
+    )
+    tilecoord_path = (
+        DISCOVER_SAMPLE
+        / "runs"
+        / "OL"
+        / "output"
+        / "SMAP_EASEv2_M36_GLOBAL"
+        / "rc_out"
+        / "OLv7_M36_MULTI_type_13_H121.ldas_tilecoord.bin"
+    )
+    h121_files = sorted(h121_source_dir.glob("*.nc"))
+    missing = [path for path in (model_path, tilecoord_path) if not path.exists()]
+    if missing or not h121_files:
+        skip_path = missing[0] if missing else h121_source_dir
+        pytest.skip(f"Discover sample fixture is not present: {skip_path}")
+
+    h121_test_dir = tmp_path / "h121"
+    h121_test_dir.mkdir()
+    (h121_test_dir / h121_files[0].name).symlink_to(h121_files[0].resolve())
+
+    pair = read_ascat_h121_model_pair(h121_test_dir, date(2018, 10, 15), model_path, tilecoord_path, run="OL")
+
+    assert pair.date == date(2018, 10, 15)
+    assert pair.sensor == "ASCAT H121"
+    assert pair.run == "OL"
+    assert pair.idx.size > 100
+    assert pair.idx.size == pair.obs.size == pair.model.size
+    assert np.isfinite(pair.obs).all()
+    assert np.isfinite(pair.model).all()
+    assert pair.obs_units == "percent saturation"
+    assert pair.model_units == "m3 m-3"
+
+
 def _write_smosic_sparse(path, idx, values, coverage):
     with netCDF4.Dataset(path, "w") as ds:
         ds.createDimension("n_points", len(idx))
@@ -144,6 +390,94 @@ def _write_smosic_sparse(path, idx, values, coverage):
         ds.min_coverage_frac = 0.05
 
 
+def _write_smap_l3(path):
+    fill = -9999.0
+    with netCDF4.Dataset(path, "w") as ds:
+        ds.createDimension("y", 2)
+        ds.createDimension("x", 5)
+
+        am = ds.createGroup("Soil_Moisture_Retrieval_Data_AM")
+        _write_smap_group(
+            am,
+            sm_name="soil_moisture",
+            qf_name="retrieval_qual_flag",
+            suffix="",
+            sm=[
+                [fill, fill, fill, fill, fill],
+                [fill, fill, 0.20, 0.30, 0.40],
+            ],
+            qf=[
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 4, 0],
+            ],
+            surface_status=np.zeros((2, 5), dtype=np.uint16),
+            surface_flag=[
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 32],
+            ],
+        )
+
+        pm = ds.createGroup("Soil_Moisture_Retrieval_Data_PM")
+        surface_status_pm = np.zeros((2, 5), dtype=np.uint16)
+        surface_status_pm[0, 1] = 1
+        _write_smap_group(
+            pm,
+            sm_name="soil_moisture_dca_pm",
+            qf_name="retrieval_qual_flag_dca_pm",
+            suffix="_pm",
+            sm=[
+                [fill, 0.10, fill, fill, fill],
+                [fill, fill, 0.40, 0.50, fill],
+            ],
+            qf=np.zeros((2, 5), dtype=np.uint16),
+            surface_status=surface_status_pm,
+            surface_flag=np.zeros((2, 5), dtype=np.uint16),
+        )
+
+
+def _write_smap_group(group, sm_name, qf_name, suffix, sm, qf, surface_status, surface_flag):
+    sm_var = group.createVariable(sm_name, "f4", ("y", "x"), fill_value=-9999.0)
+    sm_var.units = "cm**3/cm**3"
+    sm_var[:] = np.asarray(sm, dtype=np.float32)
+
+    qf_var = group.createVariable(qf_name, "u2", ("y", "x"), fill_value=np.uint16(65534))
+    qf_var[:] = np.asarray(qf, dtype=np.uint16)
+
+    status_var = group.createVariable(f"grid_surface_status{suffix}", "u2", ("y", "x"), fill_value=np.uint16(65534))
+    status_var[:] = np.asarray(surface_status, dtype=np.uint16)
+
+    flag_var = group.createVariable(f"surface_flag{suffix}", "u2", ("y", "x"), fill_value=np.uint16(65534))
+    flag_var[:] = np.asarray(surface_flag, dtype=np.uint16)
+
+    rfi_h_var = group.createVariable(f"tb_qual_flag_h{suffix}", "u2", ("y", "x"), fill_value=np.uint16(65534))
+    rfi_v_var = group.createVariable(f"tb_qual_flag_v{suffix}", "u2", ("y", "x"), fill_value=np.uint16(65534))
+    rfi_h_var[:] = np.zeros((2, 5), dtype=np.uint16)
+    rfi_v_var[:] = np.zeros((2, 5), dtype=np.uint16)
+
+
+def _write_ascat_aux(path, lon, lat):
+    with netCDF4.Dataset(path, "w") as ds:
+        ds.createDimension("gpi", len(lon) + 1)
+        land_flag = ds.createVariable("land_flag", "i4", ("gpi",))
+        lon_var = ds.createVariable("lon", "f8", ("gpi",))
+        lat_var = ds.createVariable("lat", "f8", ("gpi",))
+
+        land_flag[:] = np.asarray([*([1] * len(lon)), 0], dtype=np.int32)
+        lon_var[:] = np.asarray([*lon, 0.0], dtype=np.float64)
+        lat_var[:] = np.asarray([*lat, 0.0], dtype=np.float64)
+
+
+def _write_ascat_h119_h120_mat(path, sm, conf):
+    scipy_io = pytest.importorskip("scipy.io")
+    scipy_io.savemat(
+        path,
+        {
+            "sm_tile": np.asarray(sm, dtype=np.float64),
+            "conf_flag_tile": np.asarray(conf, dtype=np.int16),
+        },
+    )
+
+
 def _write_model(path, values):
     with netCDF4.Dataset(path, "w") as ds:
         ds.createDimension("time", 1)
@@ -151,6 +485,30 @@ def _write_model(path, values):
         var = ds.createVariable("SFMC", "f4", ("time", "tile"))
         var.units = "m3 m-3"
         var[0, :] = np.asarray(values, dtype=np.float32)
+
+
+def _write_tilecoord_cells(path, i_indg, j_indg):
+    i_indg = list(i_indg)
+    j_indg = list(j_indg)
+    n_tile = len(i_indg)
+    fields = {
+        "tile_id": list(range(1, n_tile + 1)),
+        "typ": [1] * n_tile,
+        "pfaf": [1] * n_tile,
+        "com_lon": [0.0] * n_tile,
+        "com_lat": [0.0] * n_tile,
+        "min_lon": [0.0] * n_tile,
+        "max_lon": [1.0] * n_tile,
+        "min_lat": [0.0] * n_tile,
+        "max_lat": [1.0] * n_tile,
+        "i_indg": i_indg,
+        "j_indg": j_indg,
+        "frac_cell": [1.0] * n_tile,
+        "frac_pfaf": [1.0] * n_tile,
+        "area": [1.0] * n_tile,
+        "elev": [100.0] * n_tile,
+    }
+    _write_tilecoord_fields(path, fields)
 
 
 def _write_tilecoord(path):
@@ -171,10 +529,15 @@ def _write_tilecoord(path):
         "area": [1.0, 1.0, 1.0, 1.0, 1.0],
         "elev": [100.0, 100.0, 100.0, 100.0, 100.0],
     }
+    _write_tilecoord_fields(path, fields)
+
+
+def _write_tilecoord_fields(path, fields):
     int_fields = {"tile_id", "typ", "pfaf", "i_indg", "j_indg"}
+    n_tile = len(fields["tile_id"])
 
     with path.open("wb") as fp:
-        _write_record(fp, np.asarray([5], dtype="<i4"))
+        _write_record(fp, np.asarray([n_tile], dtype="<i4"))
         for name, values in fields.items():
             dtype = "<i4" if name in int_fields else "<f4"
             _write_record(fp, np.asarray(values, dtype=dtype))

@@ -52,7 +52,7 @@ def collect_fixture_files(
     files: list[FixtureFile] = []
     for day in dates:
         files.extend(_h121_files(day, output_root, roots))
-        files.extend(_legacy_ascat_files(day, output_root, roots))
+        files.extend(_h119_h120_files(day, output_root, roots))
         files.extend(_smosic_files(day, output_root, roots))
         files.extend(_smap_l3_files(day, output_root, roots))
         for run in runs:
@@ -98,14 +98,14 @@ def _h121_files(day: date, output_root: Path, roots: ProductRoots) -> list[Fixtu
     files: list[FixtureFile] = []
 
     for platform, manifest_name in H121_MANIFESTS.items():
-        manifest = roots.ascat_cdr_root / "flists" / f"Y{yyyy}" / f"M{mm}" / f"D{dd}" / manifest_name
+        manifest = roots.ascat_h121_root / "flists" / f"Y{yyyy}" / f"M{mm}" / f"D{dd}" / manifest_name
         manifest_dest = output_root / "ASCAT_SSM_CDR" / "flists" / f"Y{yyyy}" / f"M{mm}" / f"D{dd}" / manifest_name
         files.append(FixtureFile(f"H121 manifest {platform} {day}", manifest, manifest_dest))
 
         if not manifest.exists():
             continue
 
-        raw_root = roots.ascat_cdr_root / "H121" / platform / f"Y{yyyy}" / f"M{mm}"
+        raw_root = roots.ascat_h121_root / "H121" / platform / f"Y{yyyy}" / f"M{mm}"
         raw_dest_root = output_root / "ASCAT_SSM_CDR" / "H121" / platform / f"Y{yyyy}" / f"M{mm}"
         for raw_name in _read_manifest_names(manifest):
             files.append(
@@ -128,12 +128,18 @@ def _read_manifest_names(path: Path) -> list[str]:
     return names
 
 
-def _legacy_ascat_files(day: date, output_root: Path, roots: ProductRoots) -> list[FixtureFile]:
+def _h119_h120_files(day: date, output_root: Path, roots: ProductRoots) -> list[FixtureFile]:
     yyyy, mm, _, yyyymmdd = _date_parts(day)
     name = f"ASCAT_HSAF_H119_SM_{yyyymmdd}_AD.mat"
-    source = roots.legacy_ascat_root / "H119_H120_processed" / f"Y{yyyy}" / f"M{mm}" / name
+    source = roots.ascat_h119_h120_root / "H119_H120_processed" / f"Y{yyyy}" / f"M{mm}" / name
     dest = output_root / "ASCAT_HSAF" / "H119_H120_processed" / f"Y{yyyy}" / f"M{mm}" / name
-    return [FixtureFile(f"legacy ASCAT {day}", source, dest)]
+    aux_name = "TUW_WARP5_grid_info_2_2.nc"
+    aux_source = roots.ascat_h119_h120_root / "Auxiliary" / aux_name
+    aux_dest = output_root / "ASCAT_HSAF" / "Auxiliary" / aux_name
+    return [
+        FixtureFile(f"ASCAT H119/H120 auxiliary grid", aux_source, aux_dest),
+        FixtureFile(f"ASCAT H119/H120 {day}", source, dest),
+    ]
 
 
 def _smosic_files(day: date, output_root: Path, roots: ProductRoots) -> list[FixtureFile]:
@@ -211,4 +217,3 @@ def _first_existing_or_first(paths: list[Path]) -> Path:
         if path.exists():
             return path
     return paths[0]
-
