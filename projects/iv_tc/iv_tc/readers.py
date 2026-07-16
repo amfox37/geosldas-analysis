@@ -20,6 +20,7 @@ M36_NX = 964
 SMOSIC_DATE_RE = re.compile(r"smos_ic_sm_m36_(\d{8})\.nc$")
 SMAPL3_DATE_RE = re.compile(r"SMAP_L3_SM_P_(\d{8})_R\d+_.*\.h5$")
 ASCAT_H119_H120_DATE_RE = re.compile(r"ASCAT_HSAF_H119_SM_(\d{8})_AD\.mat$")
+H121_TIMESTAMP_RE = re.compile(r"(?<!\d)(\d{14})(?!\d)")
 SMAP_L3_ORBITS = (
     ("AM", "", ""),
     ("PM", "_dca_pm", "_pm"),
@@ -171,33 +172,17 @@ def read_ascat_h121_sparse(
 ) -> SparseObservation:
     """Read H121/H139 NetCDF swaths and aggregate QC'd obs to daily M36 cells."""
 
-    read_h121, form_super_obs, qc_default = _ascat_h121_tools()
+    read_h121_files, form_super_obs, qc_default = _ascat_h121_tools()
     day_dt = _as_datetime(day)
-    dirs = _h121_day_directories(h121_paths, day_dt.date())
+    files = _h121_input_files(h121_paths, day_dt.date())
     tilecoord = read_tilecoord(tilecoord_path)
 
-    lat_parts = []
-    lon_parts = []
-    ssm_parts = []
-    n_raw_qc = 0
     qc_used = qc_default if qc is None else qc
-
-    for hdir in dirs:
-        obs = read_h121(str(hdir), day_dt, qc=qc_used)
-        n_raw_qc += int(obs["ssm"].size)
-        if obs["ssm"].size:
-            lat_parts.append(obs["lat"])
-            lon_parts.append(obs["lon"])
-            ssm_parts.append(obs["ssm"])
-
-    if ssm_parts:
-        lat = np.concatenate(lat_parts)
-        lon = np.concatenate(lon_parts)
-        ssm = np.concatenate(ssm_parts)
-    else:
-        lat = np.array([], dtype=np.float64)
-        lon = np.array([], dtype=np.float64)
-        ssm = np.array([], dtype=np.float64)
+    obs = read_h121_files([str(path) for path in files], day_dt, qc=qc_used)
+    n_raw_qc = int(obs["ssm"].size)
+    lat = np.asarray(obs["lat"], dtype=np.float64)
+    lon = np.asarray(obs["lon"], dtype=np.float64)
+    ssm = np.asarray(obs["ssm"], dtype=np.float64)
 
     super_obs = form_super_obs(lat, lon, ssm, tile_coord=tilecoord)
     ij = np.asarray(super_obs["ij"], dtype=np.int64)
@@ -209,7 +194,7 @@ def read_ascat_h121_sparse(
 
     counts = np.asarray(super_obs["count"], dtype=np.int64)
     qc_summary: dict[str, int | float | str] = {
-        "source_dirs": len(dirs),
+        "source_files": len(files),
         "qc_obs": n_raw_qc,
         "n_points": int(idx.size),
         "qc_source": "projects/ascat_da/lib/qc.py:QC_DEFAULT_H121",
@@ -714,21 +699,27 @@ def _as_path_list(paths: Path | str | list[Path | str]) -> list[Path]:
     return [Path(path) for path in paths]
 
 
-def _h121_day_directories(paths: Path | str | list[Path | str], day: date) -> list[Path]:
-    yyyymmdd = day.strftime("%Y%m%d")
-    dirs: list[Path] = []
+def _h121_input_files(paths: Path | str | list[Path | str], day: date) -> list[Path]:
+    files: list[Path] = []
     for path in _as_path_list(paths):
         if path.is_file():
-            dirs.append(path.parent)
-        elif any(path.glob(f"*_{yyyymmdd}*.nc")):
-            dirs.append(path)
+            files.append(path)
+        elif path.is_dir():
+            files.extend(sorted(candidate for candidate in path.glob("*.nc") if _h121_sensing_date_matches(candidate, day)))
         else:
-            dirs.extend(sorted({candidate.parent for candidate in path.glob(f"**/*_{yyyymmdd}*.nc")}))
+            raise FileNotFoundError(str(path))
 
     unique: dict[str, Path] = {}
-    for path in dirs:
+    for path in files:
         unique[str(path.resolve())] = path
     return sorted(unique.values())
+
+
+def _h121_sensing_date_matches(path: Path, day: date) -> bool:
+    timestamps = H121_TIMESTAMP_RE.findall(path.name)
+    if len(timestamps) >= 3:
+        timestamps = timestamps[1:]
+    return any(value.startswith(day.strftime("%Y%m%d")) for value in timestamps)
 
 
 def _ascat_h121_tools():
@@ -746,7 +737,7 @@ def _ascat_h121_tools():
     qc_mod = importlib.import_module(f"{package}.qc")
     readers_mod = importlib.import_module(f"{package}.readers")
     superob_mod = importlib.import_module(f"{package}.superob")
-    return readers_mod.read_h121, superob_mod.form_super_obs, qc_mod.QC_DEFAULT_H121
+    return readers_mod.read_h121_files, superob_mod.form_super_obs, qc_mod.QC_DEFAULT_H121
 
 
 def _read_exact(fp, n: int) -> bytes:

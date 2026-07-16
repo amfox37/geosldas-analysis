@@ -27,6 +27,9 @@ and, once checked, copy a few representative files into `test_data/inputs/`.
 - ASCAT H121/H139 NetCDF swaths reuse the existing `projects/ascat_da` H121 QC
   and GEOS M36 super-ob logic (`QC_DEFAULT_H121`, `form_super_obs`) instead of
   duplicating bit masks here.
+- H121/H139 daily pair generation resolves exact raw files from the
+  `ASCAT_SSM_CDR/flists/Y*/M*/D*/*.txt` manifests. It does not use broad
+  date-globs over the monthly raw-file directories.
 - The ASCAT input used by the existing MATLAB IV/TC step2 scripts is the
   processed HSAF H119/H120 daily `.mat` product
   (`H119_H120_processed/.../ASCAT_HSAF_H119_SM_YYYYMMDD_AD.mat`). That is

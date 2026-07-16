@@ -171,13 +171,19 @@ def read_h121(h121_dir, date, domain=None, qc=None):
     -------
     dict with arrays: lat, lon, ssm, subsfc, window
     """
+    pattern = os.path.join(h121_dir, f'*_{date.strftime("%Y%m%d")}*.nc')
+    return read_h121_files(sorted(glob.glob(pattern)), date, domain=domain, qc=qc)
+
+
+def read_h121_files(h121_files, date, domain=None, qc=None):
+    """Read explicit H121 CDR NetCDF files after QC."""
+
     if qc is None:
         qc = QC_DEFAULT_H121
 
     out = {k: [] for k in ('lat', 'lon', 'ssm', 'subsfc', 'cycle', 'window')}
 
-    pattern = os.path.join(h121_dir, f'*_{date.strftime("%Y%m%d")}*.nc')
-    for fpath in sorted(glob.glob(pattern)):
+    for fpath in sorted(str(path) for path in h121_files):
         ds = nc.Dataset(fpath)
         try:
             lat    = ds.variables['latitude'][:].filled(np.nan)

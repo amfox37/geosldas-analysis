@@ -21,6 +21,12 @@ from .readers import (
 
 DEFAULT_SENSORS = ("smosic", "smap_l3", "ascat_h121", "ascat_h119_h120")
 
+H121_MANIFESTS = {
+    "metop_a": "H121_METOPA.txt",
+    "metop_b": "H121_H139_METOPB.txt",
+    "metop_c": "H121_H139_METOPC.txt",
+}
+
 SENSOR_ALIASES = {
     "smosic": "smosic",
     "smos-ic": "smosic",
@@ -181,7 +187,7 @@ def resolve_daily_pair_inputs(
         return PairInputPaths((obs_path,), model_path, tilecoord_path)
 
     if sensor == "ascat_h121":
-        obs_paths = _resolve_h121_dirs(day, roots)
+        obs_paths = _resolve_h121_files(day, roots)
         return PairInputPaths(tuple(obs_paths), model_path, tilecoord_path)
 
     if sensor == "ascat_h119_h120":
@@ -337,6 +343,8 @@ def write_daily_pair(
         )
     except FileNotFoundError as exc:
         return PairGenerationResult(day, sensor, run.name, output_path, "missing", message=str(exc))
+    except RuntimeError as exc:
+        return PairGenerationResult(day, sensor, run.name, output_path, "failed", message=str(exc))
 
     if pair.idx.size == 0:
         return PairGenerationResult(day, sensor, run.name, output_path, "empty")
@@ -390,17 +398,45 @@ def _resolve_smap_l3_path(day: date, roots: ProductRoots) -> Path:
     return matches[0]
 
 
-def _resolve_h121_dirs(day: date, roots: ProductRoots) -> list[Path]:
-    dirs = []
-    for platform in ("metop_a", "metop_b", "metop_c"):
-        directory = roots.ascat_h121_root / "H121" / platform / f"Y{day.year:04d}" / f"M{day.month:02d}"
-        if any(directory.glob(f"*_{day:%Y%m%d}*.nc")):
-            dirs.append(directory)
-    if not dirs:
-        raise FileNotFoundError(
-            str(roots.ascat_h121_root / "H121" / "{metop_a,metop_b,metop_c}" / f"Y{day.year:04d}" / f"M{day.month:02d}")
-        )
-    return dirs
+def _resolve_h121_files(day: date, roots: ProductRoots) -> list[Path]:
+    yyyy = f"{day.year:04d}"
+    mm = f"{day.month:02d}"
+    dd = f"{day.day:02d}"
+    files: list[Path] = []
+    missing_manifests: list[Path] = []
+    missing_raw: list[Path] = []
+
+    for platform, manifest_name in H121_MANIFESTS.items():
+        manifest = roots.ascat_h121_root / "flists" / f"Y{yyyy}" / f"M{mm}" / f"D{dd}" / manifest_name
+        if not manifest.exists():
+            missing_manifests.append(manifest)
+            continue
+
+        raw_root = roots.ascat_h121_root / "H121" / platform / f"Y{yyyy}" / f"M{mm}"
+        for raw_name in _read_manifest_names(manifest):
+            raw = raw_root / raw_name
+            if raw.exists():
+                files.append(raw)
+            else:
+                missing_raw.append(raw)
+
+    if missing_raw:
+        raise FileNotFoundError(str(missing_raw[0]))
+    if not files:
+        if missing_manifests:
+            raise FileNotFoundError(str(missing_manifests[0]))
+        raise FileNotFoundError(str(roots.ascat_h121_root / "flists" / f"Y{yyyy}" / f"M{mm}" / f"D{dd}"))
+
+    return files
+
+
+def _read_manifest_names(path: Path) -> list[str]:
+    names: list[str] = []
+    for line in path.read_text().splitlines():
+        name = line.strip()
+        if name:
+            names.append(name)
+    return names
 
 
 def _first_existing(paths: list[Path]) -> Path:
