@@ -23,6 +23,7 @@ Index convention:
 import numpy as np
 import glob
 import os
+import re
 from datetime import datetime, timedelta, timezone
 
 import netCDF4 as nc
@@ -69,6 +70,52 @@ def _inbox(lat, lon, domain):
     lat0, lon0, lat1, lon1 = domain
     return ((lat >= lat0) & (lat <= lat1) &
             (lon >= lon0) & (lon <= lon1))
+
+
+_TIME_UNITS_RE = re.compile(
+    r'^\s*(second|seconds|minute|minutes|hour|hours|day|days)\s+since\s+(.+?)\s*$',
+    re.IGNORECASE,
+)
+_UNIT_SECONDS = {
+    'second': 1.0, 'seconds': 1.0,
+    'minute': 60.0, 'minutes': 60.0,
+    'hour': 3600.0, 'hours': 3600.0,
+    'day': 86400.0, 'days': 86400.0,
+}
+
+
+def _hour_of_day_from_time_var(t_values, units):
+    """Vectorized fractional UTC hour-of-day from a CF `<units> since <ref>` time axis.
+
+    Replaces `cftime.num2date(...)` followed by a per-observation Python loop
+    pulling `.hour`/`.minute` off each resulting object -- at H121's ~1M raw
+    obs/day, that loop (plus num2date's own element-wise handling of a masked
+    input array) was the dominant cost of reading a day of H121 CDR files
+    (~34s of ~65s in a profiled sample day), far more than the actual QC or
+    tile-binning work. Hour-of-day only needs the sub-day remainder of
+    elapsed time since the reference, which is calendar-independent (a "day"
+    is always 86400 seconds on this numeric axis regardless of leap years),
+    so this never needs to construct a real calendar date at all.
+    """
+    match = _TIME_UNITS_RE.match(units)
+    if not match:
+        raise ValueError(f'Unrecognized time units: {units!r}')
+    unit_name, ref_text = match.groups()
+    unit_seconds = _UNIT_SECONDS[unit_name.lower()]
+
+    ref_text = re.sub(r'\s*UTC\s*$', '', ref_text.strip(), flags=re.IGNORECASE)
+    for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d'):
+        try:
+            ref = datetime.strptime(ref_text, fmt)
+            break
+        except ValueError:
+            continue
+    else:
+        raise ValueError(f'Unrecognized time reference: {ref_text!r}')
+
+    ref_seconds_of_day = ref.hour * 3600.0 + ref.minute * 60.0 + ref.second
+    total_seconds = np.asarray(t_values, dtype=np.float64) * unit_seconds + ref_seconds_of_day
+    return np.mod(total_seconds, 86400.0) / 3600.0
 
 
 # ── Legacy BUFR reader ────────────────────────────────────────────────────────
@@ -212,9 +259,10 @@ def read_h121_files(h121_files, date, domain=None, qc=None):
             try:
                 t_var = ds.variables['time']
                 t_units = getattr(t_var, 'units', '')
-                times = nc.num2date(t_var[:], t_units)
-                hour_frac = np.array([t.hour + t.minute / 60. for t in times],
-                                     dtype=float)
+                t_vals = t_var[:]
+                if np.ma.isMaskedArray(t_vals):
+                    t_vals = t_vals.filled(np.nan)
+                hour_frac = _hour_of_day_from_time_var(t_vals, t_units)
             except Exception:
                 # parse from filename: ..._YYYYMMDDTHHMMSS_...
                 fname = os.path.basename(fpath)
