@@ -382,7 +382,11 @@ def _compute_from_store(
 
         c_model_obs = model_obs_sum / nn - model_mean * obs_mean
         r_model_obs = c_model_obs / np.sqrt(c_model_model * c_obs_obs)
-        r_model_obs[np.isnan(r_model_obs)] = MATLAB_UNDEFINED_CORRELATION
+        # A zero-variance model or obs sample (denominator exactly 0) gives a
+        # meaningless +/-inf "correlation" when the covariance isn't also
+        # exactly 0 -- not caught by the isnan check below, since inf is not
+        # NaN. Treat it the same as the undefined 0/0 case.
+        r_model_obs[~np.isfinite(r_model_obs)] = MATLAB_UNDEFINED_CORRELATION
         c_model_obs[c_model_obs < 0.0] = np.nan
 
         c_model_model_lag = model_model_lag_sum / nn - model_mean**2

@@ -132,6 +132,37 @@ def test_iv_applies_minimum_count_and_matlab_undefined_correlation_fill():
     assert np.isnan(result.r2_ivd_model[0])
 
 
+def test_iv_maps_infinite_correlation_from_zero_variance_model_to_matlab_undefined():
+    # A model series that is bit-identical across all days has zero variance
+    # (c_model_model == 0.0 exactly), but floating-point rounding in the
+    # model*obs sum vs. mean*mean product can leave c_model_obs a tiny
+    # nonzero value instead of exactly 0.0. That produces +/-inf, not NaN,
+    # from c_model_obs / sqrt(c_model_model * c_obs_obs).
+    start = date(2020, 1, 1)
+    model_value = -2.302
+    obs_values = [
+        87.24998293,
+        870.14484758,
+        631.70710824,
+        -994.52299966,
+        714.80855318,
+        -932.82884939,
+        459.31089286,
+    ]
+    pairs = [
+        _pair(start + timedelta(days=i), [1], [obs_values[i]], [model_value])
+        for i in range(len(obs_values))
+    ]
+
+    result = compute_independent_validation(
+        pairs, _climatology([1]), lag_days=2, min_count=3
+    )
+
+    assert result.count.tolist() == [5]
+    assert np.isfinite(result.r_model_obs).all()
+    assert result.r_model_obs.tolist() == [MATLAB_UNDEFINED_CORRELATION]
+
+
 def test_iv_path_streaming_and_npz_round_trip(tmp_path):
     start = date(2020, 1, 1)
     pair_paths = []
