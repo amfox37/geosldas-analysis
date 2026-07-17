@@ -148,6 +148,34 @@ def test_generate_daily_pairs_uses_h121_manifest_not_creation_date_glob(tmp_path
     np.testing.assert_allclose(loaded.obs, np.array([22.0, 33.0]), rtol=1e-6)
 
 
+def test_generate_daily_pairs_reports_corrupt_h121_file_as_failed_not_crash(tmp_path):
+    day = date(2020, 1, 2)
+    roots, run = _write_smosic_fixture_tree(tmp_path, day)
+    h121_root = roots.ascat_h121_root
+    target_name = (
+        "W_IT-HSAF-ROME,SAT,SSM-ASCAT-METOPA-12.5km-H121_C_LIIB_"
+        "20241015134956_20200102000000_20200102005959____.nc"
+    )
+    manifest = h121_root / "flists" / "Y2020" / "M01" / "D02" / "H121_METOPA.txt"
+    manifest.parent.mkdir(parents=True, exist_ok=True)
+    manifest.write_text(f"{target_name}\n")
+
+    raw_dir = h121_root / "H121" / "metop_a" / "Y2020" / "M01"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    (raw_dir / target_name).write_bytes(b"not a real netcdf file")
+
+    results = generate_daily_pairs(
+        dates=[day],
+        sensors=["ascat_h121"],
+        runs=[run],
+        roots=roots,
+        output_root=tmp_path / "out",
+        nx=10,
+    )
+
+    assert results[0].status == "failed"
+
+
 def test_generate_daily_pairs_reports_ambiguous_model_glob_as_failed(tmp_path):
     day = date(2020, 1, 2)
     roots, run = _write_smosic_fixture_tree(tmp_path, day, run_dir_name="OL", exp_id="EXP_A")

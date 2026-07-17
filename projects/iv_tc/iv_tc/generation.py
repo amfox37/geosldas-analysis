@@ -343,7 +343,7 @@ def write_daily_pair(
         )
     except FileNotFoundError as exc:
         return PairGenerationResult(day, sensor, run.name, output_path, "missing", message=str(exc))
-    except RuntimeError as exc:
+    except (RuntimeError, OSError) as exc:
         return PairGenerationResult(day, sensor, run.name, output_path, "failed", message=str(exc))
 
     if pair.idx.size == 0:
