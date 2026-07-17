@@ -26,6 +26,15 @@ from .generation import (
     save_daily_pair_npz,
     write_daily_pair,
 )
+from .independent_validation import (
+    IndependentValidation,
+    compute_independent_validation,
+    compute_independent_validation_from_paths,
+    independent_validation_npz_is_valid,
+    iv_output_path,
+    load_independent_validation_npz,
+    save_independent_validation_npz,
+)
 from .pairs import DailyPair, SparseObservation
 from .readers import (
     read_ascat_h119_h120_model_pair,
@@ -42,6 +51,7 @@ from .readers import (
 
 __all__ = [
     "DailyPair",
+    "IndependentValidation",
     "PentadClimatology",
     "PairGenerationResult",
     "PairInputPaths",
@@ -54,8 +64,13 @@ __all__ = [
     "climatology_output_path",
     "compute_pentad_climatology",
     "compute_pentad_climatology_from_paths",
+    "compute_independent_validation",
+    "compute_independent_validation_from_paths",
     "generate_daily_pairs",
+    "independent_validation_npz_is_valid",
+    "iv_output_path",
     "load_daily_pair_npz",
+    "load_independent_validation_npz",
     "load_pentad_climatology_npz",
     "matlab_default_min_count",
     "normal_year_doy",
@@ -74,6 +89,7 @@ __all__ = [
     "read_smosic_model_pair",
     "read_smosic_sparse",
     "save_daily_pair_npz",
+    "save_independent_validation_npz",
     "save_pentad_climatology_npz",
     "write_daily_pair",
 ]

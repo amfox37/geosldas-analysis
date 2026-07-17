@@ -16,6 +16,8 @@ and, once checked, copy a few representative files into `test_data/inputs/`.
   daily obs/model pair files.
 - `scripts/compute_climatology.py`: sensor-independent step-3 climatology over
   the compact daily pair files.
+- `scripts/compute_iv.py`: sensor-independent step-4 IVd/IVs statistics using
+  the compact daily pairs and pentad climatology.
 - `tests/`: local tests using fake files, so path logic can be checked without
   Discover access.
 
@@ -149,3 +151,57 @@ python projects/iv_tc/scripts/compute_climatology.py \
 The default count threshold matches MATLAB's `4 * (end_year - start_year)`,
 with the command's inclusive end date converted to MATLAB's end-exclusive
 boundary. Use `--min-count` to make a short test range meaningful.
+
+## Independent Validation
+
+Step 4 follows `Compute_IVd_IVs*.m` directly. For each current day `d`, it
+requires the exact calendar day `d - Nlag`, intersects their sparse M36
+indices, and subtracts the observation and model climatologies for each day's
+own pentad. Missing dates are skipped; they are not compressed into adjacent
+samples. Defaults match MATLAB: `Nlag=2` days and `Nmin=100` samples per cell.
+
+The population-moment equations are intentionally preserved as written in
+MATLAB, including its use of the current anomaly means in the lagged
+covariances. The finite-value behavior is also preserved: MATLAB selects
+samples using the current model anomaly only, so a NaN in another anomaly can
+propagate into that cell's sums even though `N_sm` is incremented. Undefined
+`R_mod_obs` values retain MATLAB's `-9999` sentinel; undefined IVd/IVs fields
+remain NaN, and valid squared correlations are capped at 1.
+
+```bash
+python projects/iv_tc/scripts/compute_iv.py \
+  --start-date 2018-08-01 \
+  --end-date 2024-06-29 \
+  --sensor smosic \
+  --sensor ascat_h121 \
+  --run OL \
+  --pair-root /discover/nobackup/projects/land_da/Evaluation/IVs/output_python
+```
+
+Outputs are written to:
+
+```text
+output_root/step4_iv/{sensor}/{run_name}/START_END_lag2_n100.npz
+```
+
+The sparse file stores `idx0` plus the MATLAB fields `N_sm`, `R2_ivd_mod`,
+`R2_ivd_obs`, `R2_ivs_mod`, `R2_ivs_obs`, `R_mod_obs`, `Nmin`, and `Nlag`,
+along with run, units, date-range, climatology, and day-accounting metadata.
+
+The Python CLI treats both start and end dates as inclusive. The MATLAB scripts
+stop before `end_time`; therefore a MATLAB configuration with
+`end_time = 2024-06-30` processes through 2024-06-29 and should be compared
+with Python `--end-date 2024-06-29`.
+
+For a direct Discover parity check, expand the sparse Python fields and compare
+them with the full-grid MATLAB output using:
+
+```bash
+python projects/iv_tc/scripts/compare_iv_matlab.py \
+  --python /path/to/step4_iv/smosic/OL/20180801_20240629_lag2_n100.npz \
+  --matlab /path/to/SMOSIC_OLv8_M36_cd_IVD_IVS_stats_lag2day_201808_202405.mat
+```
+
+The command checks `N_sm` exactly and reports valid-mask and numeric
+differences for every saved IV field. It exits nonzero on any mismatch beyond
+the requested tolerances.
