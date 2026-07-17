@@ -264,7 +264,7 @@ def read_daily_pair(
     model_variable: str = "SFMC",
     h119_h120_method: str = "linear",
     h119_h120_fill_nearest: bool = False,
-    smap_l3_enforce_valid_range: bool = False,
+    smap_l3_enforce_valid_range: bool = True,
     nx: int = M36_NX,
 ) -> DailyPair:
     """Read one daily obs/model pair after resolving product paths."""
@@ -342,7 +342,7 @@ def write_daily_pair(
     model_variable: str = "SFMC",
     h119_h120_method: str = "linear",
     h119_h120_fill_nearest: bool = False,
-    smap_l3_enforce_valid_range: bool = False,
+    smap_l3_enforce_valid_range: bool = True,
     nx: int = M36_NX,
 ) -> PairGenerationResult:
     """Generate one daily pair file, returning a status record."""
@@ -386,7 +386,7 @@ def generate_daily_pairs(
     model_variable: str = "SFMC",
     h119_h120_method: str = "linear",
     h119_h120_fill_nearest: bool = False,
-    smap_l3_enforce_valid_range: bool = False,
+    smap_l3_enforce_valid_range: bool = True,
     nx: int = M36_NX,
 ) -> list[PairGenerationResult]:
     """Loop over dates, sensors, and runs and write daily pair npz files."""

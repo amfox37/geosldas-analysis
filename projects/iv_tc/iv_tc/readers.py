@@ -90,19 +90,18 @@ def read_smap_l3_sparse(
     path: Path | str,
     qc: bool = True,
     nx: int = M36_NX,
-    enforce_valid_range: bool = False,
+    enforce_valid_range: bool = True,
 ) -> SparseObservation:
     """Read one SMAP L3 SPL3SMP v009/R19240 file as sparse M36 observations.
 
-    ``enforce_valid_range`` defaults to ``False`` so soil_moisture's
-    ``valid_min``/``valid_max`` CF attributes are ignored, matching the legacy
-    MATLAB reader (``h5read`` performs no attribute-based masking; it only
-    ever clips ``sm < 0``). netCDF4-python's default ``set_auto_mask(True)``
-    behavior masks values outside those attributes, which silently drops
-    physically valid retrievals above ``valid_max`` (observed: ~1.7% of
-    points on a spot-checked day, biased toward wetter soil). Pass
-    ``enforce_valid_range=True`` to opt back into that stricter, non-MATLAB
-    masking.
+    ``enforce_valid_range`` defaults to ``True``: soil_moisture's
+    ``valid_min``/``valid_max`` CF attributes are enforced (netCDF4-python's
+    default ``set_auto_mask(True)`` behavior), treating SMAP's own published
+    valid range as real QC rather than an artifact. This is a deliberate
+    choice, not MATLAB parity: the legacy MATLAB reader (``h5read``) performs
+    no attribute-based masking and only ever clips ``sm < 0``, so it lets
+    through ~1.7% more points (spot-checked), all above ``valid_max``. Pass
+    ``enforce_valid_range=False`` to reproduce that MATLAB behavior instead.
     """
 
     path = Path(path)
@@ -545,7 +544,7 @@ def read_smap_l3_model_pair(
     model_variable: str = "SFMC",
     qc: bool = True,
     nx: int = M36_NX,
-    enforce_valid_range: bool = False,
+    enforce_valid_range: bool = True,
 ) -> DailyPair:
     """Read SMAP L3 and GEOSldas files and return their matched daily pair."""
 

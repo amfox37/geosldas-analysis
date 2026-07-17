@@ -110,22 +110,23 @@ def test_read_smap_l3_sparse_matches_matlab_qc_and_am_pm_mean(tmp_path):
     assert obs.qc_summary["n_points"] == 2
 
 
-def test_read_smap_l3_sparse_default_ignores_valid_range_like_matlab_h5read(tmp_path):
+def test_read_smap_l3_sparse_default_enforces_valid_range_unlike_matlab_h5read(tmp_path):
     path = tmp_path / "SMAP_L3_SM_P_20200102_R19240_001.h5"
     _write_smap_l3_with_valid_range(path, out_of_range_value=0.55)
 
     default_obs = read_smap_l3_sparse(path, nx=2)
-    strict_obs = read_smap_l3_sparse(path, nx=2, enforce_valid_range=True)
+    matlab_parity_obs = read_smap_l3_sparse(path, nx=2, enforce_valid_range=False)
 
-    # MATLAB's h5read does no valid_min/valid_max masking, only sm < 0; a
-    # retrieval above valid_max is real data and must survive by default.
-    assert default_obs.qc_summary["enforce_valid_range"] == 0
-    np.testing.assert_array_equal(default_obs.idx, np.array([0]))
-    np.testing.assert_allclose(default_obs.values, np.array([0.55]), rtol=1e-6)
+    # SMAP's own published valid range is treated as real QC by default,
+    # dropping a retrieval above valid_max even though it's not NaN/fill.
+    assert default_obs.qc_summary["enforce_valid_range"] == 1
+    np.testing.assert_array_equal(default_obs.idx, np.array([]))
 
-    # Opting in to netCDF4's default auto-mask behavior drops that same point.
-    assert strict_obs.qc_summary["enforce_valid_range"] == 1
-    np.testing.assert_array_equal(strict_obs.idx, np.array([]))
+    # enforce_valid_range=False reproduces MATLAB's h5read, which does no
+    # valid_min/valid_max masking and only ever clips sm < 0.
+    assert matlab_parity_obs.qc_summary["enforce_valid_range"] == 0
+    np.testing.assert_array_equal(matlab_parity_obs.idx, np.array([0]))
+    np.testing.assert_allclose(matlab_parity_obs.values, np.array([0.55]), rtol=1e-6)
 
 
 def test_read_smap_l3_model_pair_matches_representative_model_tiles(tmp_path):

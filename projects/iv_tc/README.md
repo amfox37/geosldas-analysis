@@ -26,12 +26,15 @@ and, once checked, copy a few representative files into `test_data/inputs/`.
 - SMAP L3 uses the existing MATLAB-parity SPL3SMP v009/R19240 QC from
   `Save_SMPL3_LDAS_tavg24_nc4_daily.m`: AM/PM are QC'd separately and averaged
   onto the M36 sparse index. `soil_moisture`'s `valid_min`/`valid_max` CF
-  attributes are deliberately **not** enforced by default, matching
-  `h5read`'s lack of attribute-based masking (it only clips `sm < 0`); pass
-  `--smap-l3-enforce-valid-range` to opt into netCDF4's stricter default
-  auto-mask behavior instead. Verified byte-for-byte against a live run of
-  the MATLAB script for 2018-10-15/`OL` after this fix (53,586/53,586 points,
-  identical `idx`/`obs`/`mod`).
+  attributes **are** enforced by default (netCDF4's default `set_auto_mask`
+  behavior) -- a deliberate choice to treat SMAP's own published valid range
+  as real QC, not MATLAB parity: the legacy `h5read`-based reader applies no
+  such attribute masking and only ever clips `sm < 0`, so it lets through
+  ~1.7% more points (spot-checked), all above `valid_max`. Pass
+  `--smap-l3-matlab-valid-range-parity` to reproduce that MATLAB behavior
+  instead. The underlying reader/AM-PM-merge logic was verified byte-for-byte
+  against a live run of the MATLAB script for 2018-10-15/`OL` in that parity
+  mode (53,586/53,586 points, identical `idx`/`obs`/`mod`).
 - CYGNSS L3 reads the product-supplied daily `SM_daily` field (not a local
   average of `SM_subdaily`), applies the field's valid range and optional
   finite `SIGMA_daily` mask, then uses the MATLAB step2 spatial mapping onto

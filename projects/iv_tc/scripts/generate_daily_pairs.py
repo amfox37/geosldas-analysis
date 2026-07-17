@@ -106,15 +106,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
-        "--smap-l3-enforce-valid-range",
-        action="store_true",
+        "--smap-l3-matlab-valid-range-parity",
+        dest="smap_l3_enforce_valid_range",
+        action="store_false",
         help=(
-            "Mask SMAP L3 soil_moisture using its valid_min/valid_max CF "
-            "attributes (netCDF4's default auto-mask behavior). Off by "
-            "default to match the legacy MATLAB h5read-based reader, which "
-            "applies no such masking and only clips sm < 0 -- enforcing the "
-            "valid range drops ~1.7%% of points (spot-checked), biased "
-            "toward wetter soil above valid_max."
+            "Stop masking SMAP L3 soil_moisture by its valid_min/valid_max CF "
+            "attributes, reproducing the legacy MATLAB h5read-based reader "
+            "(which applies no such masking and only clips sm < 0). On by "
+            "default: SMAP's own published valid range is enforced as real "
+            "QC, which drops ~1.7%% of points (spot-checked) above valid_max "
+            "that MATLAB's reader lets through."
         ),
     )
     parser.add_argument(
