@@ -1,5 +1,18 @@
 """Small IV/TC helpers for GEOSldas validation workflows."""
 
+from .climatology import (
+    PentadClimatology,
+    climatology_npz_is_valid,
+    climatology_output_path,
+    compute_pentad_climatology,
+    compute_pentad_climatology_from_paths,
+    daily_pair_paths,
+    load_pentad_climatology_npz,
+    matlab_default_min_count,
+    normal_year_doy,
+    pentad_index,
+    save_pentad_climatology_npz,
+)
 from .config import ProductRoots, RunConfig
 from .generation import (
     PairGenerationResult,
@@ -27,16 +40,26 @@ from .readers import (
 
 __all__ = [
     "DailyPair",
+    "PentadClimatology",
     "PairGenerationResult",
     "PairInputPaths",
     "ProductRoots",
     "RunConfig",
     "SparseObservation",
     "date_range",
+    "daily_pair_paths",
+    "climatology_npz_is_valid",
+    "climatology_output_path",
+    "compute_pentad_climatology",
+    "compute_pentad_climatology_from_paths",
     "generate_daily_pairs",
     "load_daily_pair_npz",
+    "load_pentad_climatology_npz",
+    "matlab_default_min_count",
+    "normal_year_doy",
     "pair_npz_is_valid",
     "pair_output_path",
+    "pentad_index",
     "read_ascat_h119_h120_model_pair",
     "read_ascat_h119_h120_sparse",
     "read_ascat_h121_model_pair",
@@ -47,5 +70,6 @@ __all__ = [
     "read_smosic_model_pair",
     "read_smosic_sparse",
     "save_daily_pair_npz",
+    "save_pentad_climatology_npz",
     "write_daily_pair",
 ]

@@ -14,6 +14,8 @@ and, once checked, copy a few representative files into `test_data/inputs/`.
   fixtures.
 - `scripts/generate_daily_pairs.py`: date/run/sensor loop that writes step-2
   daily obs/model pair files.
+- `scripts/compute_climatology.py`: sensor-independent step-3 climatology over
+  the compact daily pair files.
 - `tests/`: local tests using fake files, so path logic can be checked without
   Discover access.
 
@@ -92,3 +94,33 @@ python projects/iv_tc/scripts/generate_daily_pairs.py \
 
 Use explicit ASCAT product names (`ascat_h121` or `ascat_h119_h120`) so the
 current CDR NetCDF and processed HSAF `.mat` paths cannot be mixed up silently.
+
+## Pentad Climatology
+
+Step 3 consumes the generic daily pair files, so the same implementation works
+for every observation product. It follows the MATLAB `Compute_clim*.m` logic:
+
+- each sample contributes to a circular 31-day calendar window (day +/- 15);
+- February 29 contributes to February 28 on the 365-day climatology calendar;
+- means are retained only where the cell/pentad count reaches `Nday_min`;
+- the 365 daily windows are represented by their 73 pentad centers
+  (day-of-year 3, 8, ..., 363).
+
+Unlike MATLAB's full 964 x 406 arrays, the Python file stores only M36 cells
+seen in at least one input pair. `idx0` maps each row back to the global M36
+index. The remaining array names preserve the MATLAB terminology:
+`obs_sm_clim`, `mod_sm_clim`, and `N_sm_clim`.
+
+```bash
+python projects/iv_tc/scripts/compute_climatology.py \
+  --start-date 2018-08-01 \
+  --end-date 2024-06-30 \
+  --sensor smosic \
+  --sensor ascat_h121 \
+  --run OL \
+  --pair-root /discover/nobackup/projects/land_da/Evaluation/IVs/output_python
+```
+
+The default count threshold matches MATLAB's `4 * (end_year - start_year)`,
+with the command's inclusive end date converted to MATLAB's end-exclusive
+boundary. Use `--min-count` to make a short test range meaningful.
