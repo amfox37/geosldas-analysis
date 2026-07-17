@@ -13,7 +13,26 @@ from pyproj import Proj
 # ── EASE-Grid 2.0 M36 constants ───────────────────────────────────────────────
 EASE2     = Proj('+proj=cea +lat_ts=30 +datum=WGS84 +lon_0=0 +units=m')
 M36_CELL  = 36032.220840584          # metres
-X_ORIGIN, Y_ORIGIN = EASE2(-180, 90)
+M36_NX    = 964                       # global M36 grid columns (lon)
+M36_NY    = 406                       # global M36 grid rows (lat)
+
+# Grid corner in projected (x, y) metres: the *cell edge*, not the reprojected
+# geographic pole. The M36 grid is defined by a fixed (964, 406) cell-center
+# lattice symmetric about its own center -- it does not extend all the way to
+# the geographic pole. EASE2(-180, 90) sits at y = 203.768... cells from the
+# grid center, not exactly 203 (the true top-row edge), because the pole is
+# not on the grid boundary. Using the reprojected pole as the row origin
+# silently shifted every observation's row assignment by a few tenths of a
+# cell -- correct only "by accident" for cell-center queries that happened to
+# still floor to the right integer, wrong for arbitrary scattered points
+# (verified: ~77% of a real H121 granule's observations landed one row south
+# of their true GEOSldas tile; the other ~23% happened to still floor
+# correctly). X_ORIGIN is unaffected: longitude-only, so EASE2(-180, *)'s x
+# coordinate already equals the true left edge regardless of latitude.
+_R0 = (M36_NX - 1) / 2.0
+_S0 = (M36_NY - 1) / 2.0
+X_ORIGIN = -(_R0 + 0.5) * M36_CELL
+Y_ORIGIN = (_S0 + 0.5) * M36_CELL
 
 
 def latlon_to_ij(lat, lon):
