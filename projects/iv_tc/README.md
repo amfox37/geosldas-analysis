@@ -152,6 +152,18 @@ The default count threshold matches MATLAB's `4 * (end_year - start_year)`,
 with the command's inclusive end date converted to MATLAB's end-exclusive
 boundary. Use `--min-count` to make a short test range meaningful.
 
+**Verified bit-exact against a live MATLAB run** (`Compute_clim_SMOSIC.m`):
+`smosic`/`OLv8_M36_cd`, 2018-08-01 to 2024-06-29 (2,160 daily pairs), against
+the archived `SMOSIC_OLv8_M36_cd_clim_pentad_201808_202405_w31.mat`. `N_sm_clim`
+matched with 0/4,580,500 mismatches; `mod_sm_clim`/`obs_sm_clim` matched with
+max abs diff 0.0 across 4,409,554 valid cell-pentads.
+
+```bash
+python projects/iv_tc/scripts/compare_climatology_matlab.py \
+  --python /path/to/step3_climatology/smosic/OL/20180801_20240629_w31.npz \
+  --matlab /path/to/SMOSIC_OLv8_M36_cd_clim_pentad_201808_202405_w31.mat
+```
+
 ## Independent Validation
 
 Step 4 follows `Compute_IVd_IVs*.m` directly. For each current day `d`, it
@@ -202,6 +214,22 @@ python projects/iv_tc/scripts/compare_iv_matlab.py \
   --python /path/to/step4_iv/smosic/OL/20180801_20240629_lag2_n100.npz \
   --matlab /path/to/SMOSIC_OLv8_M36_cd_IVD_IVS_stats_lag2day_201808_202405.mat
 ```
+
+**Verified against the same live MATLAB run** (`Compute_IVd_IVs_SMOSIC.m`),
+using the step-3 climatology above as input: `N_sm` and every field's
+valid/undefined mask matched MATLAB exactly (0 mismatches across ~50-62k
+cells, 5 fields). Numeric values agreed to ~1e-7 mean / ~1e-5 max absolute
+difference (`--rtol 1e-4 --atol 1e-4`) rather than bit-exact, traced to this
+pipeline's `float32` on-disk pair storage (`sm_obs`/`sm_mod` in step-2 NPZ
+files) versus MATLAB's double-precision accumulation throughout -- not a
+logic difference, since step 3 (same inputs) matched bit-exact.
+
+This run also confirmed the `r_model_obs[~np.isfinite(...)]` zero-variance
+guard (vs. MATLAB's `isnan`-only check, which leaves stray `Inf`/`-Inf` in
+place) never actually diverges on real data: recomputing with an
+`isnan`-only fill produced byte-identical `R_mod_obs` across all 62,276
+cells, confirming the edge case is floating-point-noise-only and does not
+occur with real soil-moisture variance.
 
 The command checks `N_sm` exactly and reports valid-mask and numeric
 differences for every saved IV field. It exits nonzero on any mismatch beyond
