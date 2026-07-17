@@ -154,6 +154,32 @@ def test_read_ascat_h119_h120_sparse_uses_matlab_qc_and_linear_interpolation(tmp
     assert obs.qc_summary["n_points"] == 3
 
 
+def test_read_ascat_h119_h120_sparse_default_leaves_gaps_outside_hull_as_nan(tmp_path):
+    mat_path = tmp_path / "ASCAT_HSAF_H119_SM_20200102_AD.mat"
+    aux_path = tmp_path / "TUW_WARP5_grid_info_2_2.nc"
+    tilecoord_path = tmp_path / "test.ldas_tilecoord.bin"
+
+    gpi_i = np.array([480, 481, 480, 481], dtype=np.int64)
+    gpi_j = np.array([200, 200, 201, 201], dtype=np.int64)
+    gpi_lon, gpi_lat = _ease2_m36_lon_lat_for_ij(gpi_i, gpi_j)
+
+    # One target tile sits far outside the GPI convex hull.
+    target_i = np.array([480, 481, 480, 481, 700], dtype=np.int64)
+    target_j = np.array([200, 200, 201, 201, 350], dtype=np.int64)
+
+    _write_tilecoord_cells(tilecoord_path, target_i, target_j)
+    _write_ascat_aux(aux_path, gpi_lon, gpi_lat)
+    _write_ascat_h119_h120_mat(mat_path, sm=[10.0, 20.0, 30.0, 40.0], conf=[0, 0, 0, 0])
+
+    obs = read_ascat_h119_h120_sparse(mat_path, aux_path, tilecoord_path)
+
+    assert obs.qc_summary["n_targets"] == 5
+    assert obs.qc_summary["fill_nearest"] == 0
+    far_idx = 700 + 350 * 964
+    assert far_idx not in obs.idx.tolist()
+    assert obs.qc_summary["n_points"] < obs.qc_summary["n_targets"]
+
+
 def test_read_ascat_h119_h120_model_pair_matches_representative_model_tiles(tmp_path):
     mat_path = tmp_path / "ASCAT_HSAF_H119_SM_20200102_AD.mat"
     aux_path = tmp_path / "TUW_WARP5_grid_info_2_2.nc"

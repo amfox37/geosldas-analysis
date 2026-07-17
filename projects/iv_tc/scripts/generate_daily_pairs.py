@@ -45,7 +45,7 @@ def main(argv: list[str] | None = None) -> None:
         skip_existing=not args.overwrite,
         model_variable=args.model_variable,
         h119_h120_method=args.h119_h120_method,
-        h119_h120_fill_nearest=not args.h119_h120_no_nearest_fill,
+        h119_h120_fill_nearest=args.h119_h120_fill_nearest,
     )
 
     counts = Counter(result.status for result in results)
@@ -95,9 +95,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="SciPy griddata method for ASCAT H119/H120.",
     )
     parser.add_argument(
-        "--h119-h120-no-nearest-fill",
+        "--h119-h120-fill-nearest",
         action="store_true",
-        help="Disable nearest-neighbor fill after linear H119/H120 interpolation.",
+        help=(
+            "Fill gaps outside the interpolation convex hull with nearest-neighbor "
+            "values. Off by default to match the legacy MATLAB griddata(...,'natural') "
+            "behavior, which leaves those cells as NaN rather than extrapolating."
+        ),
     )
     parser.add_argument(
         "--ascat-h121-root",

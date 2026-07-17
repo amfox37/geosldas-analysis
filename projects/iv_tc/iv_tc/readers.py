@@ -219,7 +219,7 @@ def read_ascat_h119_h120_sparse(
     auxiliary_path: Path | str,
     tilecoord_path: Path | str,
     method: str = "linear",
-    fill_nearest: bool = True,
+    fill_nearest: bool = False,
     nx: int = M36_NX,
 ) -> SparseObservation:
     """Read one processed ASCAT H119/H120 daily .mat file as sparse M36 obs."""
@@ -490,7 +490,7 @@ def read_ascat_h119_h120_model_pair(
     tilecoord_path: Path | str,
     run: str,
     method: str = "linear",
-    fill_nearest: bool = True,
+    fill_nearest: bool = False,
     model_variable: str = "SFMC",
     nx: int = M36_NX,
 ) -> DailyPair:

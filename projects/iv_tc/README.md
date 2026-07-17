@@ -36,9 +36,14 @@ and, once checked, copy a few representative files into `test_data/inputs/`.
   distinct from the new H121/H139 NetCDF swaths.
 - H119/H120 `.mat` files are read with the same core QC as the MATLAB step2
   scripts (`sm_tile <= 100`, `conf_flag_tile == 0`) and interpolated onto M36
-  model-land cells. SciPy `linear` interpolation with optional nearest-neighbor
-  fill is used as the local Python approximation to MATLAB `griddata(...,
-  'natural')`.
+  model-land cells. SciPy `linear` interpolation is used as the local Python
+  approximation to MATLAB `griddata(..., 'natural')`. `fill_nearest` defaults
+  to `False`: cells outside the interpolation convex hull stay `NaN`, matching
+  the MATLAB scripts (`Save_ASCAT_LDAS_tavg24_nc4_daily.m`,
+  `Save_ASCAT_LDAS_gph_daily.m`, `Save_ASCAT_SMAPL3_LDAS_daily.m`), which never
+  fill those gaps — they only ever *mask further* (intersecting with the model
+  land-tile mask and, for the three-way TC script, other products' coverage
+  too). Pass `--h119-h120-fill-nearest` to opt into the extrapolated behavior.
 - The H119/H120 reader also needs
   `ASCAT_HSAF/Auxiliary/TUW_WARP5_grid_info_2_2.nc`, which supplies the land
   GPI lat/lon lookup used by the MATLAB scripts.
