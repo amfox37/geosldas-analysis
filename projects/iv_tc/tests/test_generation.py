@@ -128,10 +128,11 @@ def test_generate_daily_pairs_uses_h121_manifest_not_creation_date_glob(tmp_path
     manifest.write_text(f"{target_name}\n")
 
     raw_dir = h121_root / "H121" / "metop_a" / "Y2020" / "M01"
-    lon, lat = _ease2_m36_lon_lat_for_ij(np.array([2, 3], dtype=np.int64), np.array([0, 0], dtype=np.int64))
+    # Tilecoord fixture tiles all sit at j_indg=1 (see _write_tilecoord below).
+    lon, lat = _ease2_m36_lon_lat_for_ij(np.array([2, 3], dtype=np.int64), np.array([1, 1], dtype=np.int64))
     _write_h121_file(raw_dir / target_name, lon=lon, lat=lat, ssm=[22.0, 33.0], day=day)
 
-    other_lon, other_lat = _ease2_m36_lon_lat_for_ij(np.array([4], dtype=np.int64), np.array([0], dtype=np.int64))
+    other_lon, other_lat = _ease2_m36_lon_lat_for_ij(np.array([4], dtype=np.int64), np.array([1], dtype=np.int64))
     _write_h121_file(raw_dir / unlisted_name, lon=other_lon, lat=other_lat, ssm=[99.0], day=day)
 
     results = generate_daily_pairs(

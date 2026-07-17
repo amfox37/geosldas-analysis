@@ -86,8 +86,24 @@ def read_smosic_sparse(path: Path | str) -> SparseObservation:
     )
 
 
-def read_smap_l3_sparse(path: Path | str, qc: bool = True, nx: int = M36_NX) -> SparseObservation:
-    """Read one SMAP L3 SPL3SMP v009/R19240 file as sparse M36 observations."""
+def read_smap_l3_sparse(
+    path: Path | str,
+    qc: bool = True,
+    nx: int = M36_NX,
+    enforce_valid_range: bool = False,
+) -> SparseObservation:
+    """Read one SMAP L3 SPL3SMP v009/R19240 file as sparse M36 observations.
+
+    ``enforce_valid_range`` defaults to ``False`` so soil_moisture's
+    ``valid_min``/``valid_max`` CF attributes are ignored, matching the legacy
+    MATLAB reader (``h5read`` performs no attribute-based masking; it only
+    ever clips ``sm < 0``). netCDF4-python's default ``set_auto_mask(True)``
+    behavior masks values outside those attributes, which silently drops
+    physically valid retrievals above ``valid_max`` (observed: ~1.7% of
+    points on a spot-checked day, biased toward wetter soil). Pass
+    ``enforce_valid_range=True`` to opt back into that stricter, non-MATLAB
+    masking.
+    """
 
     path = Path(path)
     Dataset = _dataset_cls()
@@ -97,9 +113,12 @@ def read_smap_l3_sparse(path: Path | str, qc: bool = True, nx: int = M36_NX) -> 
     qc_summary: dict[str, int | float | str] = {
         "qc": int(qc),
         "qc_source": "Save_SMPL3_LDAS_tavg24_nc4_daily.m",
+        "enforce_valid_range": int(enforce_valid_range),
     }
 
     with Dataset(path, "r") as ds:
+        if not enforce_valid_range:
+            ds.set_auto_mask(False)
         for orbit, retrieval_suffix, ancillary_suffix in SMAP_L3_ORBITS:
             group_name = f"Soil_Moisture_Retrieval_Data_{orbit}"
             if group_name not in ds.groups:
@@ -526,10 +545,11 @@ def read_smap_l3_model_pair(
     model_variable: str = "SFMC",
     qc: bool = True,
     nx: int = M36_NX,
+    enforce_valid_range: bool = False,
 ) -> DailyPair:
     """Read SMAP L3 and GEOSldas files and return their matched daily pair."""
 
-    obs = read_smap_l3_sparse(smap_path, qc=qc, nx=nx)
+    obs = read_smap_l3_sparse(smap_path, qc=qc, nx=nx, enforce_valid_range=enforce_valid_range)
     return pair_sparse_observation_with_model(
         observation=obs,
         model_path=model_path,
@@ -710,6 +730,19 @@ def _interpolate_to_targets(
     method: str,
     fill_nearest: bool,
 ) -> np.ndarray:
+    """Triangulate on all coordinate-finite GPIs, QC-failed (NaN) ones included.
+
+    MATLAB's ``griddata`` builds its Delaunay mesh from every ``(lon, lat)``
+    pair regardless of whether its ``z`` value is NaN; a query point falling
+    in a triangle with a NaN vertex comes out NaN. Filtering QC-failed points
+    out *before* triangulation (as this used to do) instead builds a sparser,
+    all-valid mesh with no such "poisoned" triangles, which silently more
+    than doubled the point count for a spot-checked ASCAT H119/H120 day
+    relative to a live MATLAB run. Coordinates must still be finite to enter
+    the triangulation at all -- only the QC/NaN-ness of the *value* now
+    matches MATLAB's mesh-then-mask-via-NaN behavior instead of pre-masking.
+    """
+
     try:
         from scipy.interpolate import griddata
     except ImportError as exc:
@@ -717,19 +750,23 @@ def _interpolate_to_targets(
 
     method = method.lower()
     min_points = 3 if method in {"linear", "cubic"} else 1
-    finite = np.isfinite(values) & np.isfinite(lon_gpi) & np.isfinite(lat_gpi)
-    if int(np.count_nonzero(finite)) < min_points:
+    coord_finite = np.isfinite(lon_gpi) & np.isfinite(lat_gpi)
+    value_finite = coord_finite & np.isfinite(values)
+    if int(np.count_nonzero(value_finite)) < min_points:
         return np.full(target_lon.shape, np.nan, dtype=np.float64)
 
-    points = np.column_stack((lon_gpi[finite], lat_gpi[finite]))
+    points = np.column_stack((lon_gpi[coord_finite], lat_gpi[coord_finite]))
     out = np.asarray(
-        griddata(points, values[finite], (target_lon, target_lat), method=method),
+        griddata(points, values[coord_finite], (target_lon, target_lat), method=method),
         dtype=np.float64,
     )
     if method == "linear" and fill_nearest:
         missing = ~np.isfinite(out)
         if np.any(missing):
-            out[missing] = griddata(points, values[finite], (target_lon[missing], target_lat[missing]), method="nearest")
+            valid_points = np.column_stack((lon_gpi[value_finite], lat_gpi[value_finite]))
+            out[missing] = griddata(
+                valid_points, values[value_finite], (target_lon[missing], target_lat[missing]), method="nearest"
+            )
     return out
 
 

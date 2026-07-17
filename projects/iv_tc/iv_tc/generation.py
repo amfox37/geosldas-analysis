@@ -264,6 +264,7 @@ def read_daily_pair(
     model_variable: str = "SFMC",
     h119_h120_method: str = "linear",
     h119_h120_fill_nearest: bool = False,
+    smap_l3_enforce_valid_range: bool = False,
     nx: int = M36_NX,
 ) -> DailyPair:
     """Read one daily obs/model pair after resolving product paths."""
@@ -288,6 +289,7 @@ def read_daily_pair(
             paths.tilecoord_path,
             run=run.name,
             model_variable=model_variable,
+            enforce_valid_range=smap_l3_enforce_valid_range,
             nx=nx,
         )
 
@@ -340,6 +342,7 @@ def write_daily_pair(
     model_variable: str = "SFMC",
     h119_h120_method: str = "linear",
     h119_h120_fill_nearest: bool = False,
+    smap_l3_enforce_valid_range: bool = False,
     nx: int = M36_NX,
 ) -> PairGenerationResult:
     """Generate one daily pair file, returning a status record."""
@@ -358,6 +361,7 @@ def write_daily_pair(
             model_variable=model_variable,
             h119_h120_method=h119_h120_method,
             h119_h120_fill_nearest=h119_h120_fill_nearest,
+            smap_l3_enforce_valid_range=smap_l3_enforce_valid_range,
             nx=nx,
         )
     except FileNotFoundError as exc:
@@ -382,6 +386,7 @@ def generate_daily_pairs(
     model_variable: str = "SFMC",
     h119_h120_method: str = "linear",
     h119_h120_fill_nearest: bool = False,
+    smap_l3_enforce_valid_range: bool = False,
     nx: int = M36_NX,
 ) -> list[PairGenerationResult]:
     """Loop over dates, sensors, and runs and write daily pair npz files."""
@@ -402,6 +407,7 @@ def generate_daily_pairs(
                         model_variable=model_variable,
                         h119_h120_method=h119_h120_method,
                         h119_h120_fill_nearest=h119_h120_fill_nearest,
+                        smap_l3_enforce_valid_range=smap_l3_enforce_valid_range,
                         nx=nx,
                     )
                 )

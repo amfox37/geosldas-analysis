@@ -47,6 +47,7 @@ def main(argv: list[str] | None = None) -> None:
         model_variable=args.model_variable,
         h119_h120_method=args.h119_h120_method,
         h119_h120_fill_nearest=args.h119_h120_fill_nearest,
+        smap_l3_enforce_valid_range=args.smap_l3_enforce_valid_range,
     )
 
     counts = Counter(result.status for result in results)
@@ -102,6 +103,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "Fill gaps outside the interpolation convex hull with nearest-neighbor "
             "values. Off by default to match the legacy MATLAB griddata(...,'natural') "
             "behavior, which leaves those cells as NaN rather than extrapolating."
+        ),
+    )
+    parser.add_argument(
+        "--smap-l3-enforce-valid-range",
+        action="store_true",
+        help=(
+            "Mask SMAP L3 soil_moisture using its valid_min/valid_max CF "
+            "attributes (netCDF4's default auto-mask behavior). Off by "
+            "default to match the legacy MATLAB h5read-based reader, which "
+            "applies no such masking and only clips sm < 0 -- enforcing the "
+            "valid range drops ~1.7%% of points (spot-checked), biased "
+            "toward wetter soil above valid_max."
         ),
     )
     parser.add_argument(

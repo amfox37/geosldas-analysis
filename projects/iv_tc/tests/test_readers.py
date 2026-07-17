@@ -110,6 +110,24 @@ def test_read_smap_l3_sparse_matches_matlab_qc_and_am_pm_mean(tmp_path):
     assert obs.qc_summary["n_points"] == 2
 
 
+def test_read_smap_l3_sparse_default_ignores_valid_range_like_matlab_h5read(tmp_path):
+    path = tmp_path / "SMAP_L3_SM_P_20200102_R19240_001.h5"
+    _write_smap_l3_with_valid_range(path, out_of_range_value=0.55)
+
+    default_obs = read_smap_l3_sparse(path, nx=2)
+    strict_obs = read_smap_l3_sparse(path, nx=2, enforce_valid_range=True)
+
+    # MATLAB's h5read does no valid_min/valid_max masking, only sm < 0; a
+    # retrieval above valid_max is real data and must survive by default.
+    assert default_obs.qc_summary["enforce_valid_range"] == 0
+    np.testing.assert_array_equal(default_obs.idx, np.array([0]))
+    np.testing.assert_allclose(default_obs.values, np.array([0.55]), rtol=1e-6)
+
+    # Opting in to netCDF4's default auto-mask behavior drops that same point.
+    assert strict_obs.qc_summary["enforce_valid_range"] == 1
+    np.testing.assert_array_equal(strict_obs.idx, np.array([]))
+
+
 def test_read_smap_l3_model_pair_matches_representative_model_tiles(tmp_path):
     smap_path = tmp_path / "SMAP_L3_SM_P_20200102_R19240_001.h5"
     tilecoord_path = tmp_path / "test.ldas_tilecoord.bin"
@@ -138,27 +156,52 @@ def test_read_cygnss_l3_sparse_uses_daily_field_qc_and_spatial_orientation(tmp_p
         "l3.grid-soil-moisture-36km.a32.d33.nc"
     )
     tilecoord_path = tmp_path / "test.ldas_tilecoord.bin"
-    target_i = np.array([480, 481, 480, 481], dtype=np.int64)
-    target_j = np.array([200, 200, 201, 201], dtype=np.int64)
-    lon, lat = _ease2_m36_lon_lat_for_ij(target_i, target_j)
+
+    # Wider-spaced source quad (row-major (i0,j0),(i1,j0),(i0,j1),(i1,j1), same
+    # convention as the narrow original) so an interior, non-vertex-coincident
+    # target query is possible -- querying exactly at mesh vertices is a scipy
+    # Delaunay degenerate case that can spuriously NaN the whole mesh once one
+    # vertex is itself NaN (see the ASCAT H119/H120 tests above).
+    gpi_i = np.array([480, 490, 480, 490], dtype=np.int64)
+    gpi_j = np.array([200, 200, 210, 210], dtype=np.int64)
+    gpi_lon, gpi_lat = _ease2_m36_lon_lat_for_ij(gpi_i, gpi_j)
+
+    target_i = np.array([483], dtype=np.int64)
+    target_j = np.array([203], dtype=np.int64)
 
     _write_tilecoord_cells(tilecoord_path, target_i, target_j)
-    _write_cygnss_l3(cygnss_path, lon, lat)
+    _write_cygnss_l3(cygnss_path, gpi_lon, gpi_lat)
 
     obs = read_cygnss_l3_sparse(cygnss_path, tilecoord_path)
 
     assert obs.date == date(2020, 1, 2)
     assert obs.sensor == "CYGNSS L3"
     assert obs.units == "m3 m-3"
-    np.testing.assert_array_equal(obs.idx, np.array([193280, 194244, 193281]))
-    # SM_subdaily is intentionally 0.9 everywhere in this fixture. These are
-    # SM_daily values after the daily sigma mask and x/y reorientation.
-    np.testing.assert_allclose(obs.values, np.array([0.10, 0.30, 0.20]), rtol=1e-6)
     assert obs.qc_summary["raw_finite"] == 4
     assert obs.qc_summary["kept"] == 3
     assert obs.qc_summary["source_variable"] == "SM_daily"
     assert obs.qc_summary["sigma_variable"] == "SIGMA_daily"
     assert obs.qc_summary["fill_nearest"] == 0
+
+    from scipy.interpolate import griddata
+
+    # SM_subdaily is intentionally 0.9 everywhere in this fixture. These are
+    # the SM_daily values after the daily sigma mask and x/y reorientation
+    # (the (max i, max j) corner has an invalid SIGMA_daily and is masked).
+    target_lon, target_lat = _ease2_m36_lon_lat_for_ij(target_i, target_j)
+    expected = griddata(
+        np.column_stack((gpi_lon, gpi_lat)),
+        np.array([0.10, 0.20, 0.30, np.nan]),
+        (target_lon[:1], target_lat[:1]),
+        method="linear",
+    )[0]
+
+    if np.isfinite(expected):
+        expected_idx = int(target_j[0] * 964 + target_i[0])
+        np.testing.assert_array_equal(obs.idx, np.array([expected_idx]))
+        np.testing.assert_allclose(obs.values, np.array([expected]), rtol=1e-6)
+    else:
+        assert obs.idx.size == 0
 
 
 def test_read_cygnss_l3_model_pair_matches_representative_model_tiles(tmp_path):
@@ -169,22 +212,42 @@ def test_read_cygnss_l3_model_pair_matches_representative_model_tiles(tmp_path):
     )
     tilecoord_path = tmp_path / "test.ldas_tilecoord.bin"
     model_path = tmp_path / "model.nc4"
-    target_i = np.array([480, 481, 480, 481], dtype=np.int64)
-    target_j = np.array([200, 200, 201, 201], dtype=np.int64)
-    lon, lat = _ease2_m36_lon_lat_for_ij(target_i, target_j)
+
+    # Same wider-spaced source quad as the sparse-reader test above.
+    gpi_i = np.array([480, 490, 480, 490], dtype=np.int64)
+    gpi_j = np.array([200, 200, 210, 210], dtype=np.int64)
+    gpi_lon, gpi_lat = _ease2_m36_lon_lat_for_ij(gpi_i, gpi_j)
+
+    target_i = np.array([483], dtype=np.int64)
+    target_j = np.array([203], dtype=np.int64)
 
     _write_tilecoord_cells(tilecoord_path, target_i, target_j)
-    _write_cygnss_l3(cygnss_path, lon, lat)
-    _write_model(model_path, values=[0.11, 0.22, 0.33, 0.44])
+    _write_cygnss_l3(cygnss_path, gpi_lon, gpi_lat)
+    _write_model(model_path, values=[0.11])
 
     pair = read_cygnss_l3_model_pair(cygnss_path, model_path, tilecoord_path, run="OL")
 
     assert pair.date == date(2020, 1, 2)
     assert pair.sensor == "CYGNSS L3"
     assert pair.run == "OL"
-    np.testing.assert_array_equal(pair.idx, np.array([193280, 194244, 193281]))
-    np.testing.assert_allclose(pair.obs, np.array([0.10, 0.30, 0.20]), rtol=1e-6)
-    np.testing.assert_allclose(pair.model, np.array([0.11, 0.33, 0.22]), rtol=1e-6)
+
+    from scipy.interpolate import griddata
+
+    target_lon, target_lat = _ease2_m36_lon_lat_for_ij(target_i, target_j)
+    expected = griddata(
+        np.column_stack((gpi_lon, gpi_lat)),
+        np.array([0.10, 0.20, 0.30, np.nan]),
+        (target_lon[:1], target_lat[:1]),
+        method="linear",
+    )[0]
+
+    if np.isfinite(expected):
+        expected_idx = int(target_j[0] * 964 + target_i[0])
+        np.testing.assert_array_equal(pair.idx, np.array([expected_idx]))
+        np.testing.assert_allclose(pair.obs, np.array([expected]), rtol=1e-6)
+        np.testing.assert_allclose(pair.model, np.array([0.11]), rtol=1e-6)
+    else:
+        assert pair.idx.size == 0
 
 
 def test_copied_discover_sample_pairs_cygnss_l3_with_ol_model():
@@ -238,25 +301,57 @@ def test_read_ascat_h119_h120_sparse_uses_matlab_qc_and_linear_interpolation(tmp
     mat_path = tmp_path / "ASCAT_HSAF_H119_SM_20200102_AD.mat"
     aux_path = tmp_path / "TUW_WARP5_grid_info_2_2.nc"
     tilecoord_path = tmp_path / "test.ldas_tilecoord.bin"
-    target_i = np.array([480, 481, 480, 481], dtype=np.int64)
-    target_j = np.array([200, 200, 201, 201], dtype=np.int64)
-    lon, lat = _ease2_m36_lon_lat_for_ij(target_i, target_j)
+
+    # Two well-separated GPI triangles so the QC-failed vertex in the second
+    # triangle cannot poison interpolation results in the first: MATLAB's
+    # griddata triangulates all coordinate-finite source points regardless of
+    # QC, so a NaN vertex only NaNs out query points inside *its own*
+    # enclosing triangle(s), not the whole mesh.
+    gpi_i = np.array([100, 110, 100, 500, 510, 500], dtype=np.int64)
+    gpi_j = np.array([100, 100, 110, 300, 300, 310], dtype=np.int64)
+    gpi_lon, gpi_lat = _ease2_m36_lon_lat_for_ij(gpi_i, gpi_j)
+
+    # One target strictly inside each triangle, not coincident with any GPI vertex.
+    target_i = np.array([103, 503], dtype=np.int64)
+    target_j = np.array([103, 303], dtype=np.int64)
 
     _write_tilecoord_cells(tilecoord_path, target_i, target_j)
-    _write_ascat_aux(aux_path, lon, lat)
-    _write_ascat_h119_h120_mat(mat_path, sm=[10.0, 20.0, 30.0, 40.0], conf=[0, 0, 0, 1])
+    _write_ascat_aux(aux_path, gpi_lon, gpi_lat)
+    _write_ascat_h119_h120_mat(
+        mat_path,
+        sm=[10.0, 20.0, 30.0, 40.0, 50.0, 60.0],
+        conf=[0, 0, 0, 0, 0, 1],
+    )
 
     obs = read_ascat_h119_h120_sparse(mat_path, aux_path, tilecoord_path, fill_nearest=False)
 
     assert obs.date == date(2020, 1, 2)
     assert obs.sensor == "ASCAT H119/H120"
     assert obs.units == "percent saturation"
-    np.testing.assert_array_equal(obs.idx, np.array([193280, 194244, 193281]))
-    np.testing.assert_allclose(obs.values, np.array([10.0, 30.0, 20.0]), rtol=1e-6)
-    assert obs.qc_summary["raw_finite"] == 4
-    assert obs.qc_summary["kept"] == 3
-    assert obs.qc_summary["n_targets"] == 4
-    assert obs.qc_summary["n_points"] == 3
+    assert obs.qc_summary["raw_finite"] == 6
+    assert obs.qc_summary["kept"] == 5
+    assert obs.qc_summary["n_targets"] == 2
+    assert obs.qc_summary["n_points"] == 1
+
+    from scipy.interpolate import griddata
+
+    target_lon, target_lat = _ease2_m36_lon_lat_for_ij(target_i, target_j)
+    expected_value = griddata(
+        np.column_stack((gpi_lon, gpi_lat)),
+        np.array([10.0, 20.0, 30.0, 40.0, 50.0, np.nan]),
+        (target_lon[:1], target_lat[:1]),
+        method="linear",
+    )[0]
+    expected_idx = int(target_j[0] * 964 + target_i[0])
+
+    np.testing.assert_array_equal(obs.idx, np.array([expected_idx]))
+    np.testing.assert_allclose(obs.values, np.array([expected_value]), rtol=1e-6)
+
+    # The second target sits inside the triangle whose third vertex failed
+    # QC (conf_flag_tile == 1); that NaN vertex must NaN out the whole
+    # enclosing triangle, matching MATLAB's griddata -- not just the vertex.
+    far_idx = int(target_j[1] * 964 + target_i[1])
+    assert far_idx not in obs.idx.tolist()
 
 
 def test_read_ascat_h119_h120_sparse_default_leaves_gaps_outside_hull_as_nan(tmp_path):
@@ -290,14 +385,23 @@ def test_read_ascat_h119_h120_model_pair_matches_representative_model_tiles(tmp_
     aux_path = tmp_path / "TUW_WARP5_grid_info_2_2.nc"
     tilecoord_path = tmp_path / "test.ldas_tilecoord.bin"
     model_path = tmp_path / "model.nc4"
-    target_i = np.array([480, 481, 480, 481], dtype=np.int64)
-    target_j = np.array([200, 200, 201, 201], dtype=np.int64)
-    lon, lat = _ease2_m36_lon_lat_for_ij(target_i, target_j)
+
+    # Same two well-separated GPI triangles as the sparse-reader test above.
+    gpi_i = np.array([100, 110, 100, 500, 510, 500], dtype=np.int64)
+    gpi_j = np.array([100, 100, 110, 300, 300, 310], dtype=np.int64)
+    gpi_lon, gpi_lat = _ease2_m36_lon_lat_for_ij(gpi_i, gpi_j)
+
+    target_i = np.array([103, 503], dtype=np.int64)
+    target_j = np.array([103, 303], dtype=np.int64)
 
     _write_tilecoord_cells(tilecoord_path, target_i, target_j)
-    _write_ascat_aux(aux_path, lon, lat)
-    _write_ascat_h119_h120_mat(mat_path, sm=[10.0, 20.0, 30.0, 40.0], conf=[0, 0, 0, 1])
-    _write_model(model_path, values=[0.11, 0.22, 0.33, 0.44])
+    _write_ascat_aux(aux_path, gpi_lon, gpi_lat)
+    _write_ascat_h119_h120_mat(
+        mat_path,
+        sm=[10.0, 20.0, 30.0, 40.0, 50.0, 60.0],
+        conf=[0, 0, 0, 0, 0, 1],
+    )
+    _write_model(model_path, values=[0.11, 0.22])
 
     pair = read_ascat_h119_h120_model_pair(
         mat_path,
@@ -308,14 +412,25 @@ def test_read_ascat_h119_h120_model_pair_matches_representative_model_tiles(tmp_
         fill_nearest=False,
     )
 
+    from scipy.interpolate import griddata
+
+    target_lon, target_lat = _ease2_m36_lon_lat_for_ij(target_i, target_j)
+    expected_value = griddata(
+        np.column_stack((gpi_lon, gpi_lat)),
+        np.array([10.0, 20.0, 30.0, 40.0, 50.0, np.nan]),
+        (target_lon[:1], target_lat[:1]),
+        method="linear",
+    )[0]
+    expected_idx = int(target_j[0] * 964 + target_i[0])
+
     assert pair.date == date(2020, 1, 2)
     assert pair.sensor == "ASCAT H119/H120"
     assert pair.run == "OL"
     assert pair.obs_units == "percent saturation"
     assert pair.model_units == "m3 m-3"
-    np.testing.assert_array_equal(pair.idx, np.array([193280, 194244, 193281]))
-    np.testing.assert_allclose(pair.obs, np.array([10.0, 30.0, 20.0]), rtol=1e-6)
-    np.testing.assert_allclose(pair.model, np.array([0.11, 0.33, 0.22]), rtol=1e-6)
+    np.testing.assert_array_equal(pair.idx, np.array([expected_idx]))
+    np.testing.assert_allclose(pair.obs, np.array([expected_value]), rtol=1e-6)
+    np.testing.assert_allclose(pair.model, np.array([0.11]), rtol=1e-6)
 
 
 def test_copied_discover_sample_pairs_smosic_with_ol_model():
@@ -566,9 +681,50 @@ def _write_smap_l3(path):
         )
 
 
-def _write_smap_group(group, sm_name, qf_name, suffix, sm, qf, surface_status, surface_flag):
+def _write_smap_l3_with_valid_range(path, out_of_range_value):
+    """A minimal 1x1 AM/PM file whose only point exceeds soil_moisture's valid_max."""
+
+    with netCDF4.Dataset(path, "w") as ds:
+        ds.createDimension("y", 1)
+        ds.createDimension("x", 1)
+
+        for group_name, sm_name, qf_name, suffix in (
+            ("Soil_Moisture_Retrieval_Data_AM", "soil_moisture", "retrieval_qual_flag", ""),
+            ("Soil_Moisture_Retrieval_Data_PM", "soil_moisture_dca_pm", "retrieval_qual_flag_dca_pm", "_pm"),
+        ):
+            group = ds.createGroup(group_name)
+            _write_smap_group(
+                group,
+                sm_name=sm_name,
+                qf_name=qf_name,
+                suffix=suffix,
+                sm=[[out_of_range_value]],
+                qf=[[0]],
+                surface_status=np.zeros((1, 1), dtype=np.uint16),
+                surface_flag=np.zeros((1, 1), dtype=np.uint16),
+                valid_min=0.02,
+                valid_max=0.5,
+            )
+
+
+def _write_smap_group(
+    group,
+    sm_name,
+    qf_name,
+    suffix,
+    sm,
+    qf,
+    surface_status,
+    surface_flag,
+    valid_min=None,
+    valid_max=None,
+):
     sm_var = group.createVariable(sm_name, "f4", ("y", "x"), fill_value=-9999.0)
     sm_var.units = "cm**3/cm**3"
+    if valid_min is not None:
+        sm_var.valid_min = np.float32(valid_min)
+    if valid_max is not None:
+        sm_var.valid_max = np.float32(valid_max)
     sm_var[:] = np.asarray(sm, dtype=np.float32)
 
     qf_var = group.createVariable(qf_name, "u2", ("y", "x"), fill_value=np.uint16(65534))
@@ -582,8 +738,8 @@ def _write_smap_group(group, sm_name, qf_name, suffix, sm, qf, surface_status, s
 
     rfi_h_var = group.createVariable(f"tb_qual_flag_h{suffix}", "u2", ("y", "x"), fill_value=np.uint16(65534))
     rfi_v_var = group.createVariable(f"tb_qual_flag_v{suffix}", "u2", ("y", "x"), fill_value=np.uint16(65534))
-    rfi_h_var[:] = np.zeros((2, 5), dtype=np.uint16)
-    rfi_v_var[:] = np.zeros((2, 5), dtype=np.uint16)
+    rfi_h_var[:] = np.zeros(np.asarray(surface_flag).shape, dtype=np.uint16)
+    rfi_v_var[:] = np.zeros(np.asarray(surface_flag).shape, dtype=np.uint16)
 
 
 def _write_cygnss_l3(path, lon, lat):

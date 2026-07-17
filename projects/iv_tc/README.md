@@ -25,7 +25,13 @@ and, once checked, copy a few representative files into `test_data/inputs/`.
   (`idx_EASEv2_lonxlat`, `sm_obs`).
 - SMAP L3 uses the existing MATLAB-parity SPL3SMP v009/R19240 QC from
   `Save_SMPL3_LDAS_tavg24_nc4_daily.m`: AM/PM are QC'd separately and averaged
-  onto the M36 sparse index.
+  onto the M36 sparse index. `soil_moisture`'s `valid_min`/`valid_max` CF
+  attributes are deliberately **not** enforced by default, matching
+  `h5read`'s lack of attribute-based masking (it only clips `sm < 0`); pass
+  `--smap-l3-enforce-valid-range` to opt into netCDF4's stricter default
+  auto-mask behavior instead. Verified byte-for-byte against a live run of
+  the MATLAB script for 2018-10-15/`OL` after this fix (53,586/53,586 points,
+  identical `idx`/`obs`/`mod`).
 - CYGNSS L3 reads the product-supplied daily `SM_daily` field (not a local
   average of `SM_subdaily`), applies the field's valid range and optional
   finite `SIGMA_daily` mask, then uses the MATLAB step2 spatial mapping onto
@@ -54,6 +60,17 @@ and, once checked, copy a few representative files into `test_data/inputs/`.
 - The H119/H120 reader also needs
   `ASCAT_HSAF/Auxiliary/TUW_WARP5_grid_info_2_2.nc`, which supplies the land
   GPI lat/lon lookup used by the MATLAB scripts.
+- The shared interpolation helper (used by both H119/H120 and CYGNSS L3)
+  triangulates on **every** coordinate-finite GPI, QC-failed ones included,
+  matching MATLAB's `griddata`: its Delaunay mesh is built from all `(lon,
+  lat)` pairs regardless of `z`, so a query point inside a triangle with a
+  NaN vertex comes out NaN too. An earlier version filtered QC-failed points
+  out *before* triangulation, which builds a sparser, all-valid mesh with no
+  such NaN-poisoned triangles -- for a spot-checked H119/H120 day this more
+  than doubled the point count (108,634 vs MATLAB's 48,486) by manufacturing
+  coverage MATLAB's own mesh never had. Verified against a live run of
+  `Save_ASCAT_LDAS_tavg24_nc4_daily.m` for 2018-10-15/`OL` after the fix:
+  identical `idx`/`obs`/`mod` (max abs diff 0.0).
 
 ## Fixture Dry Run
 
