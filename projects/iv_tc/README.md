@@ -158,6 +158,19 @@ the archived `SMOSIC_OLv8_M36_cd_clim_pentad_201808_202405_w31.mat`. `N_sm_clim`
 matched with 0/4,580,500 mismatches; `mod_sm_clim`/`obs_sm_clim` matched with
 max abs diff 0.0 across 4,409,554 valid cell-pentads.
 
+**Also verified against `Compute_clim_ASCL4.m`** (ASCAT HSAF H119, same
+2018-08-01..2024-06-29 span): 0/3,598,733 `N_sm_clim` mismatches, 0 mask
+mismatches on 3,552,521 valid cell-pentads, max abs diff ~7.6e-6 (this run
+used MATLAB's real step-2 `ASCL4_H119_SMSF_L4_*_QC_1_*.mat` files converted
+directly to the `idx0`/`sm_obs`/`sm_mod` npz schema -- `idx_EASEv2_lonxlat`
+is MATLAB's 1-based index, so subtract 1). **Do not** use the archived
+`python_output/step2_pairs.tar.gz` `ascat/` pairs for this: that's a
+separate, older Python port that over-covers relative to MATLAB by ~50%
+(70,633 vs 46,688 cells on a spot-checked day) -- almost certainly the same
+griddata/QC-filtering-before-triangulation bug already found and fixed in
+this package's own reader (see the H119/H120 triangulation note above), but
+in different, unfixed code. It is not a valid MATLAB-parity reference.
+
 ```bash
 python projects/iv_tc/scripts/compare_climatology_matlab.py \
   --python /path/to/step3_climatology/smosic/OL/20180801_20240629_w31.npz \
@@ -230,6 +243,13 @@ place) never actually diverges on real data: recomputing with an
 `isnan`-only fill produced byte-identical `R_mod_obs` across all 62,276
 cells, confirming the edge case is floating-point-noise-only and does not
 occur with real soil-moisture variance.
+
+**Also verified against `Compute_IVd_IVs_ASCL4.m`**, using the same
+MATLAB-native step-2 conversion described above: `N_sm` and every field's
+valid/undefined mask matched exactly (0 mismatches, 42,116-50,925 cells per
+field), numeric agreement ~1e-7 mean / ~1e-6 max absolute difference --
+tighter than the `smosic` run since this path has only one float64-to-
+float32 cast (MATLAB double straight to npz) instead of two.
 
 The command checks `N_sm` exactly and reports valid-mask and numeric
 differences for every saved IV field. It exits nonzero on any mismatch beyond
