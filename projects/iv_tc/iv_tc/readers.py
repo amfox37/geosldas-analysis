@@ -19,6 +19,9 @@ from .pairs import DailyPair, SparseObservation
 M36_NX = 964
 SMOSIC_DATE_RE = re.compile(r"smos_ic_sm_m36_(\d{8})\.nc$")
 SMAPL3_DATE_RE = re.compile(r"SMAP_L3_SM_P_(\d{8})_R\d+_.*\.h5$")
+CYGNSS_L3_DATE_RE = re.compile(
+    r"cyg\.ddmi\.s(\d{8})-\d{6}-e\d{8}-\d{6}\.l3\.grid-soil-moisture-36km\.a32\.d33\.nc$"
+)
 ASCAT_H119_H120_DATE_RE = re.compile(r"ASCAT_HSAF_H119_SM_(\d{8})_AD\.mat$")
 H121_TIMESTAMP_RE = re.compile(r"(?<!\d)(\d{14})(?!\d)")
 SMAP_L3_ORBITS = (
@@ -160,6 +163,89 @@ def read_smap_l3_sparse(path: Path | str, qc: bool = True, nx: int = M36_NX) -> 
         values=values,
         units=units,
         qc_summary=qc_summary,
+    )
+
+
+def read_cygnss_l3_sparse(
+    path: Path | str,
+    tilecoord_path: Path | str,
+    method: str = "linear",
+    nx: int = M36_NX,
+) -> SparseObservation:
+    """Read one CYGNSS L3 ``SM_daily`` field as sparse M36 observations.
+
+    This follows the MATLAB CYGNSS step-2 reader's spatial mapping and QC
+    conventions, but deliberately uses the product-supplied daily field rather
+    than averaging ``SM_subdaily`` locally.
+    """
+
+    path = Path(path)
+    Dataset = _dataset_cls()
+    with Dataset(path, "r") as ds:
+        required = ("longitude", "latitude", "SM_daily")
+        missing = [name for name in required if name not in ds.variables]
+        if missing:
+            raise KeyError(f"{path} is missing CYGNSS variable(s): {', '.join(missing)}")
+
+        lon = _filled(ds.variables["longitude"][:]).astype(np.float64)
+        lat = _filled(ds.variables["latitude"][:]).astype(np.float64)
+        if lon.shape != lat.shape:
+            raise ValueError(f"{path} longitude shape {lon.shape} != latitude shape {lat.shape}")
+        if lon.ndim != 2:
+            raise ValueError(f"{path} CYGNSS longitude/latitude must be two-dimensional, got {lon.shape}")
+        if np.nanmin(lon) >= 0.0 and np.nanmax(lon) > 180.0:
+            lon = lon - 360.0
+
+        sm_var = ds.variables["SM_daily"]
+        sm = _cygnss_spatial_array(sm_var[:], lon.shape, path, "SM_daily")
+        units = _soil_moisture_units(getattr(sm_var, "units", ""))
+        vmin = float(getattr(sm_var, "valid_min", 0.0))
+        vmax = float(getattr(sm_var, "valid_max", 1.0))
+
+        sigma_used = "SIGMA_daily" in ds.variables
+        if sigma_used:
+            sigma = _cygnss_spatial_array(ds.variables["SIGMA_daily"][:], lon.shape, path, "SIGMA_daily")
+        else:
+            sigma = None
+
+    raw_finite = int(np.count_nonzero(np.isfinite(sm)))
+    good = np.isfinite(sm) & (sm >= vmin) & (sm <= vmax)
+    if sigma is not None:
+        good &= np.isfinite(sigma)
+    sm = np.where(good, sm, np.nan)
+
+    target_i, target_j, target_lon, target_lat = _m36_model_land_targets(tilecoord_path)
+    interp = _interpolate_to_targets(
+        lon_gpi=lon.reshape(-1),
+        lat_gpi=lat.reshape(-1),
+        values=sm.reshape(-1),
+        target_lon=target_lon,
+        target_lat=target_lat,
+        method=method,
+        fill_nearest=False,
+    )
+    keep = np.isfinite(interp)
+    idx = target_j[keep].astype(np.int64) * int(nx) + target_i[keep].astype(np.int64)
+
+    return SparseObservation(
+        date=_parse_cygnss_l3_date(path),
+        sensor="CYGNSS L3",
+        idx=idx,
+        values=interp[keep].astype(np.float64),
+        units=units,
+        qc_summary={
+            "raw_finite": raw_finite,
+            "kept": int(np.count_nonzero(good)),
+            "n_targets": int(target_i.size),
+            "n_points": int(idx.size),
+            "source_variable": "SM_daily",
+            "sigma_variable": "SIGMA_daily" if sigma_used else "",
+            "valid_min": vmin,
+            "valid_max": vmax,
+            "qc_source": "Save_CYGNSS_LDAS_tavg24_nc4_daily.m (daily-field adaptation)",
+            "interp_method": method,
+            "fill_nearest": 0,
+        },
     )
 
 
@@ -454,6 +540,28 @@ def read_smap_l3_model_pair(
     )
 
 
+def read_cygnss_l3_model_pair(
+    cygnss_path: Path | str,
+    model_path: Path | str,
+    tilecoord_path: Path | str,
+    run: str,
+    method: str = "linear",
+    model_variable: str = "SFMC",
+    nx: int = M36_NX,
+) -> DailyPair:
+    """Read CYGNSS L3 and GEOSldas files and return their matched daily pair."""
+
+    obs = read_cygnss_l3_sparse(cygnss_path, tilecoord_path, method=method, nx=nx)
+    return pair_sparse_observation_with_model(
+        observation=obs,
+        model_path=model_path,
+        tilecoord_path=tilecoord_path,
+        run=run,
+        model_variable=model_variable,
+        nx=nx,
+    )
+
+
 def read_ascat_h121_model_pair(
     h121_paths: Path | str | list[Path | str],
     day: date | datetime,
@@ -529,6 +637,13 @@ def _parse_smap_l3_date(path: Path) -> datetime.date:
     match = SMAPL3_DATE_RE.search(path.name)
     if match is None:
         raise ValueError(f"Cannot infer SMAP L3 date from {path}")
+    return datetime.strptime(match.group(1), "%Y%m%d").date()
+
+
+def _parse_cygnss_l3_date(path: Path) -> datetime.date:
+    match = CYGNSS_L3_DATE_RE.search(path.name)
+    if match is None:
+        raise ValueError(f"Cannot infer CYGNSS L3 date from {path}")
     return datetime.strptime(match.group(1), "%Y%m%d").date()
 
 
@@ -618,6 +733,26 @@ def _interpolate_to_targets(
     return out
 
 
+def _cygnss_spatial_array(
+    values: np.ndarray | np.ma.MaskedArray,
+    spatial_shape: tuple[int, int],
+    path: Path,
+    variable_name: str,
+) -> np.ndarray:
+    """Squeeze/reorient a CYGNSS daily field to its curvilinear grid shape."""
+
+    arr = _filled(values).astype(np.float64)
+    arr = np.squeeze(arr)
+    if arr.shape == spatial_shape:
+        return arr
+    if arr.ndim == 2 and arr.T.shape == spatial_shape:
+        return arr.T
+    raise ValueError(
+        f"{path} {variable_name} shape {arr.shape} does not align with "
+        f"longitude/latitude shape {spatial_shape}"
+    )
+
+
 def _ease2_m36_lon_lat_for_ij(i: np.ndarray, j: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Return EASE2 M36 longitude/latitude for zero-based M36 cell indices."""
 
@@ -682,7 +817,7 @@ def _int_variable(group, *names: str) -> np.ndarray:
 
 
 def _soil_moisture_units(units: str) -> str:
-    if units in {"cm**3/cm**3", "m3/m3", "m3 m-3"}:
+    if units.strip() in {"cm**3/cm**3", "cm3 cm-3", "m3/m3", "m3 m-3"}:
         return "m3 m-3"
     return units
 

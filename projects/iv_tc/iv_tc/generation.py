@@ -14,12 +14,13 @@ from .readers import (
     M36_NX,
     read_ascat_h119_h120_model_pair,
     read_ascat_h121_model_pair,
+    read_cygnss_l3_model_pair,
     read_smap_l3_model_pair,
     read_smosic_model_pair,
 )
 
 
-DEFAULT_SENSORS = ("smosic", "smap_l3", "ascat_h121", "ascat_h119_h120")
+DEFAULT_SENSORS = ("smosic", "smap_l3", "cygnss_l3", "ascat_h121", "ascat_h119_h120")
 
 H121_MANIFESTS = {
     "metop_a": "H121_METOPA.txt",
@@ -34,6 +35,10 @@ SENSOR_ALIASES = {
     "smap_l3": "smap_l3",
     "smap-l3": "smap_l3",
     "smap": "smap_l3",
+    "cygnss_l3": "cygnss_l3",
+    "cygnss-l3": "cygnss_l3",
+    "cygnss": "cygnss_l3",
+    "cygl3": "cygnss_l3",
     "ascat_h121": "ascat_h121",
     "h121": "ascat_h121",
     "h121_h139": "ascat_h121",
@@ -186,6 +191,10 @@ def resolve_daily_pair_inputs(
         obs_path = _resolve_smap_l3_path(day, roots)
         return PairInputPaths((obs_path,), model_path, tilecoord_path)
 
+    if sensor == "cygnss_l3":
+        obs_path = _resolve_cygnss_l3_path(day, roots)
+        return PairInputPaths((obs_path,), model_path, tilecoord_path)
+
     if sensor == "ascat_h121":
         obs_paths = _resolve_h121_files(day, roots)
         return PairInputPaths(tuple(obs_paths), model_path, tilecoord_path)
@@ -274,6 +283,16 @@ def read_daily_pair(
 
     if sensor == "smap_l3":
         return read_smap_l3_model_pair(
+            paths.observation_paths[0],
+            paths.model_path,
+            paths.tilecoord_path,
+            run=run.name,
+            model_variable=model_variable,
+            nx=nx,
+        )
+
+    if sensor == "cygnss_l3":
+        return read_cygnss_l3_model_pair(
             paths.observation_paths[0],
             paths.model_path,
             paths.tilecoord_path,
@@ -396,6 +415,14 @@ def _resolve_smap_l3_path(day: date, roots: ProductRoots) -> Path:
     if not matches:
         raise FileNotFoundError(str(flat_dir / pattern))
     return matches[0]
+
+
+def _resolve_cygnss_l3_path(day: date, roots: ProductRoots) -> Path:
+    name = (
+        f"cyg.ddmi.s{day:%Y%m%d}-030000-e{day:%Y%m%d}-210000."
+        "l3.grid-soil-moisture-36km.a32.d33.nc"
+    )
+    return _require_existing(roots.cygnss_l3_root / f"Y{day.year:04d}" / f"M{day.month:02d}" / name)
 
 
 def _resolve_h121_files(day: date, roots: ProductRoots) -> list[Path]:

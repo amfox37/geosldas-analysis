@@ -55,6 +55,7 @@ def collect_fixture_files(
         files.extend(_h119_h120_files(day, output_root, roots))
         files.extend(_smosic_files(day, output_root, roots))
         files.extend(_smap_l3_files(day, output_root, roots))
+        files.extend(_cygnss_l3_files(day, output_root, roots))
         for run in runs:
             files.extend(_model_files(day, output_root, roots, run))
     return files
@@ -166,6 +167,17 @@ def _smap_l3_files(day: date, output_root: Path, roots: ProductRoots) -> list[Fi
         dest = output_root / "SPL3SMP_v009" / f"Y{yyyy}" / source.name
         files.append(FixtureFile(f"SMAP L3 flat {day}", source, dest))
     return files
+
+
+def _cygnss_l3_files(day: date, output_root: Path, roots: ProductRoots) -> list[FixtureFile]:
+    yyyy, mm, _, yyyymmdd = _date_parts(day)
+    name = (
+        f"cyg.ddmi.s{yyyymmdd}-030000-e{yyyymmdd}-210000."
+        "l3.grid-soil-moisture-36km.a32.d33.nc"
+    )
+    source = roots.cygnss_l3_root / f"Y{yyyy}" / f"M{mm}" / name
+    dest = output_root / "CYGNSS" / f"Y{yyyy}" / f"M{mm}" / name
+    return [FixtureFile(f"CYGNSS L3 {day}", source, dest)]
 
 
 def _model_files(day: date, output_root: Path, roots: ProductRoots, run: RunConfig) -> list[FixtureFile]:

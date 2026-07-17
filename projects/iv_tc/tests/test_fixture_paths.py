@@ -36,6 +36,7 @@ def test_collect_fixture_files_uses_known_paths(tmp_path):
         ascat_h119_h120_root=source / "ASCAT_HSAF",
         smosic_root=source / "SMOS_IC" / "preprocessed_m36_daily",
         smap_l3_root=source / "SPL3SMP_v009",
+        cygnss_l3_root=source / "CYGNSS",
     )
     run = RunConfig("RUN_A", source / "runs" / "RUN_A")
 
@@ -63,6 +64,12 @@ def test_collect_fixture_files_uses_known_paths(tmp_path):
     touch(roots.smosic_root / "smos_ic_sm_m36_20200515.nc")
     touch(roots.smap_l3_root / "Y2020" / "SMAP_L3_SM_P_20200515_R19240_001.h5")
     touch(
+        roots.cygnss_l3_root
+        / "Y2020"
+        / "M05"
+        / "cyg.ddmi.s20200515-030000-e20200515-210000.l3.grid-soil-moisture-36km.a32.d33.nc"
+    )
+    touch(
         run.root
         / "output"
         / roots.domain
@@ -85,6 +92,7 @@ def test_collect_fixture_files_uses_known_paths(tmp_path):
     assert "TUW_WARP5_grid_info_2_2.nc" in sources
     assert "smos_ic_sm_m36_20200515.nc" in sources
     assert "SMAP_L3_SM_P_20200515_R19240_001.h5" in sources
+    assert "cyg.ddmi.s20200515-030000-e20200515-210000.l3.grid-soil-moisture-36km.a32.d33.nc" in sources
     assert "RUN_A.tavg24_1d_lnd_Nt.20200515_1200z.nc4" in sources
     assert "RUN_A.ldas_tilecoord.bin" in sources
 
@@ -92,6 +100,7 @@ def test_collect_fixture_files_uses_known_paths(tmp_path):
     assert "ASCAT_SSM_CDR/H121/metop_a/Y2020/M05/h121_a_1.nc" in dests
     assert "ASCAT_HSAF/Auxiliary/TUW_WARP5_grid_info_2_2.nc" in dests
     assert "SPL3SMP_v009/Y2020/SMAP_L3_SM_P_20200515_R19240_001.h5" in dests
+    assert "CYGNSS/Y2020/M05/cyg.ddmi.s20200515-030000-e20200515-210000.l3.grid-soil-moisture-36km.a32.d33.nc" in dests
     assert (
         "runs/RUN_A/output/SMAP_EASEv2_M36_GLOBAL/rc_out/RUN_A.ldas_tilecoord.bin"
         in dests

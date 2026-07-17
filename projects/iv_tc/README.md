@@ -26,6 +26,11 @@ and, once checked, copy a few representative files into `test_data/inputs/`.
 - SMAP L3 uses the existing MATLAB-parity SPL3SMP v009/R19240 QC from
   `Save_SMPL3_LDAS_tavg24_nc4_daily.m`: AM/PM are QC'd separately and averaged
   onto the M36 sparse index.
+- CYGNSS L3 reads the product-supplied daily `SM_daily` field (not a local
+  average of `SM_subdaily`), applies the field's valid range and optional
+  finite `SIGMA_daily` mask, then uses the MATLAB step2 spatial mapping onto
+  model-land M36 cells. As with MATLAB `griddata(..., 'natural')`, no
+  nearest-neighbor extrapolation is performed outside the finite-data hull.
 - ASCAT H121/H139 NetCDF swaths reuse the existing `projects/ascat_da` H121 QC
   and GEOS M36 super-ob logic (`QC_DEFAULT_H121`, `form_super_obs`) instead of
   duplicating bit masks here.

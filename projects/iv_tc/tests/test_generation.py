@@ -19,6 +19,7 @@ from iv_tc.generation import (  # noqa: E402
     load_daily_pair_npz,
     pair_npz_is_valid,
     pair_output_path,
+    resolve_daily_pair_inputs,
     save_daily_pair_npz,
 )
 from iv_tc.pairs import DailyPair  # noqa: E402
@@ -225,6 +226,31 @@ def test_generate_daily_pairs_reports_missing_observation(tmp_path):
 
     assert results[0].status == "missing"
     assert "SMAP_L3_SM_P_20200102" in results[0].message
+
+
+def test_resolve_cygnss_l3_uses_matlab_daily_filename(tmp_path):
+    day = date(2020, 1, 2)
+    roots, run = _write_smosic_fixture_tree(tmp_path, day)
+    cygnss_root = tmp_path / "CYGNSS"
+    roots = ProductRoots(
+        ascat_h121_root=roots.ascat_h121_root,
+        ascat_h119_h120_root=roots.ascat_h119_h120_root,
+        smosic_root=roots.smosic_root,
+        smap_l3_root=roots.smap_l3_root,
+        cygnss_l3_root=cygnss_root,
+    )
+    path = (
+        cygnss_root
+        / "Y2020"
+        / "M01"
+        / "cyg.ddmi.s20200102-030000-e20200102-210000.l3.grid-soil-moisture-36km.a32.d33.nc"
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"fixture")
+
+    resolved = resolve_daily_pair_inputs("cygl3", day, run, roots)
+
+    assert resolved.observation_paths == (path,)
 
 
 def test_ascat_alias_requires_specific_product():

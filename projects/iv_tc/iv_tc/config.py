@@ -18,6 +18,7 @@ class ProductRoots:
     ascat_h119_h120_root: Path = Path("/discover/nobackup/qliu/merra_land/DATA/ASCAT_HSAF")
     smosic_root: Path = Path("/discover/nobackup/projects/land_da/SMOS_IC/preprocessed_m36_daily")
     smap_l3_root: Path = Path("/discover/nobackup/projects/land_da/Evaluation/IVs/data/SPL3SMP_v009")
+    cygnss_l3_root: Path = Path("/discover/nobackup/projects/gmao/smap/SMAP_Nature/CYGNSS")
     domain: str = DEFAULT_DOMAIN
     collection: str = DEFAULT_COLLECTION
 

@@ -32,6 +32,7 @@ def main(argv: list[str] | None = None) -> None:
         ascat_h119_h120_root=args.ascat_h119_h120_root,
         smosic_root=args.smosic_root,
         smap_l3_root=args.smap_l3_root,
+        cygnss_l3_root=args.cygnss_l3_root,
         domain=args.domain,
         collection=args.collection,
     )
@@ -71,7 +72,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         required=True,
         help=(
             "Sensor to process. Repeat for multiple sensors. "
-            "Use smosic, smap_l3, ascat_h121, or ascat_h119_h120."
+            "Use smosic, smap_l3, cygnss_l3, ascat_h121, or ascat_h119_h120."
         ),
     )
     parser.add_argument(
@@ -126,6 +127,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=ProductRoots.smap_l3_root,
         help="Root containing the flat SPL3SMP_v009/YYYYY tree.",
+    )
+    parser.add_argument(
+        "--cygnss-l3-root",
+        type=Path,
+        default=ProductRoots.cygnss_l3_root,
+        help="Root containing CYGNSS/Yyyyy/Mmm daily L3 files.",
     )
     parser.add_argument("--domain", default=ProductRoots.domain, help="GEOSldas domain name.")
     parser.add_argument("--collection", default=ProductRoots.collection, help="GEOSldas output collection tag.")

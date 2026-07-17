@@ -17,6 +17,8 @@ from iv_tc.readers import (  # noqa: E402
     read_ascat_h119_h120_model_pair,
     read_ascat_h119_h120_sparse,
     read_ascat_h121_model_pair,
+    read_cygnss_l3_model_pair,
+    read_cygnss_l3_sparse,
     read_smap_l3_model_pair,
     read_smap_l3_sparse,
     read_smosic_model_pair,
@@ -127,6 +129,109 @@ def test_read_smap_l3_model_pair_matches_representative_model_tiles(tmp_path):
     np.testing.assert_array_equal(pair.idx, np.array([12, 13]))
     np.testing.assert_allclose(pair.obs, np.array([0.30, 0.50]), rtol=1e-6)
     np.testing.assert_allclose(pair.model, np.array([0.14, 0.33]), rtol=1e-6)
+
+
+def test_read_cygnss_l3_sparse_uses_daily_field_qc_and_spatial_orientation(tmp_path):
+    cygnss_path = (
+        tmp_path
+        / "cyg.ddmi.s20200102-030000-e20200102-210000."
+        "l3.grid-soil-moisture-36km.a32.d33.nc"
+    )
+    tilecoord_path = tmp_path / "test.ldas_tilecoord.bin"
+    target_i = np.array([480, 481, 480, 481], dtype=np.int64)
+    target_j = np.array([200, 200, 201, 201], dtype=np.int64)
+    lon, lat = _ease2_m36_lon_lat_for_ij(target_i, target_j)
+
+    _write_tilecoord_cells(tilecoord_path, target_i, target_j)
+    _write_cygnss_l3(cygnss_path, lon, lat)
+
+    obs = read_cygnss_l3_sparse(cygnss_path, tilecoord_path)
+
+    assert obs.date == date(2020, 1, 2)
+    assert obs.sensor == "CYGNSS L3"
+    assert obs.units == "m3 m-3"
+    np.testing.assert_array_equal(obs.idx, np.array([193280, 194244, 193281]))
+    # SM_subdaily is intentionally 0.9 everywhere in this fixture. These are
+    # SM_daily values after the daily sigma mask and x/y reorientation.
+    np.testing.assert_allclose(obs.values, np.array([0.10, 0.30, 0.20]), rtol=1e-6)
+    assert obs.qc_summary["raw_finite"] == 4
+    assert obs.qc_summary["kept"] == 3
+    assert obs.qc_summary["source_variable"] == "SM_daily"
+    assert obs.qc_summary["sigma_variable"] == "SIGMA_daily"
+    assert obs.qc_summary["fill_nearest"] == 0
+
+
+def test_read_cygnss_l3_model_pair_matches_representative_model_tiles(tmp_path):
+    cygnss_path = (
+        tmp_path
+        / "cyg.ddmi.s20200102-030000-e20200102-210000."
+        "l3.grid-soil-moisture-36km.a32.d33.nc"
+    )
+    tilecoord_path = tmp_path / "test.ldas_tilecoord.bin"
+    model_path = tmp_path / "model.nc4"
+    target_i = np.array([480, 481, 480, 481], dtype=np.int64)
+    target_j = np.array([200, 200, 201, 201], dtype=np.int64)
+    lon, lat = _ease2_m36_lon_lat_for_ij(target_i, target_j)
+
+    _write_tilecoord_cells(tilecoord_path, target_i, target_j)
+    _write_cygnss_l3(cygnss_path, lon, lat)
+    _write_model(model_path, values=[0.11, 0.22, 0.33, 0.44])
+
+    pair = read_cygnss_l3_model_pair(cygnss_path, model_path, tilecoord_path, run="OL")
+
+    assert pair.date == date(2020, 1, 2)
+    assert pair.sensor == "CYGNSS L3"
+    assert pair.run == "OL"
+    np.testing.assert_array_equal(pair.idx, np.array([193280, 194244, 193281]))
+    np.testing.assert_allclose(pair.obs, np.array([0.10, 0.30, 0.20]), rtol=1e-6)
+    np.testing.assert_allclose(pair.model, np.array([0.11, 0.33, 0.22]), rtol=1e-6)
+
+
+def test_copied_discover_sample_pairs_cygnss_l3_with_ol_model():
+    cygnss_path = (
+        DISCOVER_SAMPLE
+        / "CYGNSS"
+        / "Y2018"
+        / "M10"
+        / "cyg.ddmi.s20181015-030000-e20181015-210000."
+        "l3.grid-soil-moisture-36km.a32.d33.nc"
+    )
+    model_path = (
+        DISCOVER_SAMPLE
+        / "runs"
+        / "OL"
+        / "output"
+        / "SMAP_EASEv2_M36_GLOBAL"
+        / "cat"
+        / "ens_avg"
+        / "Y2018"
+        / "M10"
+        / "OLv7_M36_MULTI_type_13_H121.tavg24_1d_lnd_Nt.20181015_1200z.nc4"
+    )
+    tilecoord_path = (
+        DISCOVER_SAMPLE
+        / "runs"
+        / "OL"
+        / "output"
+        / "SMAP_EASEv2_M36_GLOBAL"
+        / "rc_out"
+        / "OLv7_M36_MULTI_type_13_H121.ldas_tilecoord.bin"
+    )
+    missing = [path for path in (cygnss_path, model_path, tilecoord_path) if not path.exists()]
+    if missing:
+        pytest.skip(f"Discover sample fixture is not present: {missing[0]}")
+
+    pair = read_cygnss_l3_model_pair(cygnss_path, model_path, tilecoord_path, run="OL")
+
+    assert pair.date == date(2018, 10, 15)
+    assert pair.sensor == "CYGNSS L3"
+    assert pair.run == "OL"
+    assert pair.idx.size > 1000
+    assert pair.idx.size == pair.obs.size == pair.model.size
+    assert np.isfinite(pair.obs).all()
+    assert np.isfinite(pair.model).all()
+    assert pair.obs_units == "m3 m-3"
+    assert pair.model_units == "m3 m-3"
 
 
 def test_read_ascat_h119_h120_sparse_uses_matlab_qc_and_linear_interpolation(tmp_path):
@@ -479,6 +584,31 @@ def _write_smap_group(group, sm_name, qf_name, suffix, sm, qf, surface_status, s
     rfi_v_var = group.createVariable(f"tb_qual_flag_v{suffix}", "u2", ("y", "x"), fill_value=np.uint16(65534))
     rfi_h_var[:] = np.zeros((2, 5), dtype=np.uint16)
     rfi_v_var[:] = np.zeros((2, 5), dtype=np.uint16)
+
+
+def _write_cygnss_l3(path, lon, lat):
+    # lon/lat are supplied in x/y order. SM_daily is intentionally stored in
+    # the opposite y/x order behind a singleton time dimension.
+    with netCDF4.Dataset(path, "w") as ds:
+        ds.createDimension("x", 2)
+        ds.createDimension("y", 2)
+        ds.createDimension("time", 1)
+        lon_var = ds.createVariable("longitude", "f8", ("x", "y"))
+        lat_var = ds.createVariable("latitude", "f8", ("x", "y"))
+        sm_var = ds.createVariable("SM_daily", "f4", ("time", "y", "x"), fill_value=-9999.0)
+        sigma_var = ds.createVariable("SIGMA_daily", "f4", ("time", "y", "x"), fill_value=-9999.0)
+        subdaily = ds.createVariable("SM_subdaily", "f4", ("time", "y", "x"), fill_value=-9999.0)
+
+        lon_var[:] = np.asarray(lon, dtype=np.float64).reshape(2, 2)
+        lat_var[:] = np.asarray(lat, dtype=np.float64).reshape(2, 2)
+        daily_xy = np.array([[0.10, 0.30], [0.20, 0.40]], dtype=np.float32)
+        sigma_xy = np.array([[0.01, 0.01], [0.01, np.nan]], dtype=np.float32)
+        sm_var[0, :, :] = daily_xy.T
+        sigma_var[0, :, :] = sigma_xy.T
+        subdaily[0, :, :] = np.full((2, 2), 0.9, dtype=np.float32)
+        sm_var.units = "m3/m3"
+        sm_var.valid_min = 0.0
+        sm_var.valid_max = 1.0
 
 
 def _write_ascat_aux(path, lon, lat):
