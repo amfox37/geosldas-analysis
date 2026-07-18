@@ -75,7 +75,16 @@ and, once checked, copy a few representative files into `test_data/inputs/`.
   than doubled the point count (108,634 vs MATLAB's 48,486) by manufacturing
   coverage MATLAB's own mesh never had. Verified against a live run of
   `Save_ASCAT_LDAS_tavg24_nc4_daily.m` for 2018-10-15/`OL` after the fix:
-  identical `idx`/`obs`/`mod` (max abs diff 0.0).
+  `sm_mod` identical on the shared cells (max abs diff 0.0), confirming the
+  model-side tile matching was never the issue. `idx` and `sm_obs` are
+  **not** identical, though, and re-confirmed as such on 2026-07-18 against
+  a second live MATLAB run of the same date: MATLAB's 48,486 cells are
+  fully contained in Python's 50,118 (a persistent ~3.4% coverage superset,
+  not day-to-day noise -- see the Triple Collocation section below for how
+  this compounds at the climatology/TC level), and `sm_obs` on the 48,486
+  shared cells has mean abs diff 0.12, max abs diff 6.86 percentage points.
+  This residual is attributed to the remaining `linear`-vs-`natural`
+  `griddata` method difference, not a new bug.
 
 ## Fixture Dry Run
 
