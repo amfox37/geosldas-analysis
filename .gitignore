@@ -48,6 +48,10 @@ spack*.log
 # Logs
 *.log
 
+# SLURM job stdout/stderr (name.%j.out / name.%j.err)
+*.out
+*.err
+
 # PDFs (large figure outputs)
 *.pdf
 
