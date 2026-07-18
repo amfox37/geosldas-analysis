@@ -177,6 +177,25 @@ python projects/iv_tc/scripts/compare_climatology_matlab.py \
   --matlab /path/to/SMOSIC_OLv8_M36_cd_clim_pentad_201808_202405_w31.mat
 ```
 
+**Verified against a live MATLAB run on the current OL run**
+(`OLv7_M36_MULTI_type_13_H121`, not any archived data): `smap_l3`/`OL`,
+2015-04-01 to 2017-03-31 (727/731 daily pairs, matching this project's known
+isolated SMAP gaps). `Save_SMPL3_LDAS_tavg24_nc4_daily.m` /
+`Compute_clim_SMPL3.m` / `Compute_IVd_IVs_SMPL3.m` were copied, repointed at
+`mod_path`/`mod_run` for the real current OL run and a scratch `out_path`/
+`data_path`, and run live end-to-end via a SLURM job (`matlab/R2023b`,
+~9.5 minutes for all three stages). `N_sm_clim` matched with 0/6,273,320
+mismatches, `mod_sm_clim`/`obs_sm_clim` matched with 0 mask mismatches on
+5,938,990 valid cell-pentads (max abs diff ~2.4e-7).
+
+This required generating the Python step-2 pairs with
+`--smap-l3-matlab-valid-range-parity`: the default reader QC (CF
+`valid_min`/`valid_max` enforcement) is a deliberate, documented deviation
+from MATLAB's own `h5read`-based QC (see Reader Status above), and using the
+default pairs against a live MATLAB run reproduces that same ~0.3%
+coverage gap here, not a step-3 bug -- confirmed by rerunning with the
+parity flag and getting an exact match.
+
 ## Independent Validation
 
 Step 4 follows `Compute_IVd_IVs*.m` directly. For each current day `d`, it
@@ -250,6 +269,14 @@ valid/undefined mask matched exactly (0 mismatches, 42,116-50,925 cells per
 field), numeric agreement ~1e-7 mean / ~1e-6 max absolute difference --
 tighter than the `smosic` run since this path has only one float64-to-
 float32 cast (MATLAB double straight to npz) instead of two.
+
+**Verified against a live MATLAB run on the current OL run**, same
+`smap_l3`/`OL`/2015-04-01..2017-03-31 setup as the step-3 entry above (live
+`matlab/R2023b` SLURM job, no archived data): `N_sm` and every field's
+valid/undefined mask matched exactly (0 mismatches, 71,101-97,310 cells per
+field, using `--smap-l3-matlab-valid-range-parity` pairs so the comparison
+isolates step-3/step-4 math from the deliberate reader-QC deviation).
+Numeric agreement ~1.5e-7 mean / ~3e-5 max absolute difference.
 
 The command checks `N_sm` exactly and reports valid-mask and numeric
 differences for every saved IV field. It exits nonzero on any mismatch beyond
