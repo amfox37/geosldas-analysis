@@ -48,6 +48,15 @@ from .readers import (
     read_smosic_model_pair,
     read_smosic_sparse,
 )
+from .triple_collocation import (
+    TripleCollocation,
+    compute_triple_collocation,
+    compute_triple_collocation_from_paths,
+    load_triple_collocation_npz,
+    save_triple_collocation_npz,
+    tc_output_path,
+    triple_collocation_npz_is_valid,
+)
 
 __all__ = [
     "DailyPair",
@@ -58,6 +67,7 @@ __all__ = [
     "ProductRoots",
     "RunConfig",
     "SparseObservation",
+    "TripleCollocation",
     "date_range",
     "daily_pair_paths",
     "climatology_npz_is_valid",
@@ -66,12 +76,15 @@ __all__ = [
     "compute_pentad_climatology_from_paths",
     "compute_independent_validation",
     "compute_independent_validation_from_paths",
+    "compute_triple_collocation",
+    "compute_triple_collocation_from_paths",
     "generate_daily_pairs",
     "independent_validation_npz_is_valid",
     "iv_output_path",
     "load_daily_pair_npz",
     "load_independent_validation_npz",
     "load_pentad_climatology_npz",
+    "load_triple_collocation_npz",
     "matlab_default_min_count",
     "normal_year_doy",
     "pair_npz_is_valid",
@@ -91,5 +104,8 @@ __all__ = [
     "save_daily_pair_npz",
     "save_independent_validation_npz",
     "save_pentad_climatology_npz",
+    "save_triple_collocation_npz",
+    "tc_output_path",
+    "triple_collocation_npz_is_valid",
     "write_daily_pair",
 ]

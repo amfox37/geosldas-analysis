@@ -172,6 +172,7 @@ remain NaN, and valid squared correlations are capped at 1.
 python projects/iv_tc/scripts/compute_iv.py \
   --start-date 2018-08-01 \
   --end-date 2024-06-29 \
+  --climatology-end-date 2024-06-30 \
   --sensor smosic \
   --sensor ascat_h121 \
   --run OL \
@@ -205,3 +206,74 @@ python projects/iv_tc/scripts/compare_iv_matlab.py \
 The command checks `N_sm` exactly and reports valid-mask and numeric
 differences for every saved IV field. It exits nonzero on any mismatch beyond
 the requested tolerances.
+
+## Triple Collocation
+
+The TC engine follows `common/matlab/TC/Compute_TC_ASCAT_SMOSIC_MOD.m` for
+the two-daily-pair workflow. The three source columns are always ordered as
+primary observation, model, and secondary observation. For the reference
+SMOS-IC/model/ASCAT calculation this means `(SMOS-IC, model, ASCAT)`.
+
+The implementation preserves the details of that MATLAB script:
+
+- both daily sparse files must exist, and only their exact common M36 cells
+  contribute;
+- model values come from the primary pair, while the model climatology comes
+  from the secondary climatology file, matching the script as written;
+- ASCAT observations and their climatology are multiplied by `0.005`
+  (MATLAB `/200`) before anomaly calculation;
+- all three anomalies must be finite for `N_sm` to increment;
+- annual, May-September summer, and October-April winter modes are available;
+- `Nmin=20`, population covariance (`sum/N`), the `R2 < 0.001` mask, and the
+  `R2 > 1` cap match MATLAB;
+- negative variances become NaN, but negative cross-covariances are retained,
+  as in the current script where the old covariance masks are commented out.
+
+For the direct SMOS-IC/ASCAT comparison on Discover:
+
+```bash
+python projects/iv_tc/scripts/compute_tc.py \
+  --start-date 2018-08-01 \
+  --end-date 2024-06-29 \
+  --primary-sensor smosic \
+  --secondary-sensor ascat_h119_h120 \
+  --primary-name SMOS \
+  --secondary-name ASC \
+  --run OL \
+  --pair-root /discover/nobackup/projects/land_da/Evaluation/IVs/output_python
+```
+
+`--secondary-scale` defaults to `0.005` for an ASCAT sensor and `1` for other
+products. Other defaults reproduce MATLAB (`--model-values-source primary`,
+`--model-climatology-source secondary`, `--season annual`, `--min-count 20`).
+Missing daily pairs are fatal unless `--allow-missing` is supplied.
+
+Outputs are written to:
+
+```text
+output_root/step4_tc/{primary}__{model}__{secondary}/{run}/START_END_SEASON_n20.npz
+```
+
+The file stores sparse `idx0` and `N_sm` vectors plus `(cell, 3)` arrays:
+`variance`, `R2_TC`, and `sigma2` use source-column order `(0, 1, 2)`, while
+`covariance` and `correlation` use pair-column order `(0,1), (0,2), (1,2)`.
+Names, units, scale factors, date range, seasonal mode, climatology/model
+source choices, and day-accounting diagnostics are included as metadata.
+
+The Python CLI uses an inclusive end date. To match the MATLAB configuration
+with `end_time = 2024-06-30`, use Python `--end-date 2024-06-29`. If step 3
+was built through the MATLAB boundary date, as in the reference workflow, add
+`--climatology-end-date 2024-06-30` so the CLI resolves that climatology file.
+Compare the result directly with the reference MAT file using:
+
+```bash
+python projects/iv_tc/scripts/compare_tc_matlab.py \
+  --python /path/to/step4_tc/SMOS__model__ASC/OL/20180801_20240629_annual_n20.npz \
+  --matlab /path/to/ASCL4_SMOSIC_OLv8_M36_cd_TC_stats_201808_202405.mat
+```
+
+The comparator checks `N_sm` exactly, then reports finite-mask and numeric
+differences for all three R2, error-variance, pair-correlation, and
+cross-covariance fields. Its default MATLAB variable mapping matches
+`Compute_TC_ASCAT_SMOSIC_MOD.m`; custom comma-separated mappings support the
+other three-input TC scripts.
