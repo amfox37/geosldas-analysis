@@ -352,3 +352,41 @@ differences for all three R2, error-variance, pair-correlation, and
 cross-covariance fields. Its default MATLAB variable mapping matches
 `Compute_TC_ASCAT_SMOSIC_MOD.m`; custom comma-separated mappings support the
 other three-input TC scripts.
+
+**Known limitation, quantified against a live MATLAB run (2026-07-18):**
+running the full step2→step3→step4 chain live for `smosic`/`ascat_h119_h120`
+against the current OL (`OLv7_M36_MULTI_type_13_H121`, 2018-08-01..2019-07-31)
+does **not** reach the tight parity the `smap_l3` and MATLAB-native-conversion
+runs above achieve. This is *not* a step-3/step-4 logic bug -- it traces
+entirely to the pre-existing `ascat_h119_h120` step-2 interpolation
+difference (`griddata` `linear` vs. MATLAB's `natural`; see Reader Status),
+which turns out to be **persistent per-cell** rather than random day-to-day
+noise: specific boundary/coastal cells are covered by Python's interpolation
+on every day of the year and never by MATLAB's (or vice versa), so a ~3%/day
+coverage difference compounds linearly instead of averaging out.
+
+Measured impact:
+- **Step-2** (one spot-checked day, 2018-08-01): Python covers 62,557 cells
+  vs. MATLAB's 60,530 (ratio 1.034, MATLAB fully contained in Python's set,
+  consistent with the known residual). `sm_mod` bit-identical; `sm_obs` mean
+  abs diff 0.15 percentage points, max 10.8 on the shared cells.
+- **Step-3 climatology** (5 pentads spot-checked across the year): coverage
+  ratio ~1.024; `N_sm_clim` (obs count per cell/pentad) differs on ~16% of
+  shared cells, by up to 27 out of the 31-day window -- the compounding
+  effect described above. Obs value agreement on shared cells stays small
+  (mean abs diff ~0.2 percentage points).
+- **Step-4 TC**: `N_sm` mismatched on ~35% of cells (28,025/79,097).
+  `sigma2`'s division by a near-zero `C_SMOS_mod`/`C_SMOS_ASC`/`C_mod_ASC`
+  cross-covariance (cells where the two source anomalies are essentially
+  uncorrelated -- weak model skill / complex terrain) amplifies the small
+  `N_sm` divergence into large-looking errors: of 75,446 common valid
+  cells, the 19,090 (~25%) with `|C_SMOS_mod| < 1e-4` carry essentially all
+  of it (mean abs diff 0.013, max 118.9 on `sigma2_ASC`); the other 56,356
+  well-conditioned cells agree tightly (mean abs diff 0.00012, max 2.27).
+  This near-zero-denominator sensitivity is an inherent property of the TC
+  error-variance estimator at weakly-correlated triplets, not a code defect.
+
+Not currently planned: closing the `ascat_h119_h120` `linear`-vs-`natural`
+gap further, or masking near-zero-denominator cells out of the parity check.
+If tighter `ascat_h119_h120`-driven TC/climatology parity is needed later,
+start there.
