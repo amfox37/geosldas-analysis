@@ -399,3 +399,33 @@ Not currently planned: closing the `ascat_h119_h120` `linear`-vs-`natural`
 gap further, or masking near-zero-denominator cells out of the parity check.
 If tighter `ascat_h119_h120`-driven TC/climatology parity is needed later,
 start there.
+
+**`smap_l3`/`smosic` TC verified live against MATLAB (2026-07-18), and it's
+clean.** Same live-MATLAB method as above, same window
+(2018-08-01..2019-07-31, current OL), but pairing `smap_l3` (primary) with
+`smosic` (secondary) instead -- both sensors already have exact step-2/step-3
+parity with MATLAB (no known coverage-superset issue, unlike
+`ascat_h119_h120`), and it shows: `N_sm` **0/92,681 mismatched**, every R2/
+sigma2/correlation/covariance field **0 mask mismatches**. R2, correlation,
+and covariance all pass at `--rtol 1e-4 --atol 1e-4`. `sigma2` alone doesn't,
+but for the same reason as the `ascat_h119_h120` case's `sigma2` outliers --
+near-zero-denominator amplification -- except here there's no coverage
+divergence feeding it: of 88,700 valid cells, the 26,997 with
+`|C_SMAP_mod| < 1e-4` show mean abs diff 4.4e-6 but max 0.087 (worst cell:
+Python/MATLAB `C_SMAP_mod` = 7.18e-9 vs 7.07e-9 -- agree to ~2 significant
+figures in absolute terms, but that's still enough of a relative gap to move
+`sigma2` by 0.09 through division by a near-zero number); the other 61,703
+well-conditioned cells agree to mean 3.9e-10 / max 6.9e-8. **This confirms
+the TC engine itself matches MATLAB essentially exactly** -- the `sigma2`
+near-zero-denominator sensitivity is a property of the estimator itself
+(present even with perfect coverage and matching float64 math, just from
+ordinary `float32` step-2 storage noise), not a code defect, and the
+`ascat_h119_h120` case's much larger errors are fully attributable to that
+sensor's separate, already-documented step-2 coverage gap driving genuine
+`N_sm` differences into the same denominator.
+
+Driver scripts for this run:
+`/discover/nobackup/projects/land_da/Evaluation/IVs/scratch_tc_live_201808_201907/matlab/step2_smpl3.m`,
+`step3_clim_smpl3.m`, `step4_tc_smap_smosic.m`, and
+`run_tc_smap_live.sbatch` in the same directory (reuses that scratch dir's
+already-computed `smosic` MATLAB step2/step3 output as the secondary leg).
