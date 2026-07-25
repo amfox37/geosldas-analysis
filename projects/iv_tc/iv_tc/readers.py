@@ -455,8 +455,21 @@ def representative_tiles_from_tilecoord(tilecoord: dict[str, np.ndarray], nx: in
     )
 
 
-def read_model_tile_values(path: Path | str, variable: str = "SFMC") -> ModelTileValues:
-    """Read one GEOSldas daily model variable from a tile-space NetCDF file."""
+def read_model_tile_values(
+    path: Path | str, variable: str = "SFMC", time_reduce: str = "first"
+) -> ModelTileValues:
+    """Read one GEOSldas daily model variable from a tile-space NetCDF file.
+
+    ``time_reduce`` controls how a (time, tile) variable collapses to one
+    daily value per tile: ``"first"`` keeps the first time record (the
+    existing behavior, e.g. a single-instant tavg24 file); ``"mean"``
+    averages across all time records, ignoring fill-masked ones -- for
+    collections like SMAP_L4_SM_gph that bundle all of a day's 3-hourly
+    instants into one file.
+    """
+
+    if time_reduce not in ("first", "mean"):
+        raise ValueError(f"Unsupported time_reduce {time_reduce!r}; expected 'first' or 'mean'")
 
     path = Path(path)
     Dataset = _dataset_cls()
@@ -467,7 +480,7 @@ def read_model_tile_values(path: Path | str, variable: str = "SFMC") -> ModelTil
         var = ds.variables[variable]
         data = _filled(var[:])
         if data.ndim == 2:
-            data = data[0, :]
+            data = np.nanmean(data, axis=0) if time_reduce == "mean" else data[0, :]
         elif data.ndim != 1:
             raise ValueError(f"{path}:{variable} has unsupported shape {data.shape}")
         units = getattr(var, "units", "")
@@ -481,13 +494,14 @@ def pair_sparse_observation_with_model(
     tilecoord_path: Path | str,
     run: str,
     model_variable: str = "SFMC",
+    model_time_reduce: str = "first",
     nx: int = M36_NX,
 ) -> DailyPair:
     """Match a sparse observation to representative-tile model values."""
 
     tilecoord = read_tilecoord(tilecoord_path)
     reps = representative_tiles_from_tilecoord(tilecoord, nx=nx)
-    model = read_model_tile_values(model_path, variable=model_variable)
+    model = read_model_tile_values(model_path, variable=model_variable, time_reduce=model_time_reduce)
 
     order = np.argsort(reps.m36_linear)
     sorted_linear = reps.m36_linear[order]
@@ -521,6 +535,7 @@ def read_smosic_model_pair(
     tilecoord_path: Path | str,
     run: str,
     model_variable: str = "SFMC",
+    model_time_reduce: str = "first",
     nx: int = M36_NX,
 ) -> DailyPair:
     """Read SMOS-IC and GEOSldas files and return their matched daily pair."""
@@ -532,6 +547,7 @@ def read_smosic_model_pair(
         tilecoord_path=tilecoord_path,
         run=run,
         model_variable=model_variable,
+        model_time_reduce=model_time_reduce,
         nx=nx,
     )
 
@@ -542,6 +558,7 @@ def read_smap_l3_model_pair(
     tilecoord_path: Path | str,
     run: str,
     model_variable: str = "SFMC",
+    model_time_reduce: str = "first",
     qc: bool = True,
     nx: int = M36_NX,
     enforce_valid_range: bool = True,
@@ -555,6 +572,7 @@ def read_smap_l3_model_pair(
         tilecoord_path=tilecoord_path,
         run=run,
         model_variable=model_variable,
+        model_time_reduce=model_time_reduce,
         nx=nx,
     )
 
@@ -566,6 +584,7 @@ def read_cygnss_l3_model_pair(
     run: str,
     method: str = "linear",
     model_variable: str = "SFMC",
+    model_time_reduce: str = "first",
     nx: int = M36_NX,
 ) -> DailyPair:
     """Read CYGNSS L3 and GEOSldas files and return their matched daily pair."""
@@ -577,6 +596,7 @@ def read_cygnss_l3_model_pair(
         tilecoord_path=tilecoord_path,
         run=run,
         model_variable=model_variable,
+        model_time_reduce=model_time_reduce,
         nx=nx,
     )
 
@@ -589,6 +609,7 @@ def read_ascat_h121_model_pair(
     run: str,
     qc: dict | None = None,
     model_variable: str = "SFMC",
+    model_time_reduce: str = "first",
     nx: int = M36_NX,
 ) -> DailyPair:
     """Read ASCAT H121/H139 and GEOSldas files and return their matched daily pair."""
@@ -606,6 +627,7 @@ def read_ascat_h121_model_pair(
         tilecoord_path=tilecoord_path,
         run=run,
         model_variable=model_variable,
+        model_time_reduce=model_time_reduce,
         nx=nx,
     )
 
@@ -619,6 +641,7 @@ def read_ascat_h119_h120_model_pair(
     method: str = "linear",
     fill_nearest: bool = False,
     model_variable: str = "SFMC",
+    model_time_reduce: str = "first",
     nx: int = M36_NX,
 ) -> DailyPair:
     """Read ASCAT H119/H120 and GEOSldas files and return their matched pair."""
@@ -637,6 +660,7 @@ def read_ascat_h119_h120_model_pair(
         tilecoord_path=tilecoord_path,
         run=run,
         model_variable=model_variable,
+        model_time_reduce=model_time_reduce,
         nx=nx,
     )
 

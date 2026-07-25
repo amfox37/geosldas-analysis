@@ -45,6 +45,7 @@ def main(argv: list[str] | None = None) -> None:
         output_root=args.output_root,
         skip_existing=not args.overwrite,
         model_variable=args.model_variable,
+        model_time_reduce=args.model_time_reduce,
         h119_h120_method=args.h119_h120_method,
         h119_h120_fill_nearest=args.h119_h120_fill_nearest,
         smap_l3_enforce_valid_range=args.smap_l3_enforce_valid_range,
@@ -90,6 +91,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--overwrite", action="store_true", help="Regenerate existing valid pair files.")
     parser.add_argument("--model-variable", default="SFMC", help="Model tile-space variable to pair.")
+    parser.add_argument(
+        "--model-time-reduce",
+        default="first",
+        choices=("first", "mean"),
+        help=(
+            "How to collapse a (time, tile) model variable to one daily value: "
+            "'first' keeps the first time record (default; matches a single-instant "
+            "tavg24 file), 'mean' averages all time records in the file, ignoring "
+            "fill-masked ones -- for collections like SMAP_L4_SM_gph that bundle a "
+            "day's 3-hourly instants into one file."
+        ),
+    )
     parser.add_argument(
         "--h119-h120-method",
         default="linear",

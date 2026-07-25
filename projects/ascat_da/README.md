@@ -14,6 +14,74 @@ For the older ASCAT/SMAP paper figure workflow, see `ASCAT_SMAP_paper_provenance
 ## Supporting scripts
 - `scripts/check_ascat_duplicates.py` – helper to spot duplicate ASCAT files before ingest.
 - `scripts/filename_lister_v2.py` – utility for listing/renaming raw observation files.
+- `scripts/run_ismn_ol_da_skill.py` – ISMN in-situ soil-moisture skill for OL vs the DA runs (see below).
+
+## ISMN in-situ validation
+
+`scripts/run_ismn_ol_da_skill.py` scores OL and the DA experiments against
+International Soil Moisture Network stations over one window: the full
+experiment span, `2015-04-01` to `2021-03-31`. Submit it with
+`jobs/run_ismn_ol_da_skill.sbatch`.
+
+The method follows `projects/M21C_ls/ISMN_methods_readme.md`, with three
+deliberate departures for this project:
+
+- **No predetermined network list.** Every network in the local archive is
+  considered; 60 of the 88 networks (2,104 of 3,279 stations) have
+  soil-moisture sensors overlapping the window. `--network` can still restrict
+  the run, but the default is all of them.
+- **One window, so no cross-window common-site intersection.** A station is
+  kept when it clears `--nmin` (default 1000) paired obs/model days, and only
+  when *every* run clears it for that domain, so run-to-run differences never
+  reflect a shifting site population.
+- **Generic root zone instead of per-network strict layer rules.** The
+  M21C_ls `matlab_strict` composites are hand-tuned for six networks and do
+  not generalize. Root zone here is the profile-weighted 0–1 m average, which
+  requires at least `--rz-min-sensors` (3) finite layers spanning both a
+  shallow (≤0.20 m) and a deep (≥0.50 m) sensor at each timestamp. Surface
+  skill is therefore available at far more stations than root-zone skill, and
+  the two site counts are reported separately.
+
+Surface observations come from the sensor depth nearest 0.05 m among sensors
+no deeper than `--surface-max-depth-m` (0.10), so a station whose shallowest
+sensor is 1 m deep yields no surface series rather than a mislabeled one. Only
+ISMN `G`-flagged records are retained; observations are daily-averaged and
+shifted 12 h to align with the model day.
+
+Model values for **all four runs** are `sm_surface`/`sm_rootzone` from the
+`SMAP_L4_SM_gph` collection, averaged over each file's eight 3-hourly
+instants. That collection is the analysis state and is the only daily
+collection `DAv7_M36_SMAP_type_13_comb_fp_scaled` carries, so using it
+everywhere keeps the four runs directly comparable.
+
+Stations are matched to the nearest M36 tile by squared lat/lon distance with
+a 0.1 deg² cutoff. Per-station statistics are Pearson `R`, anomaly `R`
+(day-of-year climatology, 31-day circular window), `bias`, `RMSE`, and
+`ubRMSE`, computed by the shared
+`projects/matlab2python/scripts/sm_skill_vs_insitu.py` helpers.
+
+Outputs land in `--output-dir` (default
+`/discover/nobackup/projects/land_da/Evaluation/ISMN/ascat_da_ol_da_skill`):
+
+| File | Contents |
+| --- | --- |
+| `cache_obs_daily.nc` | daily ISMN surface/root-zone series per station |
+| `cache_model_daily_<run>.nc` | daily model series + station→tile mapping per run |
+| `ismn_station_inventory.csv` | per-station metadata and obs-day counts |
+| `ismn_skill_stations.csv` | per station/domain/run statistics |
+| `ismn_skill_network_summary.csv` | per network/domain means and deltas vs `--reference-run` |
+
+Both caches are reused on rerun; pass `--overwrite-obs` / `--overwrite-model`
+to rebuild. Network-summary deltas are signed so **positive always means the
+run beat the reference** (`R`/`anomR` gain, `RMSE`/`ubRMSE` shrink, `bias`
+compared in magnitude).
+
+The `ismn` Python package is not installed on Discover, so `lib/ismn_io.py`
+parses the archive's `.stm` files and `python_metadata/ISMN_data.csv`
+directly.
+
+Full method, provenance, selection-funnel counts, and known limitations:
+`report/ismn_insitu_validation_methods.md`.
 
 ## M36 tile-assignment correction (July 2026)
 

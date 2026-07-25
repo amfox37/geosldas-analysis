@@ -262,6 +262,7 @@ def read_daily_pair(
     run: RunConfig,
     roots: ProductRoots,
     model_variable: str = "SFMC",
+    model_time_reduce: str = "first",
     h119_h120_method: str = "linear",
     h119_h120_fill_nearest: bool = False,
     smap_l3_enforce_valid_range: bool = True,
@@ -279,6 +280,7 @@ def read_daily_pair(
             paths.tilecoord_path,
             run=run.name,
             model_variable=model_variable,
+            model_time_reduce=model_time_reduce,
             nx=nx,
         )
 
@@ -289,6 +291,7 @@ def read_daily_pair(
             paths.tilecoord_path,
             run=run.name,
             model_variable=model_variable,
+            model_time_reduce=model_time_reduce,
             enforce_valid_range=smap_l3_enforce_valid_range,
             nx=nx,
         )
@@ -300,6 +303,7 @@ def read_daily_pair(
             paths.tilecoord_path,
             run=run.name,
             model_variable=model_variable,
+            model_time_reduce=model_time_reduce,
             nx=nx,
         )
 
@@ -311,6 +315,7 @@ def read_daily_pair(
             paths.tilecoord_path,
             run=run.name,
             model_variable=model_variable,
+            model_time_reduce=model_time_reduce,
             nx=nx,
         )
 
@@ -326,6 +331,7 @@ def read_daily_pair(
             method=h119_h120_method,
             fill_nearest=h119_h120_fill_nearest,
             model_variable=model_variable,
+            model_time_reduce=model_time_reduce,
             nx=nx,
         )
 
@@ -340,6 +346,7 @@ def write_daily_pair(
     output_root: Path | str,
     skip_existing: bool = True,
     model_variable: str = "SFMC",
+    model_time_reduce: str = "first",
     h119_h120_method: str = "linear",
     h119_h120_fill_nearest: bool = False,
     smap_l3_enforce_valid_range: bool = True,
@@ -359,6 +366,7 @@ def write_daily_pair(
             run=run,
             roots=roots,
             model_variable=model_variable,
+            model_time_reduce=model_time_reduce,
             h119_h120_method=h119_h120_method,
             h119_h120_fill_nearest=h119_h120_fill_nearest,
             smap_l3_enforce_valid_range=smap_l3_enforce_valid_range,
@@ -384,6 +392,7 @@ def generate_daily_pairs(
     output_root: Path | str,
     skip_existing: bool = True,
     model_variable: str = "SFMC",
+    model_time_reduce: str = "first",
     h119_h120_method: str = "linear",
     h119_h120_fill_nearest: bool = False,
     smap_l3_enforce_valid_range: bool = True,
@@ -405,6 +414,7 @@ def generate_daily_pairs(
                         output_root=output_root,
                         skip_existing=skip_existing,
                         model_variable=model_variable,
+                        model_time_reduce=model_time_reduce,
                         h119_h120_method=h119_h120_method,
                         h119_h120_fill_nearest=h119_h120_fill_nearest,
                         smap_l3_enforce_valid_range=smap_l3_enforce_valid_range,
