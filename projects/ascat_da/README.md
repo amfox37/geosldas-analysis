@@ -4,7 +4,19 @@ Diagnostics and utilities for ASCAT-based land data assimilation experiments. Th
 
 For the older ASCAT/SMAP paper figure workflow, see `ASCAT_SMAP_paper_provenance.md`. That workflow predates this project layout, so the main publication figure notebook lives under `projects/utils`.
 
+## Current H121 DA project
+
+- `report/h121_da_current_goals.md` - current goals, status, and evidence for
+  deciding whether GEOSldas should switch ASCAT assimilation from legacy
+  EUMETSAT BUFR to H SAF H121 CDR. This supersedes the older one-day
+  integration-test framing for the current production DA comparison.
+- `notebooks/h121_legacy_omf_figures.ipynb` - rerunnable O-F summary figure
+  notebook comparing combined SMAP, legacy ASCAT, and H121 ASCAT metrics, with
+  species-level diagnostics underneath. Outputs go to
+  `output/omf_h121_legacy_figures`.
+
 ## Key notebooks
+- `notebooks/h121_legacy_omf_figures.ipynb` - current H121 vs legacy DA O-F summary figures from `data/omf_compare_sums`, including combined-family and species-level O-F stddev improvement diagnostics.
 - `notebooks/legacy_vs_h121_obs.ipynb` - validates raw Legacy BUFR and H121/H139 observations after QC and GEOS M36 tile/cycle super-ob formation, including comparisons with `ObsFcstAna` (OFA). The notebook uses the corrected `geos_cycle_global_v7_gridoriginfix_bsflag_noise` cache described below.
 - `notebooks/compare_legacy_bufr_vs_H121.ipynb` – compares legacy BUFR ASCAT (ASCSMR02) against H121 CDR, including observation-space diagnostics from a GEOSldas diagnostic run (per-platform stats, O−F innovations, obs and innovation maps for Jan 2020).
 - `notebooks/compare_comb_fp_043024.ipynb` – latest comparison of combined FP experiments with OL, including map plots and PDF summaries.
