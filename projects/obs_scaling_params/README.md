@@ -152,6 +152,34 @@ PREFIX=L4SM_OL7000_SMAPL1CR17000_zscore_stats_ \
 sbatch jobs/run_python_SMAP_Tb.sbatch
 ```
 
+## CYGNSS L1 Owner-Tile Run
+
+CYGNSS L1 scaling uses the preprocessor-selected owner tile rather than
+reconstructing a grid cell from the specular-point longitude and latitude:
+
+```bash
+python scripts/run_cygnss_l1_scaling_params.py \
+  --exp-path /discover/nobackup/path/to/archive \
+  --exp-run LS_OLv8_M36_CYGNSS \
+  --domain SMAP_EASEv2_M36_GLOBAL \
+  --start 2020-01 \
+  --end 2022-12
+```
+
+The driver resolves `CYGNSS_L1_DDM3X5_CROP_SCALAR` through the experiment's
+`ldas_obsparam` file and requires NetCDF ObsFcstAna input with
+`obsparam_scale=0`. Observation and forecast values are accumulated only as
+finite pairs. Multiple records for the same owner tile and cycle are rejected
+because the current CYGNSS preprocessor and GEOS-LDAS reader contract permits
+at most one selected observation per tile and species.
+
+Output is one compressed NetCDF file with dimensions `pentad=73`, `y=406`, and
+`x=964`. The spatial indices are normalized from the tile files as
+`i_indg-i_offg-ind_base` and `j_indg-j_offg-ind_base`. Statistics are in dB and
+include `o_mean`, `o_std`, `m_mean`, `m_std`, `n_data`, `m_min`, and `m_max`.
+Use `--obsparam`, `--tilecoord`, or `--tilegrids` when those files are outside
+their normal `rc_out` locations.
+
 ## MATLAB/Python Fixture on Discover
 
 The repository includes a compact fixture under `test_data/inputs`. These jobs

@@ -98,6 +98,22 @@ class ObsFcstAnaRecord:
     obs_fcstvar: np.ndarray
     obs_ana: np.ndarray
     obs_anavar: np.ndarray
+    species_metadata: tuple["ObsFcstAnaSpeciesMetadata", ...] | None = None
+
+
+@dataclass(frozen=True)
+class ObsFcstAnaSpeciesMetadata:
+    """Species metadata embedded in current ObsFcstAna NetCDF files."""
+
+    species: int
+    assim: bool
+    scale: bool
+    errstd: float
+    varname: str
+    units: str
+    fcstvarname: str
+    fcstunits: str
+    descr: str
 
 
 # --------------------------------------------------------------------------------------
@@ -345,7 +361,43 @@ def _read_obs_fcst_ana_netcdf(path: Path) -> ObsFcstAnaRecord:
             obs_fcstvar=obs_fcstvar,
             obs_ana=obs_ana,
             obs_anavar=obs_anavar,
+            species_metadata=_read_obsfcstana_species_metadata(dataset),
         )
+
+
+def _read_obsfcstana_species_metadata(
+    dataset: nc.Dataset,
+) -> tuple[ObsFcstAnaSpeciesMetadata, ...] | None:
+    names = (
+        "obsparam_species_id",
+        "obsparam_assim",
+        "obsparam_scale",
+        "obsparam_errstd",
+        "obsparam_varname",
+        "obsparam_units",
+        "obsparam_fcstvarname",
+        "obsparam_fcstunits",
+        "obsparam_descr",
+    )
+    if not all(name in dataset.variables for name in names):
+        return None
+
+    values = {name: dataset.variables[name][...] for name in names}
+    n_species = len(values["obsparam_species_id"])
+    return tuple(
+        ObsFcstAnaSpeciesMetadata(
+            species=int(values["obsparam_species_id"][index]),
+            assim=bool(values["obsparam_assim"][index]),
+            scale=bool(values["obsparam_scale"][index]),
+            errstd=float(values["obsparam_errstd"][index]),
+            varname=str(values["obsparam_varname"][index]),
+            units=str(values["obsparam_units"][index]),
+            fcstvarname=str(values["obsparam_fcstvarname"][index]),
+            fcstunits=str(values["obsparam_fcstunits"][index]),
+            descr=str(values["obsparam_descr"][index]),
+        )
+        for index in range(n_species)
+    )
 
 
 def _obsfcstana_datetime_from_path(path: Path, dataset: nc.Dataset) -> DateTime:
@@ -721,6 +773,7 @@ __all__ = [
     "DateTime",
     "ObsParam",
     "ObsFcstAnaRecord",
+    "ObsFcstAnaSpeciesMetadata",
     "augment_date_time",
     "days_in_month",
     "get_dofyr_pentad",
