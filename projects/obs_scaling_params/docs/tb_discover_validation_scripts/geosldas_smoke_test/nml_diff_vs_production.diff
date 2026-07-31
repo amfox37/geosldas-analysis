@@ -1,0 +1,44 @@
+297c297
+< obs_param_nml(21)%scale          = .true.
+---
+> obs_param_nml(21)%scale          = .false.
+337c337
+< obs_param_nml(22)%scale          = .true.
+---
+> obs_param_nml(22)%scale          = .false.
+377c377
+< obs_param_nml(23)%scale          = .true.
+---
+> obs_param_nml(23)%scale          = .false.
+417c417
+< obs_param_nml(24)%scale          = .true.
+---
+> obs_param_nml(24)%scale          = .false.
+468c468
+< obs_param_nml(31)%scale          = .true.
+---
+> obs_param_nml(31)%scale          = .false.
+507c507
+< obs_param_nml(32)%assim          = .false.
+---
+> obs_param_nml(32)%assim          = .true.
+523,524c523,524
+< obs_param_nml(32)%scalepath      = '/discover/nobackup/amfox/Experiments/M21C_land_sweeper_OLv8_M36/LS_OLv8_M36/output/SMAP_EASEv2_M36_GLOBAL/stats'
+< obs_param_nml(32)%scalename      = 'ScMO_LS_OLv8_M36_SMAP_zscore_stats'
+---
+> obs_param_nml(32)%scalepath      = '/discover/nobackup/projects/land_da/hsaf_cdr_test/OLv7_M36_MULTI_type_13_H121/output/SMAP_EASEv2_M36_GLOBAL/stats/z_score_clim'
+> obs_param_nml(32)%scalename      = 'ScZS_GEOSLDAS_SMOKE_VALID_SMAP_Tb_2019_p1_2019_p6_hscale_0.00_W_15p_Nmin_20'
+548c548
+< obs_param_nml(33)%scale          = .true.
+---
+> obs_param_nml(33)%scale          = .false.
+587c587
+< obs_param_nml(34)%assim          = .false.
+---
+> obs_param_nml(34)%assim          = .true.
+603,604c603,604
+< obs_param_nml(34)%scalepath      = '/discover/nobackup/amfox/Experiments/M21C_land_sweeper_OLv8_M36/LS_OLv8_M36/output/SMAP_EASEv2_M36_GLOBAL/stats'
+< obs_param_nml(34)%scalename      = 'ScMO_LS_OLv8_M36_SMAP_zscore_stats'
+---
+> obs_param_nml(34)%scalepath      = '/discover/nobackup/projects/land_da/hsaf_cdr_test/OLv7_M36_MULTI_type_13_H121/output/SMAP_EASEv2_M36_GLOBAL/stats/z_score_clim'
+> obs_param_nml(34)%scalename      = 'ScZS_GEOSLDAS_SMOKE_VALID_SMAP_Tb_2019_p1_2019_p6_hscale_0.00_W_15p_Nmin_20'

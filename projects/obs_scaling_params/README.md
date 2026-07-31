@@ -50,7 +50,12 @@ obs_scaled = m_mean + (obs_raw - o_mean) * (m_std / o_std)
 - `jobs/run_python_fixture.sbatch`: Python one-timestamp fixture run.
 - `jobs/run_matlab_fixture.sbatch`: MATLAB reference one-timestamp fixture run.
 - `matlab_reference/`: frozen MATLAB reference implementation.
-- `docs/matlab_python_parity.md`: local MATLAB/Python parity check notes.
+- `docs/matlab_python_parity.md`: local MATLAB/Python parity check notes
+  (`run_scaling_params.py`, ASCAT lat/lon path).
+- `docs/tb_discover_validation.md`: pre-production Discover validation of
+  the SMAP Tb tile-space port (`run_tb_scaling_params.py`) — MATLAB parity
+  and real GEOS-LDAS consumption test, with scripts preserved under
+  `docs/tb_discover_validation_scripts/`.
 
 ## Default Run
 
