@@ -7,6 +7,19 @@ This project was promoted out of `projects/matlab2python/obs_scaling_params`
 once the Python port became the maintained workflow. The MATLAB files are kept
 under `matlab_reference/` as provenance and parity references.
 
+Two output paths are supported:
+
+- `scripts/run_scaling_params.py` writes the regular lat/lon NetCDF format used
+  by the maintained ASCAT workflow.
+- `scripts/run_tb_scaling_params.py` begins the tile-space SMAP Tb port and
+  writes the big-endian sequential-binary format consumed directly by
+  GEOS-LDAS `scale_obs_Tb_zscore`.
+
+The Tb path preserves the MATLAB field order, H/V and incidence-angle
+dimensions, EASEv2 M36 administering-tile selection, moving-window statistics,
+and pentad naming. Its initial production scope is `hscale=0`, one orbit per
+run, and EASEv2 M09/M36 model tiles converted to M36 observation support.
+
 ## What This Computes
 
 For each moving time window, observation species group, and 0.25-degree
@@ -99,6 +112,44 @@ For legacy binary ObsFcstAna archives:
 
 ```bash
 sbatch jobs/run_scaling_params.sbatch --obsfcstana-format bin
+```
+
+## SMAP Tb Tile-Space Run
+
+The SMAP driver requires an explicit experiment and output prefix:
+
+```bash
+python scripts/run_tb_scaling_params.py \
+  --exp-path /discover/nobackup/path/to/archive \
+  --exp-run SPL4SM_OL7000 \
+  --domain SMAP_EASEv2_M09_GLOBAL \
+  --start 2015-04 \
+  --end 2021-03 \
+  --orbit D \
+  --prefix L4SM_OL7000_SMAPL1CR17000_zscore_stats_
+```
+
+Defaults match the MATLAB SMAP setup: `SMAP_L1C` Tb, 40-degree incidence,
+75-day windows, 20 samples minimum, three-hourly assimilation cycles, and
+EASEv2 M36 administering tiles. Use `--obsparam` when the observation table is
+not in the standard dated `rc_out` location.
+
+The generated files can be inspected independently of GEOS-LDAS with
+`obs_scaling.seqbin.read_tb_scaling_file()`.
+
+For MATLAB byte-contract parity, the second integer in the file header remains
+`0` (the legacy writer's version slot). The requested `--ndata-min` is still
+applied when screening every H/V statistic and remains encoded in the filename.
+
+On Discover, the same arguments can be supplied to the batch template through
+environment variables:
+
+```bash
+EXP_PATH=/discover/nobackup/path/to/archive \
+EXP_RUN=SPL4SM_OL7000 \
+START_MONTH=2015-04 END_MONTH=2021-03 \
+PREFIX=L4SM_OL7000_SMAPL1CR17000_zscore_stats_ \
+sbatch jobs/run_python_SMAP_Tb.sbatch
 ```
 
 ## MATLAB/Python Fixture on Discover
