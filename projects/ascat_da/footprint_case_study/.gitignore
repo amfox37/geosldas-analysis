@@ -1,0 +1,10 @@
+# This compact bundle intentionally archives its portable inputs and figures.
+!data/
+!data/*.csv
+!figures/
+!figures/*.png
+!figures/footprint_ellipse_maps/
+!figures/footprint_ellipse_maps/*.png
+
+# Rebuilt by plot_footprint_case_study.py.
+output/

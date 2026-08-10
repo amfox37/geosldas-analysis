@@ -1,0 +1,6 @@
+name,value,source
+FOV_km,12.5,"obsparam species 8/9 (ASCAT_HSAF_META/METB_SM), FOV field, FOV_units=km"
+fac_search_FOV_km,2.0,clsm_ensupd_upd_routines.F90 line 1067
+PEATCLSM_POROS_THRESHOLD,0.9,catch_constants.f90 line 152
+ASCAT_max_peat_frac,0.1,clsm_ensupd_upd_routines.F90 line 1070
+MAPL_RADIUS_km,6371.0,PhysicalConstants.F90 line 29 (MAPL_RADIUS=6371.0E3 m)

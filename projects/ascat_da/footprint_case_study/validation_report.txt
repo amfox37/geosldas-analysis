@@ -1,0 +1,16 @@
+=== Stage 1a: raw OFA extraction + key-uniqueness assertion ===
+DAv7_M36_ASCAT_type_13_H121_FOV12p5: opened 1463 files, 2720 rows matched target tiles/species, 0 duplicate keys (key uniqueness assertion PASSED)
+DAv7_M36_ASCAT_type_13_H121_FOV12p5_peatlandqc: opened 1463 files, 30 rows matched target tiles/species, 0 duplicate keys (key uniqueness assertion PASSED)
+
+=== Stage 1b: N_data closure assertion ===
+BASELINE: N_data exact-match counts by predicate -- a_exists: 12/12, b_finite_obs: 12/12, c_finite_obs_fcst: 12/12, d_assim_flag: 12/12
+PEAT-QC: N_data exact-match counts by predicate -- a_exists: 12/12, b_finite_obs: 12/12, c_finite_obs_fcst: 12/12, d_assim_flag: 12/12
+N_data closure assertion PASSED: all 4 predicates reproduce N_data exactly for all 6 tiles x 2 species x 2 experiments -- confirms "row exists with finite obs" == "finite obs+fcst" == "assim_flag==1" for these ASCAT HSAF species (no ambiguity in the kept/lost predicate).
+
+baseline valid candidates: 2720  kept in peat-QC: 30 (1.1%)  lost: 2690
+wrote /gpfsm/dnb06/projects/p284/hsaf_cdr_test/footprint_case_study/obs_candidates.csv  (2720 rows)
+
+=== Stage 2: tile geometry + BCS porosity extraction ===
+BCS POROS / tile_coord alignment assertions PASSED (N_tile=112573, tile_id sequential 1..N)
+wrote /gpfsm/dnb06/projects/p284/hsaf_cdr_test/footprint_case_study/local_tile_geometry_porosity.csv  (162 rows, neighborhoods for 6 target tiles)
+wrote /gpfsm/dnb06/projects/p284/hsaf_cdr_test/footprint_case_study/constants.csv
