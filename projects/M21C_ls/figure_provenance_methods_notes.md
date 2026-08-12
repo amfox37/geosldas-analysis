@@ -1,5 +1,10 @@
 # M21C LS manuscript figure provenance and methods notes
 
+P1-P9 dates, V1-V3 mappings, and sensor availability now come from the shared
+`projects/M21C_ls/config/observing_system_registry.json` registry, validated by
+`projects/M21C_ls/scripts/m21c_periods.py`. The unified paper notebook does not
+maintain an inline copy of those definitions.
+
 Working note for tracing figures in:
 
 - `/Users/amfox/Documents/Publications/SM and SCF paper/draft_033026.docx`

@@ -2,6 +2,18 @@
 
 Land Sweeper (LS) diagnostics for the M21C campaign. Notebooks track LS assimilation performance, ObsFcstAna statistics, and validation at core sites; scripts support time-series generation.
 
+## Shared Observing-System Registry
+
+`config/observing_system_registry.json` is the machine-readable source of truth
+for the P1-P9 observing-system periods, V1-V3 validation periods, sensor
+availability, and segment-length constraints. Both the unified paper notebook
+and new trend/breakpoint work load it through `scripts/m21c_periods.py`.
+
+See `docs/observing_system_period_registry.md` for the period rationale. P7 is
+only 15 months long and is explicitly excluded from period-specific slope
+claims and changepoint detection-agreement scoring under a 24-month minimum
+segment.
+
 ## Notebook Guide
 
 ### Current notebooks
@@ -38,6 +50,14 @@ Land Sweeper (LS) diagnostics for the M21C campaign. Notebooks track LS assimila
 - `notebooks/LS_ofa_figures.ipynb` - OL vs DA figure package generation.
 - `notebooks/LS_compare_OL_DA.ipynb` - compact OL vs DA comparison notebook.
 - `notebooks/tsoil1_climatology.ipynb` - tsoil climatology diagnostics.
+- `notebooks/paper_figures_unified.ipynb` - unified manuscript figures using the shared period registry.
+
+### Trends and breakpoints
+
+- `docs/trends_breakpoints_methods.md` - input contract and statistical guardrails for the replacement trend workflow.
+- `config/trend_breakpoint_variable_selection.json` - phase-1 and phase-2 selections from existing monthly-synthesis products.
+- `scripts/audit_trend_breakpoint_inputs.py` - audit gate for current OL v2/DA v3 monthly inputs.
+- `legacy/trends_2025/` - provenance archive of the superseded 2025 trend exploration.
 
 ### Archived notebooks
 
@@ -53,6 +73,11 @@ Older exploratory notebooks are kept in:
 
 - `scripts/LS_full_TS_insitu_plotter.py`
   - Python driver to regenerate large in-situ plot sets outside notebook execution.
+- `scripts/m21c_periods.py`
+  - Loads and validates the shared observing-system registry.
+- `scripts/audit_trend_breakpoint_inputs.py`
+  - Validates the existing monthly-synthesis coverage, inventory, variables,
+    source experiments, and period constraints before trend calculations.
 
 ## Notebook Runtime/Smoke-Test Runbook
 

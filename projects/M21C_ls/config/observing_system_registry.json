@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "paper_start": "2000-06-01",
+  "paper_end": "2024-05-31",
+  "slope_min_segment_months": 24,
+  "changepoint_min_segment_months": 24,
+  "fine_periods": [
+    {
+      "period_id": "P1",
+      "start": "2000-06-01",
+      "end": "2002-06-30",
+      "label": "MODIS Terra SCF",
+      "validation_id": "V1",
+      "active_observations": "MODIS Terra SCF",
+      "boundary_rationale": "Start of the M21C analysis record",
+      "n_months": 25,
+      "reliable_for_slope": true,
+      "changepoint_detection_exempt": false,
+      "constraint_note": "One month above the 24-month slope floor; interpret slope changes cautiously"
+    },
+    {
+      "period_id": "P2",
+      "start": "2002-07-01",
+      "end": "2007-05-31",
+      "label": "MODIS Terra+Aqua SCF",
+      "validation_id": "V1",
+      "active_observations": "MODIS Terra SCF; MODIS Aqua SCF",
+      "boundary_rationale": "MODIS Aqua SCF begins",
+      "n_months": 59,
+      "reliable_for_slope": true,
+      "changepoint_detection_exempt": false,
+      "constraint_note": ""
+    },
+    {
+      "period_id": "P3",
+      "start": "2007-06-01",
+      "end": "2010-04-30",
+      "label": "SCF + ASCAT-A",
+      "validation_id": "V2",
+      "active_observations": "MODIS Terra/Aqua SCF; ASCAT-A SSM",
+      "boundary_rationale": "ASCAT-A soil-moisture assimilation begins",
+      "n_months": 35,
+      "reliable_for_slope": true,
+      "changepoint_detection_exempt": false,
+      "constraint_note": ""
+    },
+    {
+      "period_id": "P4",
+      "start": "2010-05-01",
+      "end": "2013-03-31",
+      "label": "SCF + ASCAT-A + SMOS",
+      "validation_id": "V2",
+      "active_observations": "MODIS Terra/Aqua SCF; ASCAT-A SSM; SMOS Tb",
+      "boundary_rationale": "SMOS brightness-temperature assimilation begins",
+      "n_months": 35,
+      "reliable_for_slope": true,
+      "changepoint_detection_exempt": false,
+      "constraint_note": ""
+    },
+    {
+      "period_id": "P5",
+      "start": "2013-04-01",
+      "end": "2015-03-31",
+      "label": "SCF + ASCAT-A/B + SMOS",
+      "validation_id": "V2",
+      "active_observations": "MODIS Terra/Aqua SCF; ASCAT-A/B SSM; SMOS Tb",
+      "boundary_rationale": "ASCAT-B soil-moisture assimilation begins",
+      "n_months": 24,
+      "reliable_for_slope": true,
+      "changepoint_detection_exempt": false,
+      "constraint_note": "Exactly at the 24-month slope floor; test slope stability"
+    },
+    {
+      "period_id": "P6",
+      "start": "2015-04-01",
+      "end": "2018-07-31",
+      "label": "SCF + ASCAT-A/B + SMOS + SMAP",
+      "validation_id": "V3",
+      "active_observations": "MODIS Terra/Aqua SCF; ASCAT-A/B SSM; SMOS Tb; SMAP Tb",
+      "boundary_rationale": "SMAP brightness-temperature assimilation begins",
+      "n_months": 40,
+      "reliable_for_slope": true,
+      "changepoint_detection_exempt": false,
+      "constraint_note": ""
+    },
+    {
+      "period_id": "P7",
+      "start": "2018-08-01",
+      "end": "2019-10-31",
+      "label": "SCF + ASCAT-A/B + SMOS + SMAP + CYGNSS",
+      "validation_id": "V3",
+      "active_observations": "MODIS Terra/Aqua SCF; ASCAT-A/B SSM; SMOS Tb; SMAP Tb; CYGNSS reflectivity",
+      "boundary_rationale": "CYGNSS reflectivity assimilation begins",
+      "n_months": 15,
+      "reliable_for_slope": false,
+      "changepoint_detection_exempt": true,
+      "constraint_note": "Too short for a period-specific slope; a 24-month minimum segment cannot detect both P7 boundaries"
+    },
+    {
+      "period_id": "P8",
+      "start": "2019-11-01",
+      "end": "2021-11-30",
+      "label": "SCF + ASCAT-A/B/C + SMOS + SMAP + CYGNSS",
+      "validation_id": "V3",
+      "active_observations": "MODIS Terra/Aqua SCF; ASCAT-A/B/C SSM; SMOS Tb; SMAP Tb; CYGNSS reflectivity",
+      "boundary_rationale": "ASCAT-C soil-moisture assimilation begins",
+      "n_months": 25,
+      "reliable_for_slope": true,
+      "changepoint_detection_exempt": false,
+      "constraint_note": "One month above the 24-month slope floor; interpret slope changes cautiously"
+    },
+    {
+      "period_id": "P9",
+      "start": "2021-12-01",
+      "end": "2024-05-31",
+      "label": "SCF + ASCAT-B/C + SMOS + SMAP + CYGNSS",
+      "validation_id": "V3",
+      "active_observations": "MODIS Terra/Aqua SCF; ASCAT-B/C SSM; SMOS Tb; SMAP Tb; CYGNSS reflectivity",
+      "boundary_rationale": "ASCAT-A soil-moisture assimilation ends",
+      "n_months": 30,
+      "reliable_for_slope": true,
+      "changepoint_detection_exempt": false,
+      "constraint_note": ""
+    }
+  ],
+  "validation_periods": [
+    {
+      "period_id": "V1",
+      "start": "2000-06-01",
+      "end": "2007-05-31",
+      "label": "SCF-only period",
+      "fine_periods": ["P1", "P2"],
+      "n_months": 84
+    },
+    {
+      "period_id": "V2",
+      "start": "2007-06-01",
+      "end": "2015-03-31",
+      "label": "microwave pre-SMAP period",
+      "fine_periods": ["P3", "P4", "P5"],
+      "n_months": 94
+    },
+    {
+      "period_id": "V3",
+      "start": "2015-04-01",
+      "end": "2024-05-31",
+      "label": "SMAP-era microwave period",
+      "fine_periods": ["P6", "P7", "P8", "P9"],
+      "n_months": 110
+    }
+  ],
+  "sensors": [
+    {"sensor": "MODIS Terra SCF", "start": "2000-06-01", "end": "2024-05-31", "group": "Snow cover", "color": "#4c78a8"},
+    {"sensor": "MODIS Aqua SCF", "start": "2002-07-01", "end": "2024-05-31", "group": "Snow cover", "color": "#72b7b2"},
+    {"sensor": "ASCAT-A SSM", "start": "2007-06-01", "end": "2021-11-30", "group": "Active microwave", "color": "#f58518"},
+    {"sensor": "ASCAT-B SSM", "start": "2013-04-01", "end": "2024-05-31", "group": "Active microwave", "color": "#e45756"},
+    {"sensor": "ASCAT-C SSM", "start": "2019-11-01", "end": "2024-05-31", "group": "Active microwave", "color": "#b279a2"},
+    {"sensor": "SMOS Tb", "start": "2010-05-01", "end": "2024-05-31", "group": "Passive microwave", "color": "#54a24b"},
+    {"sensor": "SMAP Tb", "start": "2015-04-01", "end": "2024-05-31", "group": "Passive microwave", "color": "#9d755d"},
+    {"sensor": "CYGNSS reflectivity", "start": "2018-08-01", "end": "2024-05-31", "group": "GNSS-R", "color": "#ff9da6"}
+  ]
+}
