@@ -81,9 +81,13 @@ def run_validation(
         result = compute_trend_statistics(data, config=config, n_jobs=n_jobs)
         success = result["status"].values == 0
         estimates = result["slope"].values[success]
-        ci_cover = (
+        adjusted_ci_cover = (
             (result["slope_ci_low"].values[success] <= true_slope)
             & (result["slope_ci_high"].values[success] >= true_slope)
+        )
+        nominal_ci_cover = (
+            (result["slope_ci_low_nominal"].values[success] <= true_slope)
+            & (result["slope_ci_high_nominal"].values[success] >= true_slope)
         )
         rows.append(
             {
@@ -102,9 +106,15 @@ def run_validation(
                 "median_slope": float(np.median(estimates)),
                 "slope_bias": float(np.mean(estimates - true_slope)),
                 "slope_rmse": float(np.sqrt(np.mean((estimates - true_slope) ** 2))),
-                "theil_sen_ci_coverage": float(np.mean(ci_cover)),
-                "median_lag1_autocorrelation": float(
-                    np.nanmedian(result["lag1_autocorrelation"].values[success])
+                "adjusted_theil_sen_ci_coverage": float(np.mean(adjusted_ci_cover)),
+                "nominal_theil_sen_ci_coverage": float(np.mean(nominal_ci_cover)),
+                "median_lag1_residual_pearson_autocorrelation": float(
+                    np.nanmedian(
+                        result["lag1_residual_pearson_autocorrelation"].values[success]
+                    )
+                ),
+                "median_lag1_rank_autocorrelation": float(
+                    np.nanmedian(result["lag1_rank_autocorrelation"].values[success])
                 ),
                 "median_mk_variance_factor": float(
                     np.nanmedian(result["mk_variance_factor"].values[success])

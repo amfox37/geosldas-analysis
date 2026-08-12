@@ -6,6 +6,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import numpy as np
+
 from trend_breakpoint_series import DEFAULT_DATA_DIR, MonthlySeriesLoader
 from trend_statistics import DEFAULT_CONFIG, compute_trend_statistics, load_trend_config
 
@@ -89,6 +91,15 @@ def main() -> int:
     }
     result.to_netcdf(output_path, encoding=encoding)
     print(f"Wrote {output_path}")
+    month_counts = result["n_calendar_months_used"].values
+    unique_counts, frequencies = np.unique(month_counts, return_counts=True)
+    print(
+        "Calendar months retained (count: tiles): "
+        + ", ".join(
+            f"{int(count)}: {int(frequency)}"
+            for count, frequency in zip(unique_counts, frequencies)
+        )
+    )
     print(result)
     return 0
 

@@ -95,6 +95,7 @@ def test_calendar_anomaly_theil_sen_recovers_known_slope() -> None:
     assert result["slope_ci_low"] <= 0.02 <= result["slope_ci_high"]
     assert result["p_value"] < 1.0e-10
     assert result["mk_variance_factor"] == 1.0
+    assert result["calendar_month_mask"] == 4095
 
 
 def test_valid_fraction_uses_eligible_months_as_denominator() -> None:
@@ -137,7 +138,8 @@ def test_positive_autocorrelation_only_inflates_mk_variance() -> None:
     )
 
     assert result["status"] == 0
-    assert result["lag1_autocorrelation"] > 0.5
+    assert result["lag1_residual_pearson_autocorrelation"] > 0.5
+    assert result["lag1_rank_autocorrelation"] > 0.5
     assert result["mk_variance_factor"] > 1.0
     assert result["n_positive_autocorrelation_lags"] > 0
     assert result["p_value"] >= result["p_value_original_mk"]
@@ -167,7 +169,12 @@ def test_known_ar1_trends_are_recovered_and_detected_after_fdr() -> None:
     assert (result["status"] == 0).all()
     np.testing.assert_allclose(result["slope"], slopes, atol=0.003)
     assert int(result["significant_fdr"].sum()) >= 22
+    assert bool(result["ci_excludes_zero"].where(result["significant_fdr"], True).all())
     assert (result["p_value"] >= result["p_value_original_mk"]).all()
+    assert (
+        (result["slope_ci_high"] - result["slope_ci_low"])
+        >= (result["slope_ci_high_nominal"] - result["slope_ci_low_nominal"])
+    ).all()
 
 
 def test_autocorrelated_no_trend_field_has_controlled_fdr_false_positives() -> None:
@@ -181,6 +188,39 @@ def test_autocorrelated_no_trend_field_has_controlled_fdr_false_positives() -> N
     assert (result["status"] == 0).all()
     assert int(result["significant_fdr"].sum()) <= 2
     assert float(np.median(result["mk_variance_factor"])) > 1.0
+
+
+def test_adjusted_ci_widens_under_ar1_and_can_restore_zero() -> None:
+    rng = np.random.default_rng(314)
+    values = 0.0035 * TIME_YEARS + _ar1_noise(rng, TIME.size, 1, 0.92, 0.06)[:, 0]
+    result = analyze_monthly_series(
+        values, np.ones(TIME.size, dtype=bool), TIME_YEARS, MONTHS, _config()
+    )
+
+    nominal_width = result["slope_ci_high_nominal"] - result["slope_ci_low_nominal"]
+    adjusted_width = result["slope_ci_high"] - result["slope_ci_low"]
+    assert result["mk_variance_factor"] > 1.0
+    assert adjusted_width == pytest.approx(
+        nominal_width * np.sqrt(result["mk_variance_factor"])
+    )
+    if result["p_value"] >= 0.05:
+        assert result["slope_ci_low"] <= 0 <= result["slope_ci_high"]
+
+
+def test_calendar_month_retention_is_exposed_per_tile() -> None:
+    eligible = np.ones((TIME.size, 2), dtype=bool)
+    eligible[TIME.month == 2, 1] = False
+    values = np.column_stack([0.01 * TIME_YEARS, 0.01 * TIME_YEARS])
+    result = compute_trend_statistics(
+        _data_array(values),
+        xr.DataArray(eligible, dims=("time", "tile"), coords={"time": TIME, "tile": [0, 1]}),
+        config=_config(),
+    )
+
+    assert int(result["n_calendar_months_used"].sel(tile=0)) == 12
+    assert int(result["n_calendar_months_used"].sel(tile=1)) == 11
+    assert bool(result["calendar_month_used"].sel(tile=0, month=2))
+    assert not bool(result["calendar_month_used"].sel(tile=1, month=2))
 
 
 def test_parallel_and_serial_results_match() -> None:

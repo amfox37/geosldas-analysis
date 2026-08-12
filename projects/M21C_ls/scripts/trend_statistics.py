@@ -30,10 +30,13 @@ METRIC_NAMES = [
     "intercept",
     "slope_ci_low",
     "slope_ci_high",
+    "slope_ci_low_nominal",
+    "slope_ci_high_nominal",
     "p_value",
     "p_value_original_mk",
     "mk_variance_factor",
-    "lag1_autocorrelation",
+    "lag1_residual_pearson_autocorrelation",
+    "lag1_rank_autocorrelation",
     "n_positive_autocorrelation_lags",
     "n_eligible",
     "n_valid",
@@ -41,6 +44,7 @@ METRIC_NAMES = [
     "valid_fraction",
     "span_years",
     "status",
+    "calendar_month_mask",
 ]
 
 
@@ -94,10 +98,11 @@ def calendar_month_anomalies(
     months: np.ndarray,
     valid: np.ndarray,
     minimum_samples: int,
-) -> np.ndarray:
+) -> tuple[np.ndarray, int]:
     """Remove seasonality while preserving a preliminary exact Sen trend."""
 
     adjusted = np.full(values.shape, np.nan, dtype="float64")
+    calendar_month_mask = 0
     if int(valid.sum()) < 2 or np.ptp(values[valid]) == 0:
         preliminary_slope = 0.0
     else:
@@ -110,7 +115,8 @@ def calendar_month_anomalies(
         if int(use.sum()) >= minimum_samples:
             seasonal_climatology = float(np.mean(detrended[use]))
             adjusted[use] = values[use] - seasonal_climatology
-    return adjusted
+            calendar_month_mask |= 1 << (month - 1)
+    return adjusted, calendar_month_mask
 
 
 def _tie_counts(values: np.ndarray) -> np.ndarray:
@@ -166,7 +172,7 @@ def modified_mk_test(
     slope: float,
     intercept: float,
     config: dict[str, Any],
-) -> tuple[float, float, float, float, int]:
+) -> tuple[float, float, float, float, float, int]:
     """Return conservative Hamed-Rao-style modified MK diagnostics.
 
     The variance correction uses significant positive rank autocorrelation from
@@ -180,14 +186,14 @@ def modified_mk_test(
     score, variance = _mann_kendall_score_and_variance(values)
     original_p = _normal_two_sided_p(score, variance)
     if values.size < 4 or variance <= 0:
-        return 1.0, original_p, 1.0, np.nan, 0
+        return 1.0, original_p, 1.0, np.nan, np.nan, 0
 
     residual = np.full(adjusted.shape, np.nan, dtype="float64")
     residual[finite] = adjusted[finite] - (intercept + slope * time_years[finite])
     residual_values = residual[finite]
     residual_scale = max(1.0, float(np.nanmax(np.abs(adjusted[finite]))))
     if np.ptp(residual_values) <= 1.0e-12 * residual_scale:
-        return original_p, original_p, 1.0, np.nan, 0
+        return original_p, original_p, 1.0, np.nan, np.nan, 0
     ranks = np.full(adjusted.shape, np.nan, dtype="float64")
     ranks[finite] = rankdata(residual_values, method="average")
 
@@ -204,7 +210,8 @@ def modified_mk_test(
     n = values.size
     weighted_rho = 0.0
     n_positive = 0
-    lag1 = _pearson_pair(residual[:-1], residual[1:], minimum_pairs)
+    lag1_pearson = _pearson_pair(residual[:-1], residual[1:], minimum_pairs)
+    lag1_rank = _pearson_pair(ranks[:-1], ranks[1:], minimum_pairs)
     for lag in range(1, max_lag + 1):
         pair_mask = np.isfinite(ranks[:-lag]) & np.isfinite(ranks[lag:])
         n_pair = int(pair_mask.sum())
@@ -224,7 +231,7 @@ def modified_mk_test(
     factor = 1.0 + (2.0 * weighted_rho / denominator if denominator > 0 else 0.0)
     factor = max(float(settings["minimum_variance_factor"]), factor)
     corrected_p = _normal_two_sided_p(score, variance * factor)
-    return corrected_p, original_p, factor, lag1, n_positive
+    return corrected_p, original_p, factor, lag1_pearson, lag1_rank, n_positive
 
 
 def _empty_result(
@@ -235,6 +242,7 @@ def _empty_result(
     valid_fraction: float,
     span_years: float,
     status: int,
+    calendar_month_mask: int = 0,
 ) -> dict[str, float]:
     result = {name: np.nan for name in METRIC_NAMES}
     result.update(
@@ -245,6 +253,7 @@ def _empty_result(
             "valid_fraction": float(valid_fraction),
             "span_years": float(span_years),
             "status": float(status),
+            "calendar_month_mask": float(calendar_month_mask),
         }
     )
     return result
@@ -303,7 +312,7 @@ def analyze_monthly_series(
         )
 
     if config["seasonal_adjustment"] == "trend_preserving_calendar_month_anomaly":
-        adjusted = calendar_month_anomalies(
+        adjusted, calendar_month_mask = calendar_month_anomalies(
             values,
             time_years,
             months,
@@ -312,6 +321,9 @@ def analyze_monthly_series(
         )
     else:
         adjusted = np.where(valid, values, np.nan)
+        calendar_month_mask = sum(
+            1 << (month - 1) for month in range(1, 13) if np.any(valid & (months == month))
+        )
     trend_mask = np.isfinite(adjusted)
     n_trend = int(trend_mask.sum())
     if n_trend < int(config["minimum_valid_months"]):
@@ -322,6 +334,7 @@ def analyze_monthly_series(
             valid_fraction=valid_fraction,
             span_years=span_years,
             status=4,
+            calendar_month_mask=calendar_month_mask,
         )
 
     x = time_years[trend_mask]
@@ -343,18 +356,24 @@ def analyze_monthly_series(
         low_slope = float(estimate.low_slope)
         high_slope = float(estimate.high_slope)
 
-    p_value, original_p, factor, lag1, n_positive = modified_mk_test(
+    p_value, original_p, factor, lag1_pearson, lag1_rank, n_positive = modified_mk_test(
         adjusted, time_years, slope, intercept, config
     )
+    ci_inflation = math.sqrt(factor)
+    adjusted_low_slope = slope - (slope - low_slope) * ci_inflation
+    adjusted_high_slope = slope + (high_slope - slope) * ci_inflation
     return {
         "slope": slope,
         "intercept": intercept,
-        "slope_ci_low": low_slope,
-        "slope_ci_high": high_slope,
+        "slope_ci_low": adjusted_low_slope,
+        "slope_ci_high": adjusted_high_slope,
+        "slope_ci_low_nominal": low_slope,
+        "slope_ci_high_nominal": high_slope,
         "p_value": p_value,
         "p_value_original_mk": original_p,
         "mk_variance_factor": factor,
-        "lag1_autocorrelation": lag1,
+        "lag1_residual_pearson_autocorrelation": lag1_pearson,
+        "lag1_rank_autocorrelation": lag1_rank,
         "n_positive_autocorrelation_lags": float(n_positive),
         "n_eligible": float(n_eligible),
         "n_valid": float(n_valid),
@@ -362,6 +381,7 @@ def analyze_monthly_series(
         "valid_fraction": float(valid_fraction),
         "span_years": span_years,
         "status": 0.0,
+        "calendar_month_mask": float(calendar_month_mask),
     }
 
 
@@ -444,6 +464,21 @@ def compute_trend_statistics(
         output_arrays["p_value"], alpha=float(settings["fdr"]["alpha"])
     )
     output_arrays["q_value"] = q_value
+    calendar_month_mask = output_arrays.pop("calendar_month_mask").astype("int16")
+    month_numbers = np.arange(1, 13, dtype="int16")
+    calendar_month_used = (
+        calendar_month_mask[:, None]
+        & (1 << np.arange(12, dtype="int16"))[None, :]
+    ) != 0
+    ci_excludes_zero = (output_arrays["slope_ci_low"] > 0) | (
+        output_arrays["slope_ci_high"] < 0
+    )
+    inconsistent_significance = significant & ~ci_excludes_zero
+    if np.any(inconsistent_significance):
+        raise RuntimeError(
+            "FDR-significant tiles must exclude zero in the autocorrelation-adjusted "
+            f"slope interval; found {int(inconsistent_significance.sum())} inconsistencies"
+        )
 
     coords: dict[str, Any] = {"tile": values.tile.values}
     for name in ("lat", "lon", "tile_area"):
@@ -454,19 +489,43 @@ def compute_trend_statistics(
         coords=coords,
     )
     output["significant_fdr"] = ("tile", significant)
+    output["ci_excludes_zero"] = (
+        "tile",
+        ci_excludes_zero,
+    )
+    output["calendar_month_used"] = (
+        ("tile", "month"),
+        calendar_month_used,
+    )
+    output = output.assign_coords(month=month_numbers)
+    output["n_calendar_months_used"] = output["calendar_month_used"].sum("month").astype(
+        "int16"
+    )
     output["status"] = output["status"].astype("int16")
     for name in ("n_eligible", "n_valid", "n_trend", "n_positive_autocorrelation_lags"):
         output[name] = output[name].fillna(-1).astype("int32")
 
     source_units = str(values.attrs.get("units", ""))
     slope_units = f"{source_units} yr-1".strip()
-    for name in ("slope", "slope_ci_low", "slope_ci_high"):
+    for name in (
+        "slope",
+        "slope_ci_low",
+        "slope_ci_high",
+        "slope_ci_low_nominal",
+        "slope_ci_high_nominal",
+    ):
         output[name].attrs["units"] = slope_units
     output["slope"].attrs["long_name"] = "exact Theil-Sen slope per year"
     output["slope_ci_low"].attrs[
         "long_name"
-    ] = "lower nominal independent-sample Theil-Sen slope confidence limit"
+    ] = "lower first-order autocorrelation-adjusted Theil-Sen slope confidence limit"
     output["slope_ci_high"].attrs[
+        "long_name"
+    ] = "upper first-order autocorrelation-adjusted Theil-Sen slope confidence limit"
+    output["slope_ci_low_nominal"].attrs[
+        "long_name"
+    ] = "lower nominal independent-sample Theil-Sen slope confidence limit"
+    output["slope_ci_high_nominal"].attrs[
         "long_name"
     ] = "upper nominal independent-sample Theil-Sen slope confidence limit"
     output["intercept"].attrs["units"] = source_units
@@ -476,7 +535,14 @@ def compute_trend_statistics(
         units="1",
         long_name="conservative Hamed-Rao-style Mann-Kendall variance inflation",
     )
-    output["lag1_autocorrelation"].attrs["units"] = "1"
+    output["lag1_residual_pearson_autocorrelation"].attrs.update(
+        units="1",
+        long_name="lag-1 Pearson autocorrelation of Sen-detrended residuals",
+    )
+    output["lag1_rank_autocorrelation"].attrs.update(
+        units="1",
+        long_name="lag-1 rank autocorrelation used by modified Mann-Kendall",
+    )
     output["p_value"].attrs["long_name"] = "modified Mann-Kendall two-sided p-value"
     output["p_value_original_mk"].attrs[
         "long_name"
@@ -486,6 +552,18 @@ def compute_trend_statistics(
     output["significant_fdr"].attrs.update(
         long_name="modified Mann-Kendall result significant after BH FDR",
         alpha=float(settings["fdr"]["alpha"]),
+    )
+    output["ci_excludes_zero"].attrs.update(
+        long_name="autocorrelation-adjusted pointwise 95% slope interval excludes zero",
+        note="Pointwise interval diagnostic; mapped significance must use significant_fdr",
+    )
+    output["calendar_month_used"].attrs.update(
+        long_name="calendar month retained after seasonal-adjustment sample gate",
+        units="1",
+    )
+    output["n_calendar_months_used"].attrs.update(
+        long_name="number of calendar months retained for trend estimation",
+        units="1",
     )
     output["status"].attrs.update(
         long_name="trend calculation status",

@@ -121,9 +121,14 @@ the original series. This avoids turning a perfectly linear monthly trend into
 an artificial annual step function.
 
 The reported slope is the exact Theil-Sen median pairwise slope in source units
-per year. SciPy's nominal 95% Sen slope limits are retained as descriptive
-diagnostics. They are not autocorrelation-adjusted and must not be used as the
-primary significance test; synthetic AR(1) validation confirms undercoverage.
+per year. SciPy's nominal 95% Sen limits are retained as
+`slope_ci_*_nominal`. The primary `slope_ci_*` interval expands each nominal
+half-width by the square root of the same Hamed-Rao variance factor used for
+significance. This is a first-order autocorrelation adjustment, not a replacement
+for a block-bootstrap interval. `ci_excludes_zero` is a pointwise diagnostic;
+mapped significance must use `significant_fdr`. Every FDR-significant result is
+required to exclude zero in the adjusted interval, but the converse is not
+expected because FDR addresses the full family of tile tests.
 
 Significance uses a conservative adaptation of the Hamed-Rao modified
 Mann-Kendall variance correction (Hamed and Rao, 1998,
@@ -135,13 +140,28 @@ correction. Benjamini-Hochberg FDR at 0.05 is then applied across all finite
 tiles in the output. Production FDR must therefore be calculated in a complete
 field run, not independently in spatial chunks.
 
+With intermittent eligibility or missing values, lag correlations pair values
+that remain separated by the requested calendar-month lag, while the Hamed-Rao
+weight uses the valid observation count. This is a documented gap-aware
+approximation to the regularly sampled formula. `lag1_rank_autocorrelation`
+reports the rank correlation used by the correction;
+`lag1_residual_pearson_autocorrelation` is retained as a familiar residual
+diagnostic and is not used in the variance factor.
+
 `scripts/build_trend_statistics.py` writes the tile-level NetCDF contract. In
-addition to support, slope, nominal slope limits, corrected and ordinary
-p-values, and BH q-values, it records lag-1 residual autocorrelation, variance
-inflation, the number of positive autocorrelation lags, and FDR significance.
+addition to support, slope, nominal and adjusted slope limits, corrected and
+ordinary p-values, and BH q-values, it records both lag-1 autocorrelation
+diagnostics, variance inflation, the number of positive autocorrelation lags,
+and FDR significance.
 Because BH correction depends on the complete family of tests, spatial subset
 runs require an explicit diagnostic output path and are labeled as non-global
 FDR. Only a complete-mask run supplies production FDR values.
+
+Calendar months failing the configured climatology sample count are omitted
+from the adjusted trend series. The output exposes a `calendar_month_used`
+matrix and `n_calendar_months_used` per tile, and the builder prints their tile
+frequency distribution. This makes seasonally selective dropping visible in
+both NetCDF diagnostics and run logs.
 
 `scripts/validate_trend_statistics.py` measures false positives and power on
 288-month synthetic fields with a fixed seasonal cycle and white or AR(1)
@@ -149,7 +169,9 @@ noise. With seed 20260812 and 100 series per scenario, the default configuration
 gave 3% pointwise modified-MK positives and 0% BH detections for white-noise
 no-trend series; 12% pointwise positives but 0% BH detections for AR(1)=0.8
 no-trend series; and 100% BH detection for AR(1)=0.8 trends of +/-0.02 units per
-year. These are regression benchmarks, not universal operating characteristics.
+year. Nominal Sen coverage was 43-56% in the AR(1) scenarios; first-order
+adjusted coverage was 87-97%. These are regression benchmarks, not universal
+operating characteristics.
 
 ## Audit gate
 
