@@ -55,8 +55,11 @@ segment.
 ### Trends and breakpoints
 
 - `docs/trends_breakpoints_methods.md` - input contract and statistical guardrails for the replacement trend workflow.
+- `config/trend_breakpoint_inputs.json` - monthly file, source, dimension, date, and tile-area contract.
 - `config/trend_breakpoint_variable_selection.json` - phase-1 and phase-2 selections from existing monthly-synthesis products.
 - `scripts/audit_trend_breakpoint_inputs.py` - audit gate for current OL v2/DA v3 monthly inputs.
+- `scripts/trend_breakpoint_series.py` - paired OL/DA tile loader, synthesis masks, and area-weighted monthly series.
+- `tests/test_trend_breakpoint_series.py` - focused tests for pairing, units, masks, weights, signs, dates, and missing data.
 - `legacy/trends_2025/` - provenance archive of the superseded 2025 trend exploration.
 
 ### Archived notebooks
@@ -78,6 +81,16 @@ Older exploratory notebooks are kept in:
 - `scripts/audit_trend_breakpoint_inputs.py`
   - Validates the existing monthly-synthesis coverage, inventory, variables,
     source experiments, and period constraints before trend calculations.
+- `scripts/trend_breakpoint_series.py`
+  - Loads audited monthly products with strict OL/DA pairing, M36 tile-area
+    weighting, explicit monthly-rate conversion, and shared snow/warm masks.
+
+Run the trend input gate and focused loader tests with:
+
+```bash
+python projects/M21C_ls/scripts/audit_trend_breakpoint_inputs.py --no-write
+python -m pytest projects/M21C_ls/tests/test_trend_breakpoint_series.py -q
+```
 
 ## Notebook Runtime/Smoke-Test Runbook
 

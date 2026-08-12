@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "record_start": "2000-06-01",
+  "record_end": "2024-05-01",
+  "n_months": 288,
+  "n_tiles": 112573,
+  "tilecoord_file": "LS_OLv8_M36.ldas_tilecoord.bin",
+  "tile_area_units": "km2",
+  "datasets": {
+    "ol_land": {
+      "filename": "OLv8_land_variables_2000_2024_compressed.nc",
+      "experiment": "ol",
+      "family": "land",
+      "source_token": "LS_OLv8_M36_v2"
+    },
+    "da_land": {
+      "filename": "DAv8_land_variables_2000_2024_compressed.nc",
+      "experiment": "da",
+      "family": "land",
+      "source_token": "LS_DAv8_M36_v3"
+    },
+    "catch_raw_cumulative": {
+      "filename": "catch_progn_raw_monthly_cumulative_200006_202405.nc",
+      "experiment": "da",
+      "family": "catch_raw_cumulative",
+      "source_token": "LS_DAv8_M36_v3"
+    },
+    "inst3_raw_diagnostic": {
+      "filename": "inst3_fcstana_raw_monthly_diagnostic_200006_202405.nc",
+      "experiment": "da",
+      "family": "inst3_raw_diagnostic",
+      "source_token": "LS_DAv8_M36_v3"
+    },
+    "ol_flux_core": {
+      "filename": "OLv8_flux_core_2000_2024_compressed.nc",
+      "experiment": "ol",
+      "family": "flux_core",
+      "source_token": "LS_OLv8_M36_v2"
+    },
+    "da_flux_core": {
+      "filename": "DAv8_flux_core_2000_2024_compressed.nc",
+      "experiment": "da",
+      "family": "flux_core",
+      "source_token": "LS_DAv8_M36_v3"
+    },
+    "ol_latent_components": {
+      "filename": "OLv8_latent_components_2000_2024_compressed.nc",
+      "experiment": "ol",
+      "family": "latent_components",
+      "source_token": "LS_OLv8_M36_v2"
+    },
+    "da_latent_components": {
+      "filename": "DAv8_latent_components_2000_2024_compressed.nc",
+      "experiment": "da",
+      "family": "latent_components",
+      "source_token": "LS_DAv8_M36_v3"
+    },
+    "ol_water_budget": {
+      "filename": "OLv8_water_budget_2000_2024_compressed.nc",
+      "experiment": "ol",
+      "family": "water_budget",
+      "source_token": "LS_OLv8_M36_v2"
+    },
+    "da_water_budget": {
+      "filename": "DAv8_water_budget_2000_2024_compressed.nc",
+      "experiment": "da",
+      "family": "water_budget",
+      "source_token": "LS_DAv8_M36_v3"
+    },
+    "ol_energy_context": {
+      "filename": "OLv8_energy_context_2000_2024_compressed.nc",
+      "experiment": "ol",
+      "family": "energy_context",
+      "source_token": "LS_OLv8_M36_v2"
+    },
+    "da_energy_context": {
+      "filename": "DAv8_energy_context_2000_2024_compressed.nc",
+      "experiment": "da",
+      "family": "energy_context",
+      "source_token": "LS_DAv8_M36_v3"
+    }
+  }
+}

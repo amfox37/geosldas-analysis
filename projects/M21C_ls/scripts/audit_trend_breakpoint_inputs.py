@@ -22,38 +22,7 @@ DEFAULT_DATA_DIR = Path(
 DEFAULT_DIAGNOSTICS_DIR = PROJECT_ROOT / "output" / "monthly_synthesis_diagnostics"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "output" / "trends_breakpoints"
 DEFAULT_SELECTION = PROJECT_ROOT / "config" / "trend_breakpoint_variable_selection.json"
-
-EXPECTED_START = pd.Timestamp("2000-06-01")
-EXPECTED_END = pd.Timestamp("2024-05-01")
-EXPECTED_MONTHS = 288
-EXPECTED_TILES = 112_573
-
-DATASETS = {
-    "ol_land": ("OLv8_land_variables_2000_2024_compressed.nc", "LS_OLv8_M36_v2"),
-    "da_land": ("DAv8_land_variables_2000_2024_compressed.nc", "LS_DAv8_M36_v3"),
-    "catch_raw_cumulative": (
-        "catch_progn_raw_monthly_cumulative_200006_202405.nc",
-        "LS_DAv8_M36_v3",
-    ),
-    "inst3_raw_diagnostic": (
-        "inst3_fcstana_raw_monthly_diagnostic_200006_202405.nc",
-        "LS_DAv8_M36_v3",
-    ),
-    "ol_flux_core": ("OLv8_flux_core_2000_2024_compressed.nc", "LS_OLv8_M36_v2"),
-    "da_flux_core": ("DAv8_flux_core_2000_2024_compressed.nc", "LS_DAv8_M36_v3"),
-    "ol_latent_components": (
-        "OLv8_latent_components_2000_2024_compressed.nc",
-        "LS_OLv8_M36_v2",
-    ),
-    "da_latent_components": (
-        "DAv8_latent_components_2000_2024_compressed.nc",
-        "LS_DAv8_M36_v3",
-    ),
-    "ol_water_budget": ("OLv8_water_budget_2000_2024_compressed.nc", "LS_OLv8_M36_v2"),
-    "da_water_budget": ("DAv8_water_budget_2000_2024_compressed.nc", "LS_DAv8_M36_v3"),
-    "ol_energy_context": ("OLv8_energy_context_2000_2024_compressed.nc", "LS_OLv8_M36_v2"),
-    "da_energy_context": ("DAv8_energy_context_2000_2024_compressed.nc", "LS_DAv8_M36_v3"),
-}
+DEFAULT_INPUT_CONTRACT = PROJECT_ROOT / "config" / "trend_breakpoint_inputs.json"
 
 
 def sha256sum(path: Path) -> str:
@@ -70,12 +39,6 @@ def load_selection(path: Path) -> pd.DataFrame:
     if frame["analysis_variable"].duplicated().any():
         raise ValueError("Duplicate analysis_variable entries in variable selection")
     return frame
-
-
-def source_family(dataset: str) -> str:
-    if dataset.startswith("ol_") or dataset.startswith("da_"):
-        return dataset.split("_", 1)[1]
-    return dataset
 
 
 def add_check(rows: list[dict], check: str, passed: bool, detail: str) -> None:
@@ -115,13 +78,35 @@ def audit(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.DataFrame]:
     inventory = pd.read_csv(inventory_path)
     variable_registry = pd.read_csv(variable_registry_path)
     selection = load_selection(args.variable_selection)
+    input_contract = json.loads(args.input_contract.read_text())
+    dataset_contracts = input_contract["datasets"]
+    expected_start = pd.Timestamp(input_contract["record_start"])
+    expected_end = pd.Timestamp(input_contract["record_end"])
+    expected_months = int(input_contract["n_months"])
+    expected_tiles = int(input_contract["n_tiles"])
+    tilecoord_path = args.data_dir / input_contract["tilecoord_file"]
 
-    expected_time = pd.date_range(EXPECTED_START, EXPECTED_END, freq="MS")
+    expected_time = pd.date_range(expected_start, expected_end, freq="MS")
+    add_check(
+        checks,
+        "input_contract_time",
+        len(expected_time) == expected_months,
+        f"{expected_start.date()} to {expected_end.date()}, months={expected_months}",
+    )
+    add_check(checks, "tilecoord_exists", tilecoord_path.exists(), str(tilecoord_path))
+    add_check(
+        checks,
+        "tile_area_units",
+        input_contract.get("tile_area_units") == "km2",
+        str(input_contract.get("tile_area_units", "missing")),
+    )
     actual_variables: dict[str, set[str]] = {}
     actual_units: dict[tuple[str, str], str] = {}
     actual_dims: dict[tuple[str, str], str] = {}
 
-    for dataset, (filename, source_token) in DATASETS.items():
+    for dataset, spec in dataset_contracts.items():
+        filename = spec["filename"]
+        source_token = spec["source_token"]
         path = args.data_dir / filename
         if not path.exists():
             add_check(checks, f"dataset_exists:{dataset}", False, str(path))
@@ -156,7 +141,7 @@ def audit(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.DataFrame]:
         add_check(
             checks,
             f"dataset_shape:{dataset}",
-            n_time == EXPECTED_MONTHS and n_tile == EXPECTED_TILES,
+            n_time == expected_months and n_tile == expected_tiles,
             f"time={n_time}, tile={n_tile}",
         )
         add_check(
@@ -187,8 +172,19 @@ def audit(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.DataFrame]:
     inventory_index = inventory.set_index(["file", "variable"])
     registry_index = variable_registry.set_index(["source", "variable"])
     for selected in selection.itertuples(index=False):
-        datasets = [name for name in (selected.ol_dataset, selected.da_dataset) if name]
-        for dataset in datasets:
+        selected_dataset_keys = [
+            name for name in (selected.ol_dataset, selected.da_dataset) if name
+        ]
+        for dataset in selected_dataset_keys:
+            in_contract = dataset in dataset_contracts
+            add_check(
+                checks,
+                f"input_contract:{selected.analysis_variable}:{dataset}",
+                in_contract,
+                dataset,
+            )
+            if not in_contract:
+                continue
             variable = selected.source_variable
             exists = dataset in actual_variables and variable in actual_variables[dataset]
             add_check(
@@ -200,7 +196,7 @@ def audit(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.DataFrame]:
             if not exists:
                 continue
 
-            filename = DATASETS[dataset][0]
+            filename = dataset_contracts[dataset]["filename"]
             inventory_key = (filename, variable)
             in_inventory = inventory_key in inventory_index.index
             detail = "missing from input inventory"
@@ -220,7 +216,7 @@ def audit(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.DataFrame]:
                 detail,
             )
 
-            registry_key = (source_family(dataset), variable)
+            registry_key = (dataset_contracts[dataset]["family"], variable)
             add_check(
                 checks,
                 f"variable_registry:{selected.analysis_variable}:{dataset}",
@@ -251,6 +247,7 @@ def parse_args() -> argparse.Namespace:
         default=PROJECT_ROOT / "config" / "observing_system_registry.json",
     )
     parser.add_argument("--variable-selection", type=Path, default=DEFAULT_SELECTION)
+    parser.add_argument("--input-contract", type=Path, default=DEFAULT_INPUT_CONTRACT)
     parser.add_argument("--sha256", action="store_true", help="Hash all monthly input files")
     parser.add_argument("--no-write", action="store_true", help="Validate without writing reports")
     return parser.parse_args()

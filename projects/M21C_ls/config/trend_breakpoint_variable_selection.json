@@ -17,7 +17,7 @@
     ["SNODPLAND", "ol_land", "da_land", "SNODPLAND", "paired_state", 1, "trend_of_DA_minus_OL", "Use locally snowy-month sensitivity analysis"],
     ["FRLANDSNO", "ol_land", "da_land", "FRLANDSNO", "paired_state", 1, "trend_of_DA_minus_OL", ""],
     ["TSOIL1", "ol_land", "da_land", "TSOIL1", "paired_state", 1, "trend_of_DA_minus_OL", "Temperature context and masking variable"],
-    ["PRECTOTCORRLAND", "ol_land", "da_land", "PRECTOTCORRLAND", "paired_state", 1, "trend_of_DA_minus_OL", "Forcing/control diagnostic"],
+    ["PRECTOTCORRLAND", "ol_land", "da_land", "PRECTOTCORRLAND", "paired_flux", 1, "trend_of_DA_minus_OL", "Forcing/control diagnostic; convert monthly mean rate to a monthly total"],
     ["snow_net", "", "catch_raw_cumulative", "snow_net", "cumulative_prognostic_increment", 1, "signed_trend", "Monthly cumulative raw snow-water correction"],
     ["snow_abs_netpack", "", "catch_raw_cumulative", "snow_abs_netpack", "cumulative_prognostic_increment", 1, "activity_trend", "Monthly cumulative absolute net snow activity"],
     ["soil_water_net_approx", "", "catch_raw_cumulative", "soil_water_net_approx", "cumulative_prognostic_increment", 1, "signed_trend", "SRFEXC plus RZEXC minus CATDEF"],

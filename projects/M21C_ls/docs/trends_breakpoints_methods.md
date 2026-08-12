@@ -23,6 +23,11 @@ datasets. The Analysis D table supplies existing area-weighted regional series
 where its domain and variable coverage match a trend question. Tile-level work
 reads the same validated monthly NetCDF products listed by the inventory.
 
+`config/trend_breakpoint_inputs.json` is the machine-readable file contract for
+those products. It records filenames, experiment/family ownership, source-root
+tokens, expected dimensions and dates, and the tile-coordinate file. Both the
+audit and series loader read this contract so they cannot silently diverge.
+
 ## Increment contract
 
 - `catch_raw_cumulative` contains raw prognostic water/mass increments summed
@@ -48,6 +53,31 @@ statistical implementation passes synthetic and real-data validation.
 For paired OL/DA quantities, the primary assimilation-impact estimand is the
 trend of the paired `DA - OL` monthly series. The workflow will not define the
 impact by subtracting two Theil-Sen slopes.
+
+## Shared monthly-series loader
+
+`scripts/trend_breakpoint_series.py` supplies the only new analysis-facing
+loader. It validates each opened dataset against the input contract and returns:
+
+- strictly paired OL, DA, and `DA - OL` tile fields for model variables;
+- unchanged monthly values for DA-only cumulative prognostic increments and
+  ANA-minus-FCST diagnostic statistics;
+- monthly water totals only when a source field is explicitly a monthly mean
+  rate in `kg m-2 s-1`;
+- area-weighted domain means together with the contributing tile count and
+  represented area for every month.
+
+The tile weights are the M36 land-tile areas from the GEOS LDAS tile-coordinate
+file, in `km2`. Missing OL or DA values are cross-masked before any paired mean
+or difference is calculated. There is no unweighted fallback.
+
+The loader also centralizes the masks already used by the monthly-synthesis
+notebook: valid land, NH snow possible, NH seasonal snow, warm static,
+month-specific warm snow-free, and month-specific locally snowy. Static mask
+thresholds are unchanged. The dynamic warm mask requires both OL and DA snow
+fraction below 0.05 and layer-1 soil temperature above 277.15 K. The dynamic
+snow mask restricts the static NH seasonal-snow domain to months where either
+run has snow fraction above 0.05 or snow mass above 5 kg m-2.
 
 ## Period and changepoint constraints
 
@@ -82,3 +112,18 @@ formulations are required sensitivity checks.
 The audit writes machine-readable reports under
 `output/trends_breakpoints/`. Those reports are derived products and are not a
 second source of scientific definitions.
+
+## Remaining roadmap
+
+The next stages remain, in order:
+
+1. Implement paired Theil-Sen trends on `DA - OL`, with serial-correlation-aware
+   significance and false-discovery-rate control across tiles.
+2. Estimate known observing-system level and slope changes, treating P7 as
+   level-only and reporting the short-segment cautions carried by the registry.
+3. Add autocorrelation-aware independent changepoint detection, using OL as the
+   control and exempting P7 from agreement scoring.
+4. Validate trend and changepoint behavior on synthetic autocorrelated no-break
+   and known-break series, including climatology and penalty sensitivities.
+5. Produce global maps, area-weighted regional series, transition summaries,
+   and a provenance-complete methods/results report only after those tests pass.
