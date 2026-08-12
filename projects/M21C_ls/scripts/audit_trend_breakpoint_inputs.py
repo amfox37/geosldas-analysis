@@ -19,6 +19,8 @@ from trend_breakpoint_series import (
     load_variable_selection,
     read_tile_area,
 )
+from trend_statistics import DEFAULT_CONFIG as DEFAULT_TREND_CONFIG
+from trend_statistics import load_trend_config
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -62,6 +64,15 @@ def audit(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.DataFrame]:
         and not bool(p7["reliable_for_slope"])
         and bool(p7["changepoint_detection_exempt"]),
         "P7 must be 15 months, slope-unreliable, and changepoint-score exempt",
+    )
+    trend_config = load_trend_config(args.trend_config)
+    add_check(
+        checks,
+        "trend_statistics_config",
+        trend_config["seasonal_adjustment"]
+        == "trend_preserving_calendar_month_anomaly"
+        and float(trend_config["modified_mk"]["minimum_variance_factor"]) >= 1.0,
+        str(args.trend_config),
     )
 
     coverage_path = args.diagnostics_dir / "monthly_synthesis_time_coverage.csv"
@@ -272,6 +283,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--variable-selection", type=Path, default=DEFAULT_SELECTION)
     parser.add_argument("--input-contract", type=Path, default=DEFAULT_INPUT_CONTRACT)
+    parser.add_argument("--trend-config", type=Path, default=DEFAULT_TREND_CONFIG)
     parser.add_argument("--sha256", action="store_true", help="Hash all monthly input files")
     parser.add_argument("--no-write", action="store_true", help="Validate without writing reports")
     return parser.parse_args()

@@ -57,9 +57,14 @@ segment.
 - `docs/trends_breakpoints_methods.md` - input contract and statistical guardrails for the replacement trend workflow.
 - `config/trend_breakpoint_inputs.json` - monthly file, source, dimension, date, and tile-area contract.
 - `config/trend_breakpoint_variable_selection.json` - phase-1 and phase-2 selections from existing monthly-synthesis products.
+- `config/trend_statistics.json` - support, seasonal-adjustment, modified-MK, and FDR settings.
 - `scripts/audit_trend_breakpoint_inputs.py` - audit gate for current OL v2/DA v3 monthly inputs.
 - `scripts/trend_breakpoint_series.py` - paired OL/DA tile loader, synthesis masks, and area-weighted monthly series.
+- `scripts/trend_statistics.py` - exact Theil-Sen, conservative modified Mann-Kendall, and BH-FDR engine.
+- `scripts/build_trend_statistics.py` - CLI for provenance-complete tile-level trend NetCDF files.
+- `scripts/validate_trend_statistics.py` - fixed-seed white-noise and AR(1) false-positive/power validation.
 - `tests/test_trend_breakpoint_series.py` - focused tests for pairing, units, masks, weights, signs, dates, and missing data.
+- `tests/test_trend_statistics.py` - synthetic trend, autocorrelation, support, FDR, and parallel-consistency tests.
 - `legacy/trends_2025/` - provenance archive of the superseded 2025 trend exploration.
 
 ### Archived notebooks
@@ -89,7 +94,8 @@ Run the trend input gate and focused loader tests with:
 
 ```bash
 python projects/M21C_ls/scripts/audit_trend_breakpoint_inputs.py --no-write
-python -m pytest projects/M21C_ls/tests/test_trend_breakpoint_series.py -q
+python -m pytest projects/M21C_ls/tests/test_trend_breakpoint_series.py projects/M21C_ls/tests/test_trend_statistics.py -q
+python projects/M21C_ls/scripts/validate_trend_statistics.py --n-series 100 --n-jobs 2
 ```
 
 ## Notebook Runtime/Smoke-Test Runbook

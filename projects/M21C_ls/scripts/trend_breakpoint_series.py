@@ -359,6 +359,14 @@ class MonthlySeriesLoader:
         ol_key = str(row["ol_dataset"] or "")
         da_key = str(row["da_dataset"] or "")
         analysis_mask = self.mask(mask)
+        eligible = analysis_mask.broadcast_like(
+            self._source_values(ol_key or da_key, source_variable)
+        ).astype(bool).rename("eligible")
+        eligible.attrs = {
+            "long_name": "months and tiles eligible under the selected analysis mask",
+            "units": "1",
+            "mask": mask,
+        }
 
         if ol_key and da_key:
             ol = self._monthly_values(ol_key, source_variable)
@@ -389,7 +397,7 @@ class MonthlySeriesLoader:
                 "experiment": "DA - OL",
                 "monthly_transform": ol.attrs["monthly_transform"],
             }
-            output = xr.Dataset({"ol": ol, "da": da, "delta": delta})
+            output = xr.Dataset({"ol": ol, "da": da, "delta": delta, "eligible": eligible})
             paired = True
         elif da_key:
             value = self._monthly_values(da_key, source_variable)
@@ -401,7 +409,7 @@ class MonthlySeriesLoader:
                 "experiment": "DA diagnostic",
                 "sample_contract": "finite values from the existing monthly DA product",
             }
-            output = xr.Dataset({"value": value})
+            output = xr.Dataset({"value": value, "eligible": eligible})
             paired = False
         else:
             raise ValueError(

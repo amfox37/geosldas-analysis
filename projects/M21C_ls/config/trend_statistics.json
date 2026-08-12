@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "seasonal_adjustment": "trend_preserving_calendar_month_anomaly",
+  "minimum_climatology_samples_per_month": 3,
+  "minimum_valid_fraction_of_eligible": 0.8,
+  "minimum_valid_months": 60,
+  "minimum_span_years": 15.0,
+  "slope_time_unit": "year",
+  "theil_sen_confidence_level": 0.95,
+  "modified_mk": {
+    "method": "hamed_rao_rank_acf_conservative",
+    "maximum_autocorrelation_lag_months": 24,
+    "autocorrelation_significance_level": 0.05,
+    "minimum_pairs_per_lag": 24,
+    "positive_significant_lags_only": true,
+    "minimum_variance_factor": 1.0
+  },
+  "fdr": {
+    "method": "benjamini_hochberg",
+    "alpha": 0.05
+  }
+}

@@ -190,6 +190,7 @@ def test_paired_delta_uses_identical_finite_sample(synthetic_inputs: dict[str, P
     assert np.isnan(fields["da"].isel(time=1, tile=1))
     assert np.isnan(fields["ol"].isel(time=2, tile=2))
     assert np.isnan(fields["da"].isel(time=2, tile=2))
+    assert fields["eligible"].all()
     assert fields.attrs["primary_estimand"] == "trend_of_DA_minus_OL"
 
 
@@ -249,6 +250,10 @@ def test_static_and_dynamic_masks_match_synthesis_definitions(
         masks["warm_snowfree_monthly"],
         [[False, False, True], [False, False, True], [False, False, True]],
     )
+
+    with _loader(synthetic_inputs) as loader:
+        fields = loader.load_tile_series("SFMC", mask="warm_snowfree_monthly").load()
+    xr.testing.assert_equal(fields["eligible"], masks["warm_snowfree_monthly"])
 
 
 def test_dynamic_mask_can_remove_all_support_for_a_month(

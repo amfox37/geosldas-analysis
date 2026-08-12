@@ -100,6 +100,57 @@ PELT on appropriately prewhitened residuals, with block-bootstrap stability and
 synthetic AR-series false-positive tests. Climatology-period and seasonal-dummy
 formulations are required sensitivity checks.
 
+## Core trend statistics
+
+`config/trend_statistics.json` and `scripts/trend_statistics.py` implement the
+first inferential stage. The primary field remains the strictly paired monthly
+`DA - OL` series supplied by `trend_breakpoint_series.py`; OL and DA trends can
+also be calculated as controls without changing their common sample.
+
+The default support gate requires at least 60 valid months, at least 80% of the
+months eligible under the selected mask, and at least 15 years between the first
+and last valid values. The eligible-month denominator is explicit. Thus a
+locally snowy mask is evaluated against its snowy months rather than all 288
+calendar months. Every output retains `n_eligible`, `n_valid`, `n_trend`,
+`valid_fraction`, `span_years`, and a status code.
+
+Seasonality is removed with a trend-preserving calendar-month adjustment. A
+preliminary exact Sen slope is removed before calculating each calendar month's
+climatology; only that detrended seasonal climatology is then subtracted from
+the original series. This avoids turning a perfectly linear monthly trend into
+an artificial annual step function.
+
+The reported slope is the exact Theil-Sen median pairwise slope in source units
+per year. SciPy's nominal 95% Sen slope limits are retained as descriptive
+diagnostics. They are not autocorrelation-adjusted and must not be used as the
+primary significance test; synthetic AR(1) validation confirms undercoverage.
+
+Significance uses a conservative adaptation of the Hamed-Rao modified
+Mann-Kendall variance correction (Hamed and Rao, 1998,
+doi:10.1016/S0022-1694(97)00125-X). Rank autocorrelation is calculated from
+Sen-detrended residuals at actual monthly lags 1-24. Only significantly positive
+lag correlations inflate the variance, and the factor cannot fall below one.
+The ordinary independent-MK p-value is retained only to show the size of the
+correction. Benjamini-Hochberg FDR at 0.05 is then applied across all finite
+tiles in the output. Production FDR must therefore be calculated in a complete
+field run, not independently in spatial chunks.
+
+`scripts/build_trend_statistics.py` writes the tile-level NetCDF contract. In
+addition to support, slope, nominal slope limits, corrected and ordinary
+p-values, and BH q-values, it records lag-1 residual autocorrelation, variance
+inflation, the number of positive autocorrelation lags, and FDR significance.
+Because BH correction depends on the complete family of tests, spatial subset
+runs require an explicit diagnostic output path and are labeled as non-global
+FDR. Only a complete-mask run supplies production FDR values.
+
+`scripts/validate_trend_statistics.py` measures false positives and power on
+288-month synthetic fields with a fixed seasonal cycle and white or AR(1)
+noise. With seed 20260812 and 100 series per scenario, the default configuration
+gave 3% pointwise modified-MK positives and 0% BH detections for white-noise
+no-trend series; 12% pointwise positives but 0% BH detections for AR(1)=0.8
+no-trend series; and 100% BH detection for AR(1)=0.8 trends of +/-0.02 units per
+year. These are regression benchmarks, not universal operating characteristics.
+
 ## Audit gate
 
 `scripts/audit_trend_breakpoint_inputs.py` will fail unless:
@@ -126,8 +177,8 @@ second source of scientific definitions.
 
 The next stages remain, in order:
 
-1. Implement paired Theil-Sen trends on `DA - OL`, with serial-correlation-aware
-   significance and false-discovery-rate control across tiles.
+1. Run and review complete Phase 1 trend fields for paired soil moisture, snow,
+   precipitation context, and the valid DA-only increment diagnostics.
 2. Estimate known observing-system level and slope changes, treating P7 as
    level-only and reporting the short-segment cautions carried by the registry.
 3. Add autocorrelation-aware independent changepoint detection, using OL as the
