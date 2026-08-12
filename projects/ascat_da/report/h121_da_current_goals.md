@@ -1,6 +1,9 @@
 # H121 ASCAT DA Project: Current Goals and Status
 
-Last updated: 2026-07-24
+Last updated: 2026-08-12
+
+Detailed evidence, methods, and caveats through this date are recorded in
+[`ascat_da_work_summary_2026-07-25_to_2026-08-12.md`](ascat_da_work_summary_2026-07-25_to_2026-08-12.md).
 
 ## Core Question
 
@@ -43,6 +46,9 @@ A companion open-loop run, `OLv7_M36_MULTI_type_13_H121`, validated the H121
 reader end-to-end and provides an OL reference background for O-F diagnostics.
 That run is intentionally unscaled (`scale=.false.`), because its role is raw
 observation infrastructure validation and background comparison, not DA.
+Separate DA-matched OL summary products use scaled observations where a
+scale-comparable O-F comparison is required; the raw and scaled products must
+not be mixed.
 
 ## Work Threads
 
@@ -111,27 +117,28 @@ using short symlinks.
 The current O-F diagnostic compares O-F standard deviation, not O-F mean,
 because scaling forces the mean toward zero by construction.
 
-Using the common 2015-04 to 2018-03 window available at the time of analysis:
+Using the completed common-period diagnostics:
 
 - For independent SMAP Tb diagnostics, both DA runs reduce O-F standard
-  deviation versus OL in nearly every month/channel, and H121 consistently beats
-  legacy by a small but real margin.
+  deviation versus OL, and H121 has a small advantage over legacy.
 - For each run's own assimilated ASCAT species, H121 produces the larger
-  absolute O-F standard-deviation reduction.
+  absolute O-F standard-deviation reduction, although this is not independent
+  evidence because each run is evaluated against its assimilated observation
+  family.
 
-These two lines of evidence currently indicate that H121 assimilation is a real
-improvement over legacy assimilation, rather than sampling noise.
+The robust O-F conclusion is that both ASCAT DA experiments improve on OL.
+The H121-versus-legacy difference is much smaller than either experiment's
+improvement over OL.
 
-### 5. Independent Validation and Triple Collocation
+### 5. Instrument-Variable and Triple-Collocation Evaluation
 
-The active next phase is a from-scratch Python port of the MATLAB IV/TC
-evaluation pipeline over the full 6-year DA output.
-
-The Python port has been verified against live MATLAB runs at each stage:
+The Python port of the MATLAB IV/TC evaluation pipeline has been completed over
+the full six-year DA output. The implementation was checked against live MATLAB
+runs at each stage:
 
 - daily pairs
 - pentad climatology
-- independent validation
+- instrument-variable estimates
 - triple collocation
 
 A known non-blocking gap remains for the older H119/H120 ASCAT product:
@@ -139,24 +146,56 @@ MATLAB's natural-neighbor interpolation differs from Python's linear
 `griddata`, causing persistent per-cell coverage differences. This has been
 quantified and is not considered a logic bug for the H121-vs-legacy decision.
 
-The current full-span IV/TC jobs are running for DA-H121, DA-legacy, H119/H120,
-and SMAP, with a TC job queued for SMOS-IC, ASCAT H121 DA, and SMAP. This will
-provide the independent SMOS-IC/SMAP/CYGNSS verdict on H121 versus legacy.
+The completed estimates show that both ASCAT DA runs generally improve on OL,
+but H121-versus-legacy differences are small and mixed across independent
+reference combinations. The IV metric reported in figures is correlation `R`,
+not `R2`.
+
+### 6. ISMN In-Situ Evaluation
+
+The common-sample ISMN evaluation is complete for surface and generic 0-1 m
+root-zone soil moisture. All DA runs improve on OL. Legacy is slightly stronger
+for surface `R` and anomaly `R`, while H121 is slightly stronger for root-zone
+`R`, anomaly `R`, and ubRMSE. This supports ASCAT assimilation but does not give
+a single all-depth verdict that H121 universally outperforms legacy.
+
+### 7. FOV12.5 and Peat-QC Experiments
+
+The first six months of the original H121, wider-footprint FOV12.5, and
+FOV12.5 + peat-QC experiments have been compared. The peat QC causes complete
+observation loss in core affected tiles and narrow bands of low-but-nonzero
+counts near peat boundaries.
+
+The low-retention edge population is defined from a clear distribution gap:
+tiles must have at least 20 FOV12.5 observations and retain more than zero but
+no more than 10% after peat QC. This identifies 179 Canada/Alaska tiles and 576
+globally. A raw-OFA reconstruction for six representative boundary tiles
+reproduces all 2,720 retain/reject decisions using the implemented
+footprint-weighted 10% peat threshold. The boundary pattern is expected
+per-observation footprint behavior, not a plotting or indexing bug.
 
 ## Decision Evidence So Far
 
-Current evidence favors H121:
+Current evidence supports H121 as a credible replacement candidate, but the
+comparison is more nuanced than the initial O-F-only assessment:
 
 - The H121 reader and QC path work end-to-end.
 - Independent Python processing reproduces and explains the main product
   differences.
 - H121 gives substantially denser coverage.
-- H121 has better aggregate fit to the model background.
-- O-F standard-deviation diagnostics show H121 DA beating legacy DA against
-  both independent SMAP Tb observations and the assimilated ASCAT stream.
+- Both ASCAT DA runs improve OL in independent SMAP O-F, IV/TC, and ISMN
+  diagnostics.
+- H121 has a small advantage in independent SMAP O-F spread and ISMN root-zone
+  correlation metrics.
+- Legacy has a small advantage in ISMN surface correlations and some IV/TC
+  combinations.
+- Diagnostics against each run's assimilated ASCAT family are useful for fit
+  assessment but cannot independently select the better observation stream.
 
-The remaining major confirmation step is the full 6-year IV/TC evaluation
-against independent references.
+The remaining decision work is to choose the smallest clear evidence figure
+set, decide whether the FOV12.5/peat-QC configuration has the desired
+coverage-quality balance, and formulate a recommendation that reflects the
+small and mixed H121-versus-legacy skill differences.
 
 ## Naming Notes
 
@@ -171,5 +210,4 @@ against independent references.
 | H121 | H SAF ASCAT CDR, 12.5 km, NetCDF candidate replacement |
 | H139 | Near-real-time counterpart to H121 |
 | O-F | Observation minus forecast innovation |
-| IV/TC | Independent Validation / Triple Collocation |
-
+| IV/TC | Instrument Variable / Triple Collocation |
