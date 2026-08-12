@@ -6,6 +6,8 @@
   "n_tiles": 112573,
   "tilecoord_file": "LS_OLv8_M36.ldas_tilecoord.bin",
   "tile_area_units": "km2",
+  "tile_area_sum_min": 100000000.0,
+  "tile_area_sum_max": 160000000.0,
   "datasets": {
     "ol_land": {
       "filename": "OLv8_land_variables_2000_2024_compressed.nc",

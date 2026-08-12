@@ -9,10 +9,16 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import xarray as xr
 
 from m21c_periods import load_period_frames
+from trend_breakpoint_series import (
+    find_legacy_increment_variables,
+    load_variable_selection,
+    read_tile_area,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -31,14 +37,6 @@ def sha256sum(path: Path) -> str:
         for block in iter(lambda: stream.read(8 * 1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
-
-
-def load_selection(path: Path) -> pd.DataFrame:
-    payload = json.loads(path.read_text())
-    frame = pd.DataFrame(payload["variables"], columns=payload["columns"])
-    if frame["analysis_variable"].duplicated().any():
-        raise ValueError("Duplicate analysis_variable entries in variable selection")
-    return frame
 
 
 def add_check(rows: list[dict], check: str, passed: bool, detail: str) -> None:
@@ -77,7 +75,7 @@ def audit(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.DataFrame]:
     coverage = pd.read_csv(coverage_path).set_index("dataset")
     inventory = pd.read_csv(inventory_path)
     variable_registry = pd.read_csv(variable_registry_path)
-    selection = load_selection(args.variable_selection)
+    selection = load_variable_selection(args.variable_selection)
     input_contract = json.loads(args.input_contract.read_text())
     dataset_contracts = input_contract["datasets"]
     expected_start = pd.Timestamp(input_contract["record_start"])
@@ -100,6 +98,31 @@ def audit(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.DataFrame]:
         input_contract.get("tile_area_units") == "km2",
         str(input_contract.get("tile_area_units", "missing")),
     )
+    if tilecoord_path.exists():
+        tile_area = read_tile_area(tilecoord_path)
+        positive_area = tile_area[np.isfinite(tile_area) & (tile_area > 0)]
+        tile_area_sum = float(positive_area.sum())
+        add_check(
+            checks,
+            "tile_area_count",
+            tile_area.size == expected_tiles,
+            f"areas={tile_area.size}, expected={expected_tiles}",
+        )
+        add_check(
+            checks,
+            "tile_area_positive",
+            positive_area.size == expected_tiles,
+            f"positive finite areas={positive_area.size}",
+        )
+        area_min = float(input_contract["tile_area_sum_min"])
+        area_max = float(input_contract["tile_area_sum_max"])
+        add_check(
+            checks,
+            "tile_area_sum",
+            area_min <= tile_area_sum <= area_max,
+            f"sum={tile_area_sum:.6g} {input_contract['tile_area_units']}; "
+            f"expected {area_min:.6g}-{area_max:.6g}",
+        )
     actual_variables: dict[str, set[str]] = {}
     actual_units: dict[tuple[str, str], str] = {}
     actual_dims: dict[tuple[str, str], str] = {}
@@ -225,12 +248,13 @@ def audit(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.DataFrame]:
             )
 
     selected_datasets = set(selection["ol_dataset"]) | set(selection["da_dataset"])
+    legacy_variables = find_legacy_increment_variables(selection["source_variable"])
     add_check(
         checks,
         "legacy_increment_excluded",
         "monthly_increment_legacy" not in selected_datasets
-        and not selection["source_variable"].isin(["SFMC_INC", "RZMC_INC", "SNOWMASS_INCR"]).any(),
-        "legacy LS_monthly_increments variables must not be selected",
+        and not legacy_variables,
+        f"legacy suffix matches={sorted(legacy_variables)}",
     )
 
     return pd.DataFrame(checks), pd.DataFrame(manifest)

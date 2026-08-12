@@ -15,7 +15,7 @@ SCRIPTS_ROOT = PROJECT_ROOT / "scripts"
 if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
 
-from trend_breakpoint_series import MonthlySeriesLoader
+from trend_breakpoint_series import MonthlySeriesLoader, load_variable_selection
 
 
 TIME = pd.date_range("2020-06-01", "2020-08-01", freq="MS")
@@ -198,6 +198,7 @@ def test_area_weighted_domain_mean_reports_support(synthetic_inputs: dict[str, P
         series = loader.domain_mean("SFMC").load()
 
     np.testing.assert_allclose(series["delta"], [8.0 / 6.0, 2.0, 3.0])
+    np.testing.assert_allclose(series["delta"], series["da"] - series["ol"])
     np.testing.assert_array_equal(series["n_tiles"], [3, 2, 2])
     np.testing.assert_allclose(series["area_sum"], [6.0, 3.0, 4.0])
     assert series["area_sum"].attrs["units"] == "km2"
@@ -273,6 +274,51 @@ def test_contract_rejects_wrong_monthly_timeline(synthetic_inputs: dict[str, Pat
     bad_contract.write_text(json.dumps(contract))
 
     with pytest.raises(ValueError, match="month count"):
+        MonthlySeriesLoader(
+            synthetic_inputs["data_dir"],
+            input_contract=bad_contract,
+            variable_selection=synthetic_inputs["selection"],
+            tile_area=AREA,
+        )
+
+
+def test_contract_rejects_wrong_source_experiment(synthetic_inputs: dict[str, Path]) -> None:
+    contract = json.loads(synthetic_inputs["contract"].read_text())
+    contract["datasets"]["da_land"]["source_token"] = "WRONG_DA_VERSION"
+    bad_contract = synthetic_inputs["contract"].with_name("bad_source_inputs.json")
+    bad_contract.write_text(json.dumps(contract))
+
+    with pytest.raises(ValueError, match="source_root does not contain"):
+        MonthlySeriesLoader(
+            synthetic_inputs["data_dir"],
+            input_contract=bad_contract,
+            variable_selection=synthetic_inputs["selection"],
+            tile_area=AREA,
+        )
+
+
+def test_generic_legacy_increment_suffix_is_rejected(
+    synthetic_inputs: dict[str, Path],
+) -> None:
+    selection = json.loads(synthetic_inputs["selection"].read_text())
+    selection["variables"][0][3] = "CATDEF_INCR"
+    bad_selection = synthetic_inputs["selection"].with_name("bad_selection.json")
+    bad_selection.write_text(json.dumps(selection))
+
+    with pytest.raises(ValueError, match="CATDEF_INCR"):
+        load_variable_selection(bad_selection)
+
+
+def test_contract_rejects_implausible_tile_area_sum(
+    synthetic_inputs: dict[str, Path],
+) -> None:
+    contract = json.loads(synthetic_inputs["contract"].read_text())
+    contract["tile_area_sum_min"] = 10.0
+    contract["tile_area_sum_max"] = 20.0
+    bad_contract = synthetic_inputs["contract"].with_name("bad_area_inputs.json")
+    bad_contract.write_text(json.dumps(contract))
+
+    with pytest.raises(ValueError, match="below contracted minimum"):
         MonthlySeriesLoader(
             synthetic_inputs["data_dir"],
             input_contract=bad_contract,

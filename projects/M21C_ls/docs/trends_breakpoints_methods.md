@@ -70,6 +70,10 @@ loader. It validates each opened dataset against the input contract and returns:
 The tile weights are the M36 land-tile areas from the GEOS LDAS tile-coordinate
 file, in `km2`. Missing OL or DA values are cross-masked before any paired mean
 or difference is calculated. There is no unweighted fallback.
+The production contract also requires the 112,573 tile areas to total between
+100 and 160 million `km2`; the observed total is about 130.4 million `km2`.
+This broad physical check prevents an `m2`/`km2` label error without constraining
+the weighting numerically.
 
 The loader also centralizes the masks already used by the monthly-synthesis
 notebook: valid land, NH snow possible, NH seasonal snow, warm static,
@@ -108,6 +112,11 @@ formulations are required sensitivity checks.
   and input inventory;
 - source units and dimensions agree with that inventory;
 - the period registry validates, including the P7 constraint.
+
+Selected source variables ending exactly in `_INC` or `_INCR` are rejected as
+legacy monthly increment products. Raw diagnostics such as `_INC_MEAN`,
+`_INC_ABS_MEAN`, and `_INC_RMS` remain valid because they are not cumulative
+monthly increment fields.
 
 The audit writes machine-readable reports under
 `output/trends_breakpoints/`. Those reports are derived products and are not a

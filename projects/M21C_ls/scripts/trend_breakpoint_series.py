@@ -38,6 +38,13 @@ def _load_json(path: str | Path) -> dict[str, Any]:
     return json.loads(Path(path).read_text())
 
 
+def find_legacy_increment_variables(values: Any) -> set[str]:
+    """Return legacy monthly increment names, without rejecting raw diagnostics."""
+
+    names = {str(value) for value in values}
+    return {name for name in names if name.upper().endswith(("_INC", "_INCR"))}
+
+
 def load_variable_selection(
     path: str | Path = DEFAULT_VARIABLE_SELECTION,
 ) -> pd.DataFrame:
@@ -47,10 +54,9 @@ def load_variable_selection(
     frame = pd.DataFrame(payload["variables"], columns=payload["columns"])
     if frame["analysis_variable"].duplicated().any():
         raise ValueError("Duplicate analysis_variable entries in variable selection")
-    forbidden = {"SFMC_INC", "RZMC_INC", "SNOWMASS_INCR"}
-    selected = set(frame["source_variable"])
-    if selected & forbidden:
-        raise ValueError(f"Legacy monthly increment variables selected: {selected & forbidden}")
+    legacy_variables = find_legacy_increment_variables(frame["source_variable"])
+    if legacy_variables:
+        raise ValueError(f"Legacy monthly increment variables selected: {legacy_variables}")
     return frame.set_index("analysis_variable", drop=False)
 
 
@@ -58,7 +64,7 @@ def _normalise_units(value: Any) -> str:
     return " ".join(str(value or "").split())
 
 
-def _read_tile_area(path: Path) -> np.ndarray:
+def read_tile_area(path: Path) -> np.ndarray:
     io_dir = REPO_ROOT / "common" / "python" / "io"
     if str(io_dir) not in sys.path:
         sys.path.insert(0, str(io_dir))
@@ -112,7 +118,7 @@ class MonthlySeriesLoader:
             tilecoord_path = self.data_dir / self.contract["tilecoord_file"]
             if not tilecoord_path.exists():
                 raise FileNotFoundError(f"Missing tile-coordinate file: {tilecoord_path}")
-            area_values = _read_tile_area(tilecoord_path)
+            area_values = read_tile_area(tilecoord_path)
         else:
             area_values = np.asarray(tile_area, dtype="float64")
         if area_values.ndim != 1 or area_values.size != self.n_tile:
@@ -121,6 +127,17 @@ class MonthlySeriesLoader:
             )
         if not np.any(np.isfinite(area_values) & (area_values > 0)):
             raise ValueError("Tile area contains no finite positive weights")
+        area_sum = float(np.nansum(np.where(area_values > 0, area_values, np.nan)))
+        area_sum_min = self.contract.get("tile_area_sum_min")
+        area_sum_max = self.contract.get("tile_area_sum_max")
+        if area_sum_min is not None and area_sum < float(area_sum_min):
+            raise ValueError(
+                f"Tile area sum {area_sum:.6g} is below contracted minimum {area_sum_min}"
+            )
+        if area_sum_max is not None and area_sum > float(area_sum_max):
+            raise ValueError(
+                f"Tile area sum {area_sum:.6g} is above contracted maximum {area_sum_max}"
+            )
         self.tile_area = xr.DataArray(
             area_values,
             dims="tile",
