@@ -418,11 +418,14 @@ def compute_trend_statistics(
     config: dict[str, Any] | None = None,
     config_path: str | Path = DEFAULT_CONFIG,
     n_jobs: int = 1,
+    parallel_prefer: str = "threads",
 ) -> xr.Dataset:
     """Compute trend statistics for a `(time, tile)` monthly field."""
 
     if n_jobs == 0:
         raise ValueError("n_jobs cannot be zero")
+    if parallel_prefer not in {"threads", "processes"}:
+        raise ValueError("parallel_prefer must be 'threads' or 'processes'")
     if values.dims != ("time", "tile"):
         values = values.transpose("time", "tile")
     if eligible is None:
@@ -452,7 +455,7 @@ def compute_trend_statistics(
     else:
         from joblib import Parallel, delayed
 
-        records = Parallel(n_jobs=n_jobs, prefer="threads", batch_size="auto")(
+        records = Parallel(n_jobs=n_jobs, prefer=parallel_prefer, batch_size="auto")(
             delayed(analyze_tile)(index) for index in tile_indices
         )
 
@@ -579,6 +582,9 @@ def compute_trend_statistics(
         "slope_method": "exact Theil-Sen, scipy.stats.theilslopes, joint intercept",
         "significance_method": settings["modified_mk"]["method"],
         "fdr_method": settings["fdr"]["method"],
+        "parallel_execution": (
+            "serial" if n_jobs == 1 else f"joblib preferred {parallel_prefer}"
+        ),
         "configuration": json.dumps(settings, sort_keys=True),
         "status_codes": json.dumps(STATUS, sort_keys=True),
     }

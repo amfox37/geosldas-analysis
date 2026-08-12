@@ -44,7 +44,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--trend-config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
-    parser.add_argument("--n-jobs", type=int, default=4)
+    parser.add_argument("--n-jobs", type=int, default=8)
+    parser.add_argument(
+        "--parallel-prefer", choices=["threads", "processes"], default="processes"
+    )
     parser.add_argument(
         "--only",
         action="append",
@@ -107,7 +110,8 @@ def main() -> int:
 
     print(
         f"Phase 1 trend batch: {len(runs)} runs, {expected_tiles} tiles each, "
-        f"n_jobs={args.n_jobs}, diagnostic={diagnostic}",
+        f"n_jobs={args.n_jobs}, parallel_prefer={args.parallel_prefer}, "
+        f"diagnostic={diagnostic}",
         flush=True,
     )
     for index, run in enumerate(runs, start=1):
@@ -160,6 +164,8 @@ def main() -> int:
             str(output_path),
             "--n-jobs",
             str(args.n_jobs),
+            "--parallel-prefer",
+            args.parallel_prefer,
             "--run-id",
             run["run_id"],
             "--run-role",

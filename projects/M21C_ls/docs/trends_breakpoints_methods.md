@@ -181,6 +181,11 @@ atomically renamed only after a successful close. Before each run, the runner
 audits any existing output and skips it only if it passes, so an interrupted
 batch can be resumed without recomputing completed fields. Diagnostic tile
 subsets have distinct filenames and are explicitly labeled as non-global FDR.
+The production runner defaults to eight joblib process workers. A 5,000-tile
+real-data benchmark gave identical data variables and coordinates for serial,
+four-process, and eight-process calculations; eight processes reduced elapsed
+time from 49.5 seconds serial to 14.5 seconds. The backend and worker count do
+not alter the FDR family and the output records its execution strategy.
 `scripts/audit_phase1_trend_outputs.py` checks dimensions, required variables,
 matrix provenance, status and finite-value support, p/q ranges, FDR flags,
 adjusted-CI consistency, and complete-field FDR scope. Derived batch manifests,

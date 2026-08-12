@@ -44,6 +44,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tile-start", type=int, default=0)
     parser.add_argument("--tile-stop", type=int)
     parser.add_argument("--n-jobs", type=int, default=1)
+    parser.add_argument(
+        "--parallel-prefer",
+        choices=["threads", "processes"],
+        default="threads",
+        help="Joblib execution backend preference when n-jobs is not 1",
+    )
     parser.add_argument("--run-id", default="standalone")
     parser.add_argument("--run-role", choices=["primary", "sensitivity", "standalone"], default="standalone")
     parser.add_argument("--run-matrix", type=Path)
@@ -94,6 +100,7 @@ def main() -> int:
         eligible,
         config=settings,
         n_jobs=args.n_jobs,
+        parallel_prefer=args.parallel_prefer,
     )
     result.attrs.update(
         mask=args.mask,

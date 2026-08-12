@@ -231,3 +231,9 @@ def test_parallel_and_serial_results_match() -> None:
     parallel = compute_trend_statistics(data, config=_config(), n_jobs=2)
 
     xr.testing.assert_allclose(serial, parallel)
+
+
+def test_invalid_parallel_preference_is_rejected() -> None:
+    values = _data_array(np.zeros((TIME.size, 1)))
+    with pytest.raises(ValueError, match="parallel_prefer"):
+        compute_trend_statistics(values, n_jobs=2, parallel_prefer="invalid")

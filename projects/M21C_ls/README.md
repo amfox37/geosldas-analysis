@@ -100,7 +100,7 @@ Run the trend input gate and focused loader tests with:
 python projects/M21C_ls/scripts/audit_trend_breakpoint_inputs.py --no-write
 python -m pytest projects/M21C_ls/tests/test_trend_breakpoint_series.py projects/M21C_ls/tests/test_trend_statistics.py projects/M21C_ls/tests/test_phase1_trend_workflow.py -q
 python projects/M21C_ls/scripts/validate_trend_statistics.py --n-series 100 --n-jobs 2
-python projects/M21C_ls/scripts/run_phase1_trends.py --n-jobs 4
+python projects/M21C_ls/scripts/run_phase1_trends.py
 python projects/M21C_ls/scripts/audit_phase1_trend_outputs.py --no-write
 ```
 
