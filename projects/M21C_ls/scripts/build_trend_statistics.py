@@ -4,11 +4,18 @@
 from __future__ import annotations
 
 import argparse
+import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
 
-from trend_breakpoint_series import DEFAULT_DATA_DIR, MonthlySeriesLoader
+from trend_breakpoint_series import (
+    DEFAULT_DATA_DIR,
+    DEFAULT_INPUT_CONTRACT,
+    DEFAULT_VARIABLE_SELECTION,
+    MonthlySeriesLoader,
+)
 from trend_statistics import DEFAULT_CONFIG, compute_trend_statistics, load_trend_config
 
 
@@ -27,19 +34,41 @@ def parse_args() -> argparse.Namespace:
         help="auto selects delta for paired variables and value for DA-only diagnostics",
     )
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
+    parser.add_argument("--input-contract", type=Path, default=DEFAULT_INPUT_CONTRACT)
+    parser.add_argument(
+        "--variable-selection", type=Path, default=DEFAULT_VARIABLE_SELECTION
+    )
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--tile-start", type=int, default=0)
     parser.add_argument("--tile-stop", type=int)
     parser.add_argument("--n-jobs", type=int, default=1)
+    parser.add_argument("--run-id", default="standalone")
+    parser.add_argument("--run-role", choices=["primary", "sensitivity", "standalone"], default="standalone")
+    parser.add_argument("--run-matrix", type=Path)
     return parser.parse_args()
+
+
+def git_commit() -> str:
+    """Return the source commit when available without making git a runtime dependency."""
+
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=PROJECT_ROOT.parents[1], text=True
+        ).strip()
+    except (OSError, subprocess.CalledProcessError):
+        return "unknown"
 
 
 def main() -> int:
     args = parse_args()
     settings = load_trend_config(args.config)
-    with MonthlySeriesLoader(args.data_dir) as loader:
+    with MonthlySeriesLoader(
+        args.data_dir,
+        input_contract=args.input_contract,
+        variable_selection=args.variable_selection,
+    ) as loader:
         tile_stop = args.tile_stop if args.tile_stop is not None else loader.n_tile
         if args.tile_start < 0 or tile_stop > loader.n_tile or tile_stop <= args.tile_start:
             raise ValueError(
@@ -78,18 +107,34 @@ def main() -> int:
             else "all finite tiles eligible under the selected mask"
         ),
         trend_config=str(args.config),
+        input_contract=str(args.input_contract),
+        variable_selection=str(args.variable_selection),
+        data_directory=str(args.data_dir.resolve()),
+        run_id=args.run_id,
+        run_role=args.run_role,
+        run_matrix=str(args.run_matrix) if args.run_matrix else "",
+        generated_utc=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        source_git_commit=git_commit(),
     )
-    args.output_dir.mkdir(parents=True, exist_ok=True)
     output_path = args.output or (
         args.output_dir
         / f"{args.variable}_{series_name}_{args.mask}_trend_statistics.nc"
     )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     encoding = {
         name: {"zlib": True, "complevel": 4}
         for name in result.data_vars
         if result[name].dtype.kind in "fiu"
     }
-    result.to_netcdf(output_path, encoding=encoding)
+    temporary_path = output_path.with_name(
+        f".{output_path.stem}.incomplete{output_path.suffix}"
+    )
+    temporary_path.unlink(missing_ok=True)
+    try:
+        result.to_netcdf(temporary_path, encoding=encoding)
+        temporary_path.replace(output_path)
+    finally:
+        temporary_path.unlink(missing_ok=True)
     print(f"Wrote {output_path}")
     month_counts = result["n_calendar_months_used"].values
     unique_counts, frequencies = np.unique(month_counts, return_counts=True)

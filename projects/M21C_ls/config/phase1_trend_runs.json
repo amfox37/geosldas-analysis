@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "phase": 1,
+  "description": "Production Phase 1 tile-level trend fields and predeclared mask sensitivities.",
+  "expected_primary_variable_count": 17,
+  "expected_run_count": 21,
+  "runs": [
+    {"run_id": "SFMC_delta_valid_land", "variable": "SFMC", "series": "delta", "mask": "valid_land", "role": "primary", "rationale": "Global paired DA-minus-OL surface soil-moisture impact."},
+    {"run_id": "RZMC_delta_valid_land", "variable": "RZMC", "series": "delta", "mask": "valid_land", "role": "primary", "rationale": "Global paired DA-minus-OL root-zone soil-moisture impact."},
+    {"run_id": "SNOMASLAND_delta_seasonal_snow", "variable": "SNOMASLAND", "series": "delta", "mask": "seasonal_snow", "role": "primary", "rationale": "Paired DA-minus-OL snow-mass impact over the Northern Hemisphere seasonal-snow domain."},
+    {"run_id": "SNODPLAND_delta_seasonal_snow", "variable": "SNODPLAND", "series": "delta", "mask": "seasonal_snow", "role": "primary", "rationale": "Paired DA-minus-OL snow-depth impact over the Northern Hemisphere seasonal-snow domain."},
+    {"run_id": "FRLANDSNO_delta_seasonal_snow", "variable": "FRLANDSNO", "series": "delta", "mask": "seasonal_snow", "role": "primary", "rationale": "Paired DA-minus-OL snow-cover impact over the Northern Hemisphere seasonal-snow domain."},
+    {"run_id": "TSOIL1_delta_valid_land", "variable": "TSOIL1", "series": "delta", "mask": "valid_land", "role": "primary", "rationale": "Global paired DA-minus-OL layer-1 soil-temperature context."},
+    {"run_id": "PRECTOTCORRLAND_delta_valid_land", "variable": "PRECTOTCORRLAND", "series": "delta", "mask": "valid_land", "role": "primary", "rationale": "Global paired DA-minus-OL precipitation control; monthly rates are converted to totals by the shared loader."},
+    {"run_id": "snow_net_value_seasonal_snow", "variable": "snow_net", "series": "value", "mask": "seasonal_snow", "role": "primary", "rationale": "Signed cumulative monthly snow-water correction over the seasonal-snow domain."},
+    {"run_id": "snow_abs_netpack_value_seasonal_snow", "variable": "snow_abs_netpack", "series": "value", "mask": "seasonal_snow", "role": "primary", "rationale": "Absolute cumulative monthly snowpack-correction activity over the seasonal-snow domain."},
+    {"run_id": "soil_water_net_approx_value_valid_land", "variable": "soil_water_net_approx", "series": "value", "mask": "valid_land", "role": "primary", "rationale": "Global signed cumulative monthly soil-water correction."},
+    {"run_id": "soil_water_abs_activity_value_valid_land", "variable": "soil_water_abs_activity", "series": "value", "mask": "valid_land", "role": "primary", "rationale": "Global absolute cumulative monthly soil-water correction activity."},
+    {"run_id": "SFMC_INC_MEAN_value_valid_land", "variable": "SFMC_INC_MEAN", "series": "value", "mask": "valid_land", "role": "primary", "rationale": "Global signed monthly mean surface soil-moisture analysis correction."},
+    {"run_id": "SFMC_INC_ABS_MEAN_value_valid_land", "variable": "SFMC_INC_ABS_MEAN", "series": "value", "mask": "valid_land", "role": "primary", "rationale": "Global monthly mean absolute surface soil-moisture analysis correction."},
+    {"run_id": "SFMC_INC_RMS_value_valid_land", "variable": "SFMC_INC_RMS", "series": "value", "mask": "valid_land", "role": "primary", "rationale": "Global monthly RMS surface soil-moisture analysis correction."},
+    {"run_id": "RZMC_INC_MEAN_value_valid_land", "variable": "RZMC_INC_MEAN", "series": "value", "mask": "valid_land", "role": "primary", "rationale": "Global signed monthly mean root-zone soil-moisture analysis correction."},
+    {"run_id": "RZMC_INC_ABS_MEAN_value_valid_land", "variable": "RZMC_INC_ABS_MEAN", "series": "value", "mask": "valid_land", "role": "primary", "rationale": "Global monthly mean absolute root-zone soil-moisture analysis correction."},
+    {"run_id": "RZMC_INC_RMS_value_valid_land", "variable": "RZMC_INC_RMS", "series": "value", "mask": "valid_land", "role": "primary", "rationale": "Global monthly RMS root-zone soil-moisture analysis correction."},
+    {"run_id": "SFMC_delta_warm_snowfree_monthly", "variable": "SFMC", "series": "delta", "mask": "warm_snowfree_monthly", "role": "sensitivity", "rationale": "Month-specific warm and snow-free sensitivity requested by the variable registry."},
+    {"run_id": "RZMC_delta_warm_snowfree_monthly", "variable": "RZMC", "series": "delta", "mask": "warm_snowfree_monthly", "role": "sensitivity", "rationale": "Month-specific warm and snow-free sensitivity requested by the variable registry."},
+    {"run_id": "SNOMASLAND_delta_locally_snowy_monthly", "variable": "SNOMASLAND", "series": "delta", "mask": "locally_snowy_monthly", "role": "sensitivity", "rationale": "Month-specific locally snowy sensitivity requested by the variable registry."},
+    {"run_id": "SNODPLAND_delta_locally_snowy_monthly", "variable": "SNODPLAND", "series": "delta", "mask": "locally_snowy_monthly", "role": "sensitivity", "rationale": "Month-specific locally snowy sensitivity requested by the variable registry."}
+  ]
+}

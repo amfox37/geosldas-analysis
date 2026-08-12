@@ -57,14 +57,18 @@ segment.
 - `docs/trends_breakpoints_methods.md` - input contract and statistical guardrails for the replacement trend workflow.
 - `config/trend_breakpoint_inputs.json` - monthly file, source, dimension, date, and tile-area contract.
 - `config/trend_breakpoint_variable_selection.json` - phase-1 and phase-2 selections from existing monthly-synthesis products.
+- `config/phase1_trend_runs.json` - the 17 primary fields and four predeclared mask sensitivities in the production batch.
 - `config/trend_statistics.json` - support, seasonal-adjustment, modified-MK, and FDR settings.
 - `scripts/audit_trend_breakpoint_inputs.py` - audit gate for current OL v2/DA v3 monthly inputs.
 - `scripts/trend_breakpoint_series.py` - paired OL/DA tile loader, synthesis masks, and area-weighted monthly series.
 - `scripts/trend_statistics.py` - exact Theil-Sen, conservative modified Mann-Kendall, and BH-FDR engine.
 - `scripts/build_trend_statistics.py` - CLI for provenance-complete tile-level trend NetCDF files.
+- `scripts/run_phase1_trends.py` - atomic, restartable production runner for the complete Phase 1 matrix.
+- `scripts/audit_phase1_trend_outputs.py` - structural, provenance, support, CI, and global-FDR audit for production outputs.
 - `scripts/validate_trend_statistics.py` - fixed-seed white-noise and AR(1) false-positive/power validation.
 - `tests/test_trend_breakpoint_series.py` - focused tests for pairing, units, masks, weights, signs, dates, and missing data.
 - `tests/test_trend_statistics.py` - synthetic trend, autocorrelation, support, FDR, and parallel-consistency tests.
+- `tests/test_phase1_trend_workflow.py` - production-matrix and output-audit contract tests.
 - `legacy/trends_2025/` - provenance archive of the superseded 2025 trend exploration.
 
 ### Archived notebooks
@@ -94,8 +98,10 @@ Run the trend input gate and focused loader tests with:
 
 ```bash
 python projects/M21C_ls/scripts/audit_trend_breakpoint_inputs.py --no-write
-python -m pytest projects/M21C_ls/tests/test_trend_breakpoint_series.py projects/M21C_ls/tests/test_trend_statistics.py -q
+python -m pytest projects/M21C_ls/tests/test_trend_breakpoint_series.py projects/M21C_ls/tests/test_trend_statistics.py projects/M21C_ls/tests/test_phase1_trend_workflow.py -q
 python projects/M21C_ls/scripts/validate_trend_statistics.py --n-series 100 --n-jobs 2
+python projects/M21C_ls/scripts/run_phase1_trends.py --n-jobs 4
+python projects/M21C_ls/scripts/audit_phase1_trend_outputs.py --no-write
 ```
 
 ## Notebook Runtime/Smoke-Test Runbook

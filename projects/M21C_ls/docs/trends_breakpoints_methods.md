@@ -50,6 +50,18 @@ existing monthly datasets without redefining their units or aggregation. Phase
 activity. Phase 2 adds water-budget and energy-partitioning responses after the
 statistical implementation passes synthetic and real-data validation.
 
+`config/phase1_trend_runs.json` is the production matrix. It contains exactly
+one primary run for each of the 17 Phase 1 variables plus four predeclared
+sensitivities. Soil-moisture and general context fields use `valid_land` as the
+primary mask. Snow states and snow-water corrections use `seasonal_snow`.
+`SFMC` and `RZMC` additionally use the month-specific
+`warm_snowfree_monthly` mask; `SNOMASLAND` and `SNODPLAND` additionally use
+`locally_snowy_monthly`. The first production batch estimates the registered
+primary impact series (`delta` for paired OL/DA fields and `value` for DA-only
+diagnostics). Separate OL and DA trend fields are controls to generate when a
+primary impact result needs attribution; they are not silently included in the
+Phase 1 FDR families.
+
 For paired OL/DA quantities, the primary assimilation-impact estimand is the
 trend of the paired `DA - OL` monthly series. The workflow will not define the
 impact by subtracting two Theil-Sen slopes.
@@ -162,6 +174,17 @@ from the adjusted trend series. The output exposes a `calendar_month_used`
 matrix and `n_calendar_months_used` per tile, and the builder prints their tile
 frequency distribution. This makes seasonally selective dropping visible in
 both NetCDF diagnostics and run logs.
+
+`scripts/run_phase1_trends.py` executes the production matrix one complete
+field at a time. Each NetCDF is written to an incomplete temporary path and
+atomically renamed only after a successful close. Before each run, the runner
+audits any existing output and skips it only if it passes, so an interrupted
+batch can be resumed without recomputing completed fields. Diagnostic tile
+subsets have distinct filenames and are explicitly labeled as non-global FDR.
+`scripts/audit_phase1_trend_outputs.py` checks dimensions, required variables,
+matrix provenance, status and finite-value support, p/q ranges, FDR flags,
+adjusted-CI consistency, and complete-field FDR scope. Derived batch manifests,
+logs, and output audits live under `output/trends_breakpoints/`.
 
 `scripts/validate_trend_statistics.py` measures false positives and power on
 288-month synthetic fields with a fixed seasonal cycle and white or AR(1)

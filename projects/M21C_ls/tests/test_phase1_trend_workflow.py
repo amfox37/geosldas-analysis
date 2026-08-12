@@ -1,0 +1,107 @@
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import xarray as xr
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS_ROOT = PROJECT_ROOT / "scripts"
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
+
+from phase1_trend_workflow import audit_trend_output, load_phase1_runs
+from trend_statistics import compute_trend_statistics
+
+
+def test_phase1_matrix_has_one_primary_run_per_selected_variable() -> None:
+    payload, runs = load_phase1_runs()
+
+    primary = [run for run in runs if run["role"] == "primary"]
+    sensitivity = [run for run in runs if run["role"] == "sensitivity"]
+    assert payload["expected_run_count"] == 21
+    assert len(primary) == 17
+    assert len(sensitivity) == 4
+    assert {run["variable"] for run in sensitivity} == {
+        "SFMC",
+        "RZMC",
+        "SNOMASLAND",
+        "SNODPLAND",
+    }
+
+
+def _trend_output(run: dict[str, str]) -> xr.Dataset:
+    time = pd.date_range("2000-06-01", periods=288, freq="MS")
+    years = np.arange(time.size) / 12.0
+    values = xr.DataArray(
+        np.column_stack([0.01 * years, -0.01 * years]),
+        dims=("time", "tile"),
+        coords={
+            "time": time,
+            "tile": [0, 1],
+            "lat": ("tile", [40.0, 50.0]),
+            "lon": ("tile", [-110.0, -100.0]),
+            "tile_area": ("tile", [1.0, 2.0]),
+        },
+        name=run["series"],
+        attrs={
+            "analysis_variable": run["variable"],
+            "source_variable": run["variable"],
+            "units": "test-unit",
+        },
+    )
+    output = compute_trend_statistics(values)
+    output.attrs.update(
+        mask=run["mask"],
+        selected_series=run["series"],
+        tile_start=0,
+        tile_stop=2,
+        total_input_tiles=2,
+        fdr_scope="all finite tiles eligible under the selected mask",
+        run_id=run["run_id"],
+        run_role=run["role"],
+    )
+    return output
+
+
+def test_output_audit_accepts_complete_global_field(tmp_path: Path) -> None:
+    _, runs = load_phase1_runs()
+    run = runs[0]
+    path = tmp_path / "trend.nc"
+    _trend_output(run).to_netcdf(path)
+
+    summary = audit_trend_output(
+        path,
+        run,
+        expected_tiles=2,
+        expected_total_input_tiles=2,
+        require_global_fdr=True,
+    )
+
+    assert summary["status"] == "PASS"
+    assert summary["n_success"] == 2
+    assert summary["n_significant_fdr"] == 2
+
+
+def test_output_audit_rejects_subset_as_production(tmp_path: Path) -> None:
+    _, runs = load_phase1_runs()
+    run = runs[0]
+    output = _trend_output(run)
+    output.attrs["total_input_tiles"] = 112573
+    output.attrs["fdr_scope"] = "diagnostic selected tile subset; not global FDR"
+    path = tmp_path / "subset.nc"
+    output.to_netcdf(path)
+
+    summary = audit_trend_output(
+        path,
+        run,
+        expected_tiles=2,
+        expected_total_input_tiles=112573,
+        require_global_fdr=True,
+    )
+
+    assert summary["status"] == "FAIL"
+    assert "non-global FDR scope" in summary["detail"]
