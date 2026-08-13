@@ -170,6 +170,10 @@ def test_known_ar1_trends_are_recovered_and_detected_after_fdr() -> None:
     np.testing.assert_allclose(result["slope"], slopes, atol=0.003)
     assert int(result["significant_fdr"].sum()) >= 22
     assert bool(result["ci_excludes_zero"].where(result["significant_fdr"], True).all())
+    xr.testing.assert_equal(
+        result["fdr_ci_disagreement"],
+        result["significant_fdr"] & ~result["ci_excludes_zero"],
+    )
     assert (result["p_value"] >= result["p_value_original_mk"]).all()
     assert (
         (result["slope_ci_high"] - result["slope_ci_low"])

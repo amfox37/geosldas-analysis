@@ -138,9 +138,14 @@ per year. SciPy's nominal 95% Sen limits are retained as
 half-width by the square root of the same Hamed-Rao variance factor used for
 significance. This is a first-order autocorrelation adjustment, not a replacement
 for a block-bootstrap interval. `ci_excludes_zero` is a pointwise diagnostic;
-mapped significance must use `significant_fdr`. Every FDR-significant result is
-required to exclude zero in the adjusted interval, but the converse is not
-expected because FDR addresses the full family of tile tests.
+mapped significance must use `significant_fdr`. The first-order interval is not
+the inversion of the modified-MK test, particularly for zero-heavy or tied
+increment diagnostics, so the two need not agree exactly. The output exposes
+`fdr_ci_disagreement` wherever the FDR test is significant but the adjusted Sen
+interval contains zero. This disagreement must be reported rather than forcing
+one inferential product to mimic the other. A test-inverted or block-bootstrap
+interval remains the appropriate later sensitivity if interval-based mapped
+inference is required.
 
 Significance uses a conservative adaptation of the Hamed-Rao modified
 Mann-Kendall variance correction (Hamed and Rao, 1998,
@@ -188,7 +193,7 @@ time from 49.5 seconds serial to 14.5 seconds. The backend and worker count do
 not alter the FDR family and the output records its execution strategy.
 `scripts/audit_phase1_trend_outputs.py` checks dimensions, required variables,
 matrix provenance, status and finite-value support, p/q ranges, FDR flags,
-adjusted-CI consistency, and complete-field FDR scope. Derived batch manifests,
+explicit FDR/CI disagreement, and complete-field FDR scope. Derived batch manifests,
 logs, and output audits live under `output/trends_breakpoints/`.
 
 `scripts/validate_trend_statistics.py` measures false positives and power on

@@ -228,7 +228,10 @@ class MonthlySeriesLoader:
                 f"{dataset_key}/{variable} has dimensions {values.dims}; "
                 "expected ('time', 'tile')"
             )
-        return values.assign_coords(tile=self.tile.values)
+        # Dataset-specific lat/lon auxiliaries can differ at floating precision
+        # even when the tile order is identical. Analysis geometry always comes
+        # from the audited OL land/tile-coordinate contract.
+        return values.reset_coords(drop=True).assign_coords(tile=self.tile.values)
 
     def _monthly_values(self, dataset_key: str, variable: str) -> xr.DataArray:
         source = self._source_values(dataset_key, variable)

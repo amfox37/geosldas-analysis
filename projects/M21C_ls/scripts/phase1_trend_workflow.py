@@ -41,6 +41,7 @@ REQUIRED_OUTPUT_VARIABLES = {
     "q_value",
     "significant_fdr",
     "ci_excludes_zero",
+    "fdr_ci_disagreement",
     "mk_variance_factor",
     "lag1_residual_pearson_autocorrelation",
     "lag1_rank_autocorrelation",
@@ -148,6 +149,7 @@ def audit_trend_output(
         "n_tiles": 0,
         "n_success": 0,
         "n_significant_fdr": 0,
+        "n_fdr_ci_disagreement": 0,
         "fraction_significant_fdr": np.nan,
         "median_slope_success": np.nan,
         "median_valid_fraction_success": np.nan,
@@ -222,8 +224,13 @@ def audit_trend_output(
                 if not np.array_equal(significant, np.isfinite(q_value) & (q_value <= fdr_alpha)):
                     errors.append("significant_fdr is inconsistent with q_value and alpha")
                 ci_excludes = np.asarray(dataset["ci_excludes_zero"].values, dtype=bool)
-                if np.any(significant & ~ci_excludes):
-                    errors.append("FDR-significant tile has an adjusted CI containing zero")
+                disagreement = np.asarray(
+                    dataset["fdr_ci_disagreement"].values, dtype=bool
+                )
+                expected_disagreement = significant & ~ci_excludes
+                if not np.array_equal(disagreement, expected_disagreement):
+                    errors.append("fdr_ci_disagreement does not match FDR and CI fields")
+                summary["n_fdr_ci_disagreement"] = int(disagreement.sum())
                 n_month = np.asarray(dataset["n_calendar_months_used"].values)
                 if np.any((n_month < 0) | (n_month > 12)):
                     errors.append("n_calendar_months_used outside 0..12")

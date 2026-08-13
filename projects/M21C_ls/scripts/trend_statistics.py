@@ -476,12 +476,7 @@ def compute_trend_statistics(
     ci_excludes_zero = (output_arrays["slope_ci_low"] > 0) | (
         output_arrays["slope_ci_high"] < 0
     )
-    inconsistent_significance = significant & ~ci_excludes_zero
-    if np.any(inconsistent_significance):
-        raise RuntimeError(
-            "FDR-significant tiles must exclude zero in the autocorrelation-adjusted "
-            f"slope interval; found {int(inconsistent_significance.sum())} inconsistencies"
-        )
+    fdr_ci_disagreement = significant & ~ci_excludes_zero
 
     coords: dict[str, Any] = {"tile": values.tile.values}
     for name in ("lat", "lon", "tile_area"):
@@ -496,6 +491,7 @@ def compute_trend_statistics(
         "tile",
         ci_excludes_zero,
     )
+    output["fdr_ci_disagreement"] = ("tile", fdr_ci_disagreement)
     output["calendar_month_used"] = (
         ("tile", "month"),
         calendar_month_used,
@@ -559,6 +555,13 @@ def compute_trend_statistics(
     output["ci_excludes_zero"].attrs.update(
         long_name="autocorrelation-adjusted pointwise 95% slope interval excludes zero",
         note="Pointwise interval diagnostic; mapped significance must use significant_fdr",
+    )
+    output["fdr_ci_disagreement"].attrs.update(
+        long_name="FDR-significant modified-MK test while adjusted Sen interval contains zero",
+        note=(
+            "The first-order adjusted Sen interval is not a test-inverted confidence "
+            "interval; significant_fdr remains the mapped inference"
+        ),
     )
     output["calendar_month_used"].attrs.update(
         long_name="calendar month retained after seasonal-adjustment sample gate",

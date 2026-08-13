@@ -86,7 +86,7 @@ def synthetic_inputs(tmp_path: Path) -> dict[str, Path]:
                 {"units": "kg m-2"},
             )
         },
-        coords={"time": TIME},
+        coords={"time": TIME, "lat": ("tile", LAT + 0.25)},
         attrs={"source_root": "/synthetic/DA_SOURCE"},
     )
     catch.to_netcdf(data_dir / "catch.nc", engine="scipy")
@@ -99,7 +99,7 @@ def synthetic_inputs(tmp_path: Path) -> dict[str, Path]:
                 {"units": "m3 m-3"},
             )
         },
-        coords={"time": TIME},
+        coords={"time": TIME, "lat": ("tile", LAT - 0.25)},
         attrs={"source_root": "/synthetic/DA_SOURCE"},
     )
     inst3.to_netcdf(data_dir / "inst3.nc", engine="scipy")
@@ -231,6 +231,8 @@ def test_existing_increment_and_diagnostic_monthly_values_are_not_reaggregated(
     assert diagnostic["value"].attrs["monthly_transform"].startswith("none")
     assert snow.attrs["kind"] == "cumulative_prognostic_increment"
     assert diagnostic.attrs["kind"] == "diagnostic_state_correction"
+    np.testing.assert_allclose(snow["lat"], LAT)
+    np.testing.assert_allclose(diagnostic["lat"], LAT)
 
 
 def test_static_and_dynamic_masks_match_synthesis_definitions(
