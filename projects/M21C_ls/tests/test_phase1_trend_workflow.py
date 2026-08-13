@@ -89,6 +89,7 @@ def test_output_audit_accepts_complete_global_field(tmp_path: Path) -> None:
     assert summary["n_significant_positive_slope"] == 1
     assert summary["n_significant_negative_slope"] == 1
     assert summary["source_git_commit"] == "synthetic-test-commit"
+    assert summary["fraction_significant_with_ci_disagreement"] == 0.0
 
 
 def test_output_audit_rejects_wrong_embedded_configuration(tmp_path: Path) -> None:

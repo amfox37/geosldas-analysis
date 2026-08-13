@@ -82,18 +82,34 @@ calendar-month adjustment; they remain explicit status-4 outputs.
 
 The first-order autocorrelation-adjusted Sen interval is not the inversion of
 the modified-MK test. They agree for the paired SFMC/RZMC and snow sensitivities,
-but disagreement is common for tied, zero-heavy activity diagnostics. For
-example, 23,454 absolute soil-water-activity tiles are FDR-significant while the
-approximate interval contains zero, and 6,203 significant tiles have an exact
-zero median Sen slope. The NetCDFs expose `fdr_ci_disagreement`; maps must use
-`significant_fdr`. A block-bootstrap or test-inverted interval is a later
-sensitivity if interval-based mapped inference is required.
+but disagreement is common for tied, zero-heavy activity diagnostics:
+
+| Field | FDR significant | CI disagreements | Fraction of significant tiles |
+|---|---:|---:|---:|
+| TSOIL1 DA - OL | 8,143 | 2 | 0.03% |
+| Signed soil-water correction | 1,957 | 58 | 2.96% |
+| Absolute soil-water activity | 106,009 | 23,454 | 22.12% |
+| SFMC correction mean | 12,785 | 1,144 | 8.95% |
+| SFMC correction absolute mean | 101,791 | 13,828 | 13.58% |
+| SFMC correction RMS | 102,004 | 12,985 | 12.73% |
+| RZMC correction mean | 3,063 | 3 | 0.10% |
+| RZMC correction absolute mean | 112,572 | 2,735 | 2.43% |
+| RZMC correction RMS | 112,547 | 5,806 | 5.16% |
+
+All other fields have zero disagreements. In addition, 6,203 significant
+absolute soil-water-activity tiles have an exact zero median Sen slope. The
+NetCDFs expose `fdr_ci_disagreement`, and maps must use `significant_fdr`.
+Do not plot the first-order CI as inferential whiskers for the activity fields,
+especially absolute soil-water activity and the SFMC absolute/RMS diagnostics.
+A block-bootstrap or test-inverted interval is required before interval-based
+mapped inference.
 
 ## Verification
 
 - Input audit: 234/234 checks pass.
 - Phase 1 output audit: 21/21 fields pass.
-- Focused tests: 27 pass.
+- Focused tests: 29 pass outside the macOS semaphore sandbox; the process-worker
+  regression is the only test skipped when that sandbox blocks loky discovery.
 - All fields embed the same trend configuration and source commit.
 - Production execution used eight joblib process workers and completed the
   final 21-field batch in 40.9 minutes.

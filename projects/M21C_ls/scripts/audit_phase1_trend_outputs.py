@@ -64,6 +64,7 @@ def main() -> int:
                 "n_significant_zero_slope",
                 "median_slope_success",
                 "n_fdr_ci_disagreement",
+                "fraction_significant_with_ci_disagreement",
             ]
         ].to_string(index=False)
     )

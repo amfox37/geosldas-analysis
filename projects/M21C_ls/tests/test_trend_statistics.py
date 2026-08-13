@@ -237,6 +237,23 @@ def test_parallel_and_serial_results_match() -> None:
     xr.testing.assert_allclose(serial, parallel)
 
 
+def test_process_parallel_and_serial_results_match() -> None:
+    rng = np.random.default_rng(91)
+    values = 0.01 * TIME_YEARS[:, None] + _ar1_noise(rng, TIME.size, 4, 0.4, 0.03)
+    data = _data_array(values)
+    serial = compute_trend_statistics(data, config=_config(), n_jobs=1)
+    try:
+        processes = compute_trend_statistics(
+            data, config=_config(), n_jobs=2, parallel_prefer="processes"
+        )
+    except PermissionError as exc:
+        if "Operation not permitted" not in str(exc):
+            raise
+        pytest.skip("macOS sandbox blocks loky semaphore-limit discovery")
+
+    xr.testing.assert_allclose(serial, processes)
+
+
 def test_invalid_parallel_preference_is_rejected() -> None:
     values = _data_array(np.zeros((TIME.size, 1)))
     with pytest.raises(ValueError, match="parallel_prefer"):
