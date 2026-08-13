@@ -60,6 +60,7 @@ segment.
 - `docs/phase1_interrupted_series_results.md` - audited P1-P9 domain-mean transition results and calibration limits.
 - `docs/phase1_changepoint_results.md` - audited independent-break recovery, known-boundary agreement, and limits.
 - `notebooks/phase1_trends_breakpoints_summary.ipynb` - inline figures for P6 convergence, boundary agreement, controls, and penalty stability.
+- `notebooks/phase1_state_trend_maps.ipynb` - Robinson maps of matched OL, DA, and DA-minus-OL trends for precipitation, soil moisture, and snow states.
 - `config/trend_breakpoint_inputs.json` - monthly file, source, dimension, date, and tile-area contract.
 - `config/trend_breakpoint_variable_selection.json` - phase-1 and phase-2 selections from existing monthly-synthesis products.
 - `config/phase1_trend_runs.json` - the 17 primary fields and four predeclared mask sensitivities in the production batch.
