@@ -60,6 +60,7 @@ segment.
 - `config/trend_breakpoint_variable_selection.json` - phase-1 and phase-2 selections from existing monthly-synthesis products.
 - `config/phase1_trend_runs.json` - the 17 primary fields and four predeclared mask sensitivities in the production batch.
 - `config/trend_statistics.json` - support, seasonal-adjustment, modified-MK, and FDR settings.
+- `config/interrupted_time_series.json` - segmented P1-P9, AR(1), bootstrap, and transition-FDR settings.
 - `scripts/audit_trend_breakpoint_inputs.py` - audit gate for current OL v2/DA v3 monthly inputs.
 - `scripts/trend_breakpoint_series.py` - paired OL/DA tile loader, synthesis masks, and area-weighted monthly series.
 - `scripts/trend_statistics.py` - exact Theil-Sen, conservative modified Mann-Kendall, and BH-FDR engine.
@@ -67,9 +68,15 @@ segment.
 - `scripts/run_phase1_trends.py` - atomic, restartable production runner for the complete Phase 1 matrix.
 - `scripts/audit_phase1_trend_outputs.py` - structural, provenance, support, CI, and global-FDR audit for production outputs.
 - `scripts/validate_trend_statistics.py` - fixed-seed white-noise and AR(1) false-positive/power validation.
+- `scripts/interrupted_time_series.py` - P1-P9 segmented Prais-Winsten model with fitted-AR(1) bootstrap inference.
+- `scripts/build_phase1_interrupted_series.py` - production runner for all 43 area-weighted Phase 1 domain series.
+- `scripts/audit_phase1_interrupted_series.py` - structural, provenance, pairing, P7, and transition-FDR audit.
+- `scripts/validate_interrupted_time_series.py` - fixed-seed AR(1) no-transition and known-transition calibration.
 - `tests/test_trend_breakpoint_series.py` - focused tests for pairing, units, masks, weights, signs, dates, and missing data.
 - `tests/test_trend_statistics.py` - synthetic trend, autocorrelation, support, FDR, and parallel-consistency tests.
 - `tests/test_phase1_trend_workflow.py` - production-matrix and output-audit contract tests.
+- `tests/test_interrupted_time_series.py` - exact recovery, AR(1), missing-support, P7, and false-discovery tests.
+- `tests/test_phase1_interrupted_workflow.py` - 43-series expansion and transition-family FDR tests.
 - `legacy/trends_2025/` - provenance archive of the superseded 2025 trend exploration.
 
 ### Archived notebooks
@@ -103,6 +110,9 @@ python -m pytest projects/M21C_ls/tests/test_trend_breakpoint_series.py projects
 python projects/M21C_ls/scripts/validate_trend_statistics.py --n-series 100 --n-jobs 2
 python projects/M21C_ls/scripts/run_phase1_trends.py
 python projects/M21C_ls/scripts/audit_phase1_trend_outputs.py --no-write
+python projects/M21C_ls/scripts/build_phase1_interrupted_series.py
+python projects/M21C_ls/scripts/audit_phase1_interrupted_series.py
+python projects/M21C_ls/scripts/validate_interrupted_time_series.py
 ```
 
 ## Notebook Runtime/Smoke-Test Runbook

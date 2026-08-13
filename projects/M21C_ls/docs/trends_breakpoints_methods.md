@@ -112,6 +112,65 @@ PELT on appropriately prewhitened residuals, with block-bootstrap stability and
 synthetic AR-series false-positive tests. Climatology-period and seasonal-dummy
 formulations are required sensitivity checks.
 
+## Known-transition interrupted series
+
+`config/interrupted_time_series.json` and
+`scripts/interrupted_time_series.py` define the first transition-attribution
+stage. The response is an area-weighted monthly domain series. Every paired
+matrix row is fitted three ways on identical support: OL, DA, and `DA - OL`.
+DA-only increment diagnostics contribute their registered `value` series. The
+21 Phase 1 matrix rows therefore expand to 43 models: 11 paired rows times three
+series plus ten DA-only rows. `DA - OL` or `value` remains the primary estimand;
+OL and DA are attribution controls.
+
+The segmented design contains an intercept, a P1 baseline slope, 11
+calendar-month fixed effects, level changes at every P2-P9 boundary, and slope
+hinges for P2-P6, P8, and P9. It is full rank with 28 parameters over the
+288-month record. P7 receives a level change but no slope hinge: its 15-month
+slope is constrained to the P6 slope until P8 establishes a new slope. This is
+a model constraint carried from the period registry, not an inference made from
+the data.
+
+Serial dependence is fitted with iterative Prais-Winsten AR(1). Primary
+transition p-values and confidence intervals use a fixed-seed fitted-AR(1)
+innovation-resampling bootstrap: innovations from the fitted whitened residuals are centered,
+resampled, propagated through an AR(1), and the complete model is refitted.
+Because a 28-parameter segmented fit can bias residual persistence downward,
+the simulation AR(1) is the upper 95% large-sample confidence bound on the
+fitted value (capped at 0.98); both values are reported. This makes uncertainty
+conditional on a conservative persistence estimate rather than pretending the
+estimated AR coefficient is known exactly. The default production analysis
+uses 1,999 replicates. Centered
+two-sided empirical p-values and basic bootstrap intervals are reported.
+Newey-West/Bartlett and independent-sample standard errors remain in the output
+as diagnostics; they do not determine transition significance. This choice is
+deliberate: both OLS-HAC and Prais-Winsten-HAC alone were anti-conservative in
+the fixed-seed 288-month AR(1) no-transition test, whereas the bootstrap passed
+the BH false-discovery guard.
+
+`scripts/validate_interrupted_time_series.py` provides the larger fixed-seed
+calibration outside the unit suite. Its default 72-series experiment uses 24
+AR(1)=0.8 no-transition series, 24 with a P6 level change, and 24 with a P6
+slope change. The gate permits at most two null BH discoveries across the 15
+transition families and requires at least 80% target-interval coverage, the
+correct mean-effect direction, and relative mean bias no larger than 50%.
+These are workflow regression limits, not universal power claims.
+
+BH FDR at 0.05 is applied separately for each named boundary across all 43
+domain series. Level changes have eight families, slope changes have seven, and
+independently estimated period slopes have eight; P7 has no period-slope FDR
+family. This preserves the scientific question represented by each transition
+and gives 23 predeclared families rather than combining unrelated coefficients
+in one omnibus correction.
+
+`scripts/build_phase1_interrupted_series.py` writes three atomic products under
+`output/trends_breakpoints/`: a coefficient table, a model-diagnostic table,
+and a monthly NetCDF containing observed, fitted, residual, contributing-tile,
+and represented-area series. `scripts/audit_phase1_interrupted_series.py`
+independently reconstructs the 43-series contract, verifies all transition
+terms and FDR families, enforces the P7 constraint, and confirms
+`delta = DA - OL` for every paired domain series.
+
 ## Core trend statistics
 
 `config/trend_statistics.json` and `scripts/trend_statistics.py` implement the
@@ -239,8 +298,8 @@ the original roadmap.
 
 The next stages remain, in order:
 
-1. Estimate known observing-system level and slope changes, treating P7 as
-   level-only and reporting the short-segment cautions carried by the registry.
+1. Run and audit the implemented known-transition model on the complete Phase 1
+   area-weighted domain-series matrix, treating P7 as level-only.
 2. Add autocorrelation-aware independent changepoint detection, using OL as the
    control and exempting P7 from agreement scoring.
 3. Validate trend and changepoint behavior on synthetic autocorrelated no-break
