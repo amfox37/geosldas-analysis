@@ -358,13 +358,19 @@ area-weighted series and 23 transition FDR families pass the production audit;
 the calibration and results are summarized in
 `docs/phase1_interrupted_series_results.md`.
 
+The independent changepoint stage was completed on 2026-08-12. All 43 models,
+the complete method/penalty grid, and all 344 P2-P9 comparison rows pass the
+production audit. Calibration and boundary agreement are summarized in
+`docs/phase1_changepoint_results.md`.
+
 ## Remaining roadmap
 
 The next stages remain, in order:
 
-1. Add autocorrelation-aware independent changepoint detection, using OL as the
-   control and exempting P7 from agreement scoring.
-2. Validate changepoint behavior on synthetic autocorrelated no-break
-   and known-break series, including climatology and penalty sensitivities.
-3. Produce global maps, area-weighted regional series, transition summaries,
-   and a provenance-complete methods/results report only after those tests pass.
+1. Produce the figure notebook for area-weighted monthly series, known-date
+   transition estimates, independent dates, boundary agreement, and penalty
+   stability.
+2. Decide whether the next spatial stage should fit known transitions per tile,
+   detect independent breaks per tile, or begin with regional aggregation.
+3. Produce maps only after the spatial estimand and multiple-testing contract
+   are fixed and pass synthetic validation.
