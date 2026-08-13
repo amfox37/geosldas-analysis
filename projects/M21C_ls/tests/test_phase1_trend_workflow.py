@@ -17,6 +17,9 @@ from phase1_trend_workflow import audit_trend_output, load_phase1_runs
 from trend_statistics import compute_trend_statistics
 
 
+STATE_CONTEXT_MATRIX = PROJECT_ROOT / "config" / "phase1_state_trend_runs.json"
+
+
 def test_phase1_matrix_has_one_primary_run_per_selected_variable() -> None:
     payload, runs = load_phase1_runs()
 
@@ -31,6 +34,25 @@ def test_phase1_matrix_has_one_primary_run_per_selected_variable() -> None:
         "SNOMASLAND",
         "SNODPLAND",
     }
+
+
+def test_state_context_matrix_has_matched_ol_and_da_runs() -> None:
+    payload, runs = load_phase1_runs(STATE_CONTEXT_MATRIX)
+
+    assert payload["matrix_kind"] == "state_context"
+    assert len(runs) == 12
+    assert {run["role"] for run in runs} == {"context"}
+    signatures = {(run["variable"], run["series"], run["mask"]) for run in runs}
+    for variable, mask in {
+        "PRECTOTCORRLAND": "valid_land",
+        "SFMC": "valid_land",
+        "RZMC": "valid_land",
+        "SNOMASLAND": "seasonal_snow",
+        "SNODPLAND": "seasonal_snow",
+        "FRLANDSNO": "seasonal_snow",
+    }.items():
+        assert (variable, "ol", mask) in signatures
+        assert (variable, "da", mask) in signatures
 
 
 def _trend_output(run: dict[str, str]) -> xr.Dataset:

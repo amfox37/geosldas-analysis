@@ -58,9 +58,11 @@ primary mask. Snow states and snow-water corrections use `seasonal_snow`.
 `warm_snowfree_monthly` mask; `SNOMASLAND` and `SNODPLAND` additionally use
 `locally_snowy_monthly`. The first production batch estimates the registered
 primary impact series (`delta` for paired OL/DA fields and `value` for DA-only
-diagnostics). Separate OL and DA trend fields are controls to generate when a
-primary impact result needs attribution; they are not silently included in the
-Phase 1 FDR families.
+diagnostics). Separate OL and DA trend fields are declared in
+`config/phase1_state_trend_runs.json` for precipitation, surface and root-zone
+soil moisture, snow mass, snow depth, and snow-covered fraction. They use the
+same paired samples and masks as each corresponding `DA - OL` field, but each
+complete field retains its own spatial FDR family.
 
 For paired OL/DA quantities, the primary assimilation-impact estimand is the
 trend of the paired `DA - OL` monthly series. The workflow will not define the
@@ -352,6 +354,12 @@ The complete Phase 1 matrix was generated on 2026-08-12. All 21 fields pass the
 production audit, use a single source commit and embedded configuration, and
 are summarized in `docs/phase1_trend_results.md`. This closes the first item in
 the original roadmap.
+
+The 12 matched OL/DA state-context fields were generated and audited on the
+same date. `scripts/summarize_phase1_state_trends.py` compares spatial support,
+significant-tile overlap, and area-weighted domain trends. The 18 domain tests
+(six variables times OL, DA, and `DA - OL`) form one BH-FDR family. Results are
+summarized in `docs/phase1_state_trend_results.md`.
 
 The known-transition stage was also completed on 2026-08-12. All 43 expanded
 area-weighted series and 23 transition FDR families pass the production audit;

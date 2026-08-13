@@ -56,12 +56,14 @@ segment.
 
 - `docs/trends_breakpoints_methods.md` - input contract and statistical guardrails for the replacement trend workflow.
 - `docs/phase1_trend_results.md` - audited first production trend inventory and interpretation limits.
+- `docs/phase1_state_trend_results.md` - matched OL/DA background trends and their relationship to the DA-minus-OL fields.
 - `docs/phase1_interrupted_series_results.md` - audited P1-P9 domain-mean transition results and calibration limits.
 - `docs/phase1_changepoint_results.md` - audited independent-break recovery, known-boundary agreement, and limits.
 - `notebooks/phase1_trends_breakpoints_summary.ipynb` - inline figures for P6 convergence, boundary agreement, controls, and penalty stability.
 - `config/trend_breakpoint_inputs.json` - monthly file, source, dimension, date, and tile-area contract.
 - `config/trend_breakpoint_variable_selection.json` - phase-1 and phase-2 selections from existing monthly-synthesis products.
 - `config/phase1_trend_runs.json` - the 17 primary fields and four predeclared mask sensitivities in the production batch.
+- `config/phase1_state_trend_runs.json` - matched OL and DA precipitation, soil-moisture, and snow trend controls.
 - `config/trend_statistics.json` - support, seasonal-adjustment, modified-MK, and FDR settings.
 - `config/interrupted_time_series.json` - segmented P1-P9, AR(1), bootstrap, and transition-FDR settings.
 - `config/changepoint_detection.json` - independent PELT methods, penalties, consensus, and boundary-matching settings.
@@ -71,6 +73,7 @@ segment.
 - `scripts/trend_statistics.py` - exact Theil-Sen, conservative modified Mann-Kendall, and BH-FDR engine.
 - `scripts/build_trend_statistics.py` - CLI for provenance-complete tile-level trend NetCDF files.
 - `scripts/run_phase1_trends.py` - atomic, restartable production runner for the complete Phase 1 matrix.
+- `scripts/summarize_phase1_state_trends.py` - tile, OL/DA-overlap, and area-weighted domain summaries for the state controls.
 - `scripts/audit_phase1_trend_outputs.py` - structural, provenance, support, CI, and global-FDR audit for production outputs.
 - `scripts/validate_trend_statistics.py` - fixed-seed white-noise and AR(1) false-positive/power validation.
 - `scripts/interrupted_time_series.py` - P1-P9 segmented Prais-Winsten model with fitted-AR(1) bootstrap inference.
@@ -120,6 +123,8 @@ python -m pytest projects/M21C_ls/tests/test_trend_breakpoint_series.py projects
 python projects/M21C_ls/scripts/validate_trend_statistics.py --n-series 100 --n-jobs 2
 python projects/M21C_ls/scripts/run_phase1_trends.py
 python projects/M21C_ls/scripts/audit_phase1_trend_outputs.py --no-write
+python projects/M21C_ls/scripts/run_phase1_trends.py --run-matrix projects/M21C_ls/config/phase1_state_trend_runs.json
+python projects/M21C_ls/scripts/summarize_phase1_state_trends.py
 python projects/M21C_ls/scripts/build_phase1_interrupted_series.py
 python projects/M21C_ls/scripts/audit_phase1_interrupted_series.py
 python projects/M21C_ls/scripts/validate_interrupted_time_series.py

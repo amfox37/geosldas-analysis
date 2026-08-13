@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "phase": 1,
+  "matrix_kind": "state_context",
+  "description": "Matched OL and DA tile-level trends used to interpret the existing DA-minus-OL state trends.",
+  "expected_run_count": 12,
+  "runs": [
+    {"run_id": "PRECTOTCORRLAND_ol_valid_land", "variable": "PRECTOTCORRLAND", "series": "ol", "mask": "valid_land", "role": "context", "rationale": "Global OL precipitation trend on paired OL/DA support."},
+    {"run_id": "PRECTOTCORRLAND_da_valid_land", "variable": "PRECTOTCORRLAND", "series": "da", "mask": "valid_land", "role": "context", "rationale": "Global DA precipitation trend on the same paired support."},
+    {"run_id": "SFMC_ol_valid_land", "variable": "SFMC", "series": "ol", "mask": "valid_land", "role": "context", "rationale": "Global OL surface soil-moisture trend on paired OL/DA support."},
+    {"run_id": "SFMC_da_valid_land", "variable": "SFMC", "series": "da", "mask": "valid_land", "role": "context", "rationale": "Global DA surface soil-moisture trend on the same paired support."},
+    {"run_id": "RZMC_ol_valid_land", "variable": "RZMC", "series": "ol", "mask": "valid_land", "role": "context", "rationale": "Global OL root-zone soil-moisture trend on paired OL/DA support."},
+    {"run_id": "RZMC_da_valid_land", "variable": "RZMC", "series": "da", "mask": "valid_land", "role": "context", "rationale": "Global DA root-zone soil-moisture trend on the same paired support."},
+    {"run_id": "SNOMASLAND_ol_seasonal_snow", "variable": "SNOMASLAND", "series": "ol", "mask": "seasonal_snow", "role": "context", "rationale": "OL snow-mass trend over the Northern Hemisphere seasonal-snow domain."},
+    {"run_id": "SNOMASLAND_da_seasonal_snow", "variable": "SNOMASLAND", "series": "da", "mask": "seasonal_snow", "role": "context", "rationale": "DA snow-mass trend over the same paired seasonal-snow support."},
+    {"run_id": "SNODPLAND_ol_seasonal_snow", "variable": "SNODPLAND", "series": "ol", "mask": "seasonal_snow", "role": "context", "rationale": "OL snow-depth trend over the Northern Hemisphere seasonal-snow domain."},
+    {"run_id": "SNODPLAND_da_seasonal_snow", "variable": "SNODPLAND", "series": "da", "mask": "seasonal_snow", "role": "context", "rationale": "DA snow-depth trend over the same paired seasonal-snow support."},
+    {"run_id": "FRLANDSNO_ol_seasonal_snow", "variable": "FRLANDSNO", "series": "ol", "mask": "seasonal_snow", "role": "context", "rationale": "OL snow-covered-fraction trend over the Northern Hemisphere seasonal-snow domain."},
+    {"run_id": "FRLANDSNO_da_seasonal_snow", "variable": "FRLANDSNO", "series": "da", "mask": "seasonal_snow", "role": "context", "rationale": "DA snow-covered-fraction trend over the same paired seasonal-snow support."}
+  ]
+}

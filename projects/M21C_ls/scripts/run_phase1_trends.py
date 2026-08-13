@@ -55,7 +55,7 @@ def parse_args() -> argparse.Namespace:
         metavar="RUN_ID",
         help="Run only a named matrix row; may be repeated",
     )
-    parser.add_argument("--role", choices=["primary", "sensitivity"])
+    parser.add_argument("--role", choices=["primary", "sensitivity", "context"])
     parser.add_argument("--force", action="store_true", help="Rebuild outputs that pass audit")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
@@ -100,10 +100,12 @@ def main() -> int:
         )
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    is_default_matrix = args.run_matrix.resolve() == DEFAULT_RUN_MATRIX.resolve()
+    matrix_label = "phase1_trend" if is_default_matrix else args.run_matrix.stem
     manifest_path = args.output_dir / (
-        "phase1_trend_diagnostic_manifest.csv"
+        f"{matrix_label}_diagnostic_manifest.csv"
         if diagnostic
-        else "phase1_trend_batch_manifest.csv"
+        else f"{matrix_label}_batch_manifest.csv"
     )
     rows: list[dict[str, Any]] = []
     failures = 0
@@ -246,7 +248,7 @@ def main() -> int:
             output_dir=args.output_dir,
             trend_config=args.trend_config,
         )
-        final_report_path = args.output_dir / "phase1_trend_output_audit.csv"
+        final_report_path = args.output_dir / f"{matrix_label}_output_audit.csv"
         final_report.to_csv(final_report_path, index=False)
         n_pass = int((final_report["status"] == "PASS").sum())
         print(f"Final production audit: {n_pass}/{len(final_report)} PASS")

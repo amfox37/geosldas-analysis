@@ -51,7 +51,11 @@ def parse_args() -> argparse.Namespace:
         help="Joblib execution backend preference when n-jobs is not 1",
     )
     parser.add_argument("--run-id", default="standalone")
-    parser.add_argument("--run-role", choices=["primary", "sensitivity", "standalone"], default="standalone")
+    parser.add_argument(
+        "--run-role",
+        choices=["primary", "sensitivity", "context", "standalone"],
+        default="standalone",
+    )
     parser.add_argument("--run-matrix", type=Path)
     return parser.parse_args()
 

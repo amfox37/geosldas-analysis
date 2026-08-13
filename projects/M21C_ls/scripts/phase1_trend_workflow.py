@@ -68,6 +68,9 @@ def load_phase1_runs(
     payload = json.loads(Path(path).read_text())
     if int(payload.get("phase", -1)) != 1:
         raise ValueError("Phase 1 run matrix must declare phase=1")
+    matrix_kind = str(payload.get("matrix_kind", "primary"))
+    if matrix_kind not in {"primary", "state_context"}:
+        raise ValueError(f"Unknown Phase 1 matrix_kind: {matrix_kind}")
     runs = [dict(run) for run in payload.get("runs", [])]
     if len(runs) != int(payload.get("expected_run_count", -1)):
         raise ValueError("Phase 1 run count does not match expected_run_count")
@@ -100,24 +103,34 @@ def load_phase1_runs(
         if variable not in phase1.index:
             raise ValueError(f"Run {run_id} references a non-Phase-1 variable: {variable}")
         row = phase1.loc[variable]
-        expected_series = "delta" if str(row["ol_dataset"]) else "value"
-        if series != expected_series:
-            raise ValueError(
-                f"Run {run_id} uses series={series}; expected {expected_series} for {variable}"
-            )
+        if matrix_kind == "primary":
+            expected_series = "delta" if str(row["ol_dataset"]) else "value"
+            if series != expected_series:
+                raise ValueError(
+                    f"Run {run_id} uses series={series}; expected {expected_series} for {variable}"
+                )
+        else:
+            if not str(row["ol_dataset"]) or not str(row["da_dataset"]):
+                raise ValueError(f"Context run {run_id} requires paired OL and DA sources")
+            if series not in {"ol", "da"}:
+                raise ValueError(
+                    f"Context run {run_id} uses series={series}; expected ol or da"
+                )
         if mask not in ALLOWED_MASKS:
             raise ValueError(f"Run {run_id} uses unknown mask: {mask}")
-        if role not in {"primary", "sensitivity"}:
+        allowed_roles = {"primary", "sensitivity"} if matrix_kind == "primary" else {"context"}
+        if role not in allowed_roles:
             raise ValueError(f"Run {run_id} has invalid role: {role}")
         if role == "primary":
             primary_variables.append(variable)
 
-    expected_primary = int(payload.get("expected_primary_variable_count", -1))
-    if len(primary_variables) != expected_primary:
-        raise ValueError("Primary run count does not match expected_primary_variable_count")
-    duplicate_primary = pd.Series(primary_variables).duplicated().any()
-    if duplicate_primary or set(primary_variables) != set(phase1.index):
-        raise ValueError("Every Phase 1 variable must have exactly one primary run")
+    if matrix_kind == "primary":
+        expected_primary = int(payload.get("expected_primary_variable_count", -1))
+        if len(primary_variables) != expected_primary:
+            raise ValueError("Primary run count does not match expected_primary_variable_count")
+        duplicate_primary = pd.Series(primary_variables).duplicated().any()
+        if duplicate_primary or set(primary_variables) != set(phase1.index):
+            raise ValueError("Every Phase 1 variable must have exactly one primary run")
     return payload, runs
 
 
