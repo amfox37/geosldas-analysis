@@ -12,6 +12,7 @@ from phase1_trend_workflow import (
     audit_phase1_outputs,
 )
 from trend_breakpoint_series import DEFAULT_INPUT_CONTRACT, DEFAULT_VARIABLE_SELECTION
+from trend_statistics import DEFAULT_CONFIG
 
 
 DEFAULT_REPORT = DEFAULT_OUTPUT_DIR / "phase1_trend_output_audit.csv"
@@ -24,6 +25,7 @@ def parse_args() -> argparse.Namespace:
         "--variable-selection", type=Path, default=DEFAULT_VARIABLE_SELECTION
     )
     parser.add_argument("--input-contract", type=Path, default=DEFAULT_INPUT_CONTRACT)
+    parser.add_argument("--trend-config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
     parser.add_argument("--no-write", action="store_true")
@@ -37,6 +39,7 @@ def main() -> int:
         variable_selection=args.variable_selection,
         input_contract=args.input_contract,
         output_dir=args.output_dir,
+        trend_config=args.trend_config,
     )
     if not args.no_write:
         args.report.parent.mkdir(parents=True, exist_ok=True)
@@ -55,7 +58,12 @@ def main() -> int:
                 "n_success",
                 "n_significant_fdr",
                 "fraction_significant_fdr",
+                "fraction_area_significant_fdr",
+                "n_significant_positive_slope",
+                "n_significant_negative_slope",
+                "n_significant_zero_slope",
                 "median_slope_success",
+                "n_fdr_ci_disagreement",
             ]
         ].to_string(index=False)
     )

@@ -63,6 +63,7 @@ def _trend_output(run: dict[str, str]) -> xr.Dataset:
         fdr_scope="all finite tiles eligible under the selected mask",
         run_id=run["run_id"],
         run_role=run["role"],
+        source_git_commit="synthetic-test-commit",
     )
     return output
 
@@ -84,6 +85,29 @@ def test_output_audit_accepts_complete_global_field(tmp_path: Path) -> None:
     assert summary["status"] == "PASS"
     assert summary["n_success"] == 2
     assert summary["n_significant_fdr"] == 2
+    assert summary["fraction_area_significant_fdr"] == 1.0
+    assert summary["n_significant_positive_slope"] == 1
+    assert summary["n_significant_negative_slope"] == 1
+    assert summary["source_git_commit"] == "synthetic-test-commit"
+
+
+def test_output_audit_rejects_wrong_embedded_configuration(tmp_path: Path) -> None:
+    _, runs = load_phase1_runs()
+    run = runs[0]
+    path = tmp_path / "trend.nc"
+    _trend_output(run).to_netcdf(path)
+
+    summary = audit_trend_output(
+        path,
+        run,
+        expected_tiles=2,
+        expected_total_input_tiles=2,
+        require_global_fdr=True,
+        expected_configuration="not-the-embedded-configuration",
+    )
+
+    assert summary["status"] == "FAIL"
+    assert "embedded trend configuration differs" in summary["detail"]
 
 
 def test_output_audit_rejects_subset_as_production(tmp_path: Path) -> None:

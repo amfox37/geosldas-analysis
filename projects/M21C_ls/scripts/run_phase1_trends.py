@@ -244,6 +244,7 @@ def main() -> int:
             variable_selection=args.variable_selection,
             input_contract=args.input_contract,
             output_dir=args.output_dir,
+            trend_config=args.trend_config,
         )
         final_report_path = args.output_dir / "phase1_trend_output_audit.csv"
         final_report.to_csv(final_report_path, index=False)

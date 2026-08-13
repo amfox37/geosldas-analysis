@@ -228,17 +228,22 @@ The audit writes machine-readable reports under
 `output/trends_breakpoints/`. Those reports are derived products and are not a
 second source of scientific definitions.
 
+## Production status
+
+The complete Phase 1 matrix was generated on 2026-08-12. All 21 fields pass the
+production audit, use a single source commit and embedded configuration, and
+are summarized in `docs/phase1_trend_results.md`. This closes the first item in
+the original roadmap.
+
 ## Remaining roadmap
 
 The next stages remain, in order:
 
-1. Run and review complete Phase 1 trend fields for paired soil moisture, snow,
-   precipitation context, and the valid DA-only increment diagnostics.
-2. Estimate known observing-system level and slope changes, treating P7 as
+1. Estimate known observing-system level and slope changes, treating P7 as
    level-only and reporting the short-segment cautions carried by the registry.
-3. Add autocorrelation-aware independent changepoint detection, using OL as the
+2. Add autocorrelation-aware independent changepoint detection, using OL as the
    control and exempting P7 from agreement scoring.
-4. Validate trend and changepoint behavior on synthetic autocorrelated no-break
+3. Validate trend and changepoint behavior on synthetic autocorrelated no-break
    and known-break series, including climatology and penalty sensitivities.
-5. Produce global maps, area-weighted regional series, transition summaries,
+4. Produce global maps, area-weighted regional series, transition summaries,
    and a provenance-complete methods/results report only after those tests pass.

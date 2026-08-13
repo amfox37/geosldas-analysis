@@ -16,6 +16,7 @@ from trend_breakpoint_series import (
     DEFAULT_VARIABLE_SELECTION,
     load_variable_selection,
 )
+from trend_statistics import DEFAULT_CONFIG, load_trend_config
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -133,6 +134,7 @@ def audit_trend_output(
     expected_tiles: int,
     expected_total_input_tiles: int,
     require_global_fdr: bool,
+    expected_configuration: str | None = None,
 ) -> dict[str, Any]:
     """Validate one trend NetCDF and return a compact machine-readable summary."""
 
@@ -154,6 +156,19 @@ def audit_trend_output(
         "median_slope_success": np.nan,
         "median_valid_fraction_success": np.nan,
         "median_mk_variance_factor_success": np.nan,
+        "area_success_km2": np.nan,
+        "area_significant_fdr_km2": np.nan,
+        "fraction_area_significant_fdr": np.nan,
+        "n_significant_positive_slope": 0,
+        "n_significant_negative_slope": 0,
+        "n_significant_zero_slope": 0,
+        "slope_success_p05": np.nan,
+        "slope_success_p95": np.nan,
+        "minimum_calendar_months_used_success": -1,
+        "maximum_calendar_months_used_success": -1,
+        "source_git_commit": "",
+        "parallel_execution": "",
+        **{f"n_status_{code}": 0 for code in range(5)},
     }
     if not path.exists():
         summary["detail"] = "missing output"
@@ -183,6 +198,17 @@ def audit_trend_output(
                 actual = str(dataset.attrs.get(name, ""))
                 if actual != expected:
                     errors.append(f"attribute {name}={actual!r}, expected {expected!r}")
+            source_git_commit = str(dataset.attrs.get("source_git_commit", ""))
+            summary["source_git_commit"] = source_git_commit
+            if not source_git_commit or source_git_commit == "unknown":
+                errors.append("missing source_git_commit provenance")
+            summary["parallel_execution"] = str(
+                dataset.attrs.get("parallel_execution", "")
+            )
+            if expected_configuration is not None:
+                actual_configuration = str(dataset.attrs.get("configuration", ""))
+                if actual_configuration != expected_configuration:
+                    errors.append("embedded trend configuration differs from audited config")
             total_input_tiles = int(dataset.attrs.get("total_input_tiles", -1))
             if total_input_tiles != expected_total_input_tiles:
                 errors.append(
@@ -200,6 +226,8 @@ def audit_trend_output(
                 if not np.all(valid_status):
                     errors.append("status contains values outside 0..4")
                 success = status == 0
+                for code in range(5):
+                    summary[f"n_status_{code}"] = int((status == code).sum())
                 n_success = int(success.sum())
                 significant = np.asarray(dataset["significant_fdr"].values, dtype=bool)
                 n_significant = int(significant.sum())
@@ -242,6 +270,12 @@ def audit_trend_output(
                     variance_factor = np.asarray(
                         dataset["mk_variance_factor"].values, dtype="float64"
                     )
+                    tile_area = np.asarray(dataset["tile_area"].values, dtype="float64")
+                    area_success = float(np.nansum(tile_area[success]))
+                    area_significant = float(np.nansum(tile_area[significant]))
+                    significant_positive = significant & (slope > 0)
+                    significant_negative = significant & (slope < 0)
+                    significant_zero = significant & (slope == 0)
                     summary.update(
                         median_slope_success=float(np.nanmedian(slope[success])),
                         median_valid_fraction_success=float(
@@ -250,6 +284,18 @@ def audit_trend_output(
                         median_mk_variance_factor_success=float(
                             np.nanmedian(variance_factor[success])
                         ),
+                        area_success_km2=area_success,
+                        area_significant_fdr_km2=area_significant,
+                        fraction_area_significant_fdr=(
+                            area_significant / area_success if area_success > 0 else np.nan
+                        ),
+                        n_significant_positive_slope=int(significant_positive.sum()),
+                        n_significant_negative_slope=int(significant_negative.sum()),
+                        n_significant_zero_slope=int(significant_zero.sum()),
+                        slope_success_p05=float(np.nanquantile(slope[success], 0.05)),
+                        slope_success_p95=float(np.nanquantile(slope[success], 0.95)),
+                        minimum_calendar_months_used_success=int(n_month[success].min()),
+                        maximum_calendar_months_used_success=int(n_month[success].max()),
                     )
     except Exception as exc:
         errors.append(f"cannot read output: {type(exc).__name__}: {exc}")
@@ -268,12 +314,16 @@ def audit_phase1_outputs(
     variable_selection: str | Path = DEFAULT_VARIABLE_SELECTION,
     input_contract: str | Path = DEFAULT_INPUT_CONTRACT,
     output_dir: str | Path = DEFAULT_OUTPUT_DIR,
+    trend_config: str | Path = DEFAULT_CONFIG,
 ) -> pd.DataFrame:
     """Audit every production output declared by the Phase 1 run matrix."""
 
     _, runs = load_phase1_runs(run_matrix, variable_selection=variable_selection)
     contract = json.loads(Path(input_contract).read_text())
     expected_tiles = int(contract["n_tiles"])
+    expected_configuration = json.dumps(
+        load_trend_config(trend_config), sort_keys=True
+    )
     output_dir = Path(output_dir)
     rows = [
         audit_trend_output(
@@ -282,7 +332,13 @@ def audit_phase1_outputs(
             expected_tiles=expected_tiles,
             expected_total_input_tiles=expected_tiles,
             require_global_fdr=True,
+            expected_configuration=expected_configuration,
         )
         for run in runs
     ]
-    return pd.DataFrame(rows)
+    report = pd.DataFrame(rows)
+    commits = report.loc[report["status"] == "PASS", "source_git_commit"].unique()
+    if commits.size > 1:
+        report.loc[:, "status"] = "FAIL"
+        report.loc[:, "detail"] = report["detail"] + "; mixed source_git_commit values"
+    return report
