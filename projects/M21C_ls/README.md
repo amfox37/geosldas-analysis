@@ -56,6 +56,7 @@ segment.
 
 - `docs/trends_breakpoints_methods.md` - input contract and statistical guardrails for the replacement trend workflow.
 - `docs/phase1_trend_results.md` - audited first production trend inventory and interpretation limits.
+- `docs/phase1_interrupted_series_results.md` - audited P1-P9 domain-mean transition results and calibration limits.
 - `config/trend_breakpoint_inputs.json` - monthly file, source, dimension, date, and tile-area contract.
 - `config/trend_breakpoint_variable_selection.json` - phase-1 and phase-2 selections from existing monthly-synthesis products.
 - `config/phase1_trend_runs.json` - the 17 primary fields and four predeclared mask sensitivities in the production batch.

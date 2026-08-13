@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import json
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -21,10 +23,20 @@ from trend_statistics import benjamini_hochberg
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = PROJECT_ROOT.parents[1]
 DEFAULT_OUTPUT = (
     PROJECT_ROOT / "output" / "trends_breakpoints" / "interrupted_series_validation.csv"
 )
 TRANSITION_TYPES = {"level_change", "slope_change"}
+
+
+def git_commit() -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, text=True
+        ).strip()
+    except (OSError, subprocess.CalledProcessError):
+        return "unknown"
 
 
 def parse_args() -> argparse.Namespace:
@@ -171,6 +183,14 @@ def main() -> int:
             }
         )
     report = pd.DataFrame(rows).sort_values(["scenario", "coefficient"])
+    report["simulation_ar1"] = 0.8
+    report["validation_seed"] = args.seed
+    report["bootstrap_replicates"] = args.bootstrap_replicates
+    report["maximum_null_fdr_discoveries"] = args.maximum_null_fdr_discoveries
+    report["minimum_target_coverage"] = args.minimum_target_coverage
+    report["maximum_target_relative_bias"] = args.maximum_target_relative_bias
+    report["configuration"] = json.dumps(settings, sort_keys=True)
+    report["source_git_commit"] = git_commit()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     temporary = args.output.with_name(f".{args.output.name}.incomplete")
     report.to_csv(temporary, index=False)

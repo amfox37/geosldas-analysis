@@ -297,15 +297,18 @@ production audit, use a single source commit and embedded configuration, and
 are summarized in `docs/phase1_trend_results.md`. This closes the first item in
 the original roadmap.
 
+The known-transition stage was also completed on 2026-08-12. All 43 expanded
+area-weighted series and 23 transition FDR families pass the production audit;
+the calibration and results are summarized in
+`docs/phase1_interrupted_series_results.md`.
+
 ## Remaining roadmap
 
 The next stages remain, in order:
 
-1. Run and audit the implemented known-transition model on the complete Phase 1
-   area-weighted domain-series matrix, treating P7 as level-only.
-2. Add autocorrelation-aware independent changepoint detection, using OL as the
+1. Add autocorrelation-aware independent changepoint detection, using OL as the
    control and exempting P7 from agreement scoring.
-3. Validate trend and changepoint behavior on synthetic autocorrelated no-break
+2. Validate changepoint behavior on synthetic autocorrelated no-break
    and known-break series, including climatology and penalty sensitivities.
-4. Produce global maps, area-weighted regional series, transition summaries,
+3. Produce global maps, area-weighted regional series, transition summaries,
    and a provenance-complete methods/results report only after those tests pass.
