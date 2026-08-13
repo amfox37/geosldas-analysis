@@ -150,6 +150,19 @@ def audit_interrupted_outputs(
         f"slope_change_P{index}" for index in (2, 3, 4, 5, 6, 8, 9)
     }
     expected_periods = {f"period_slope_P{index}" for index in range(1, 10)}
+    if "estimate_units" not in coefficients:
+        errors.append("coefficient table lacks estimate_units")
+    else:
+        slope_rows = coefficients["coefficient_type"].isin(
+            ["baseline_slope", "slope_change", "period_slope"]
+        )
+        expected_units = np.where(
+            slope_rows,
+            coefficients["units"].astype(str) + " yr-1",
+            coefficients["units"].astype(str),
+        )
+        if not np.array_equal(coefficients["estimate_units"].astype(str), expected_units):
+            errors.append("estimate_units does not distinguish levels from annual slopes")
     for series_id, frame in coefficients.groupby("series_id"):
         names = set(frame["coefficient"])
         if not expected_levels.issubset(names):

@@ -108,6 +108,12 @@ def _fit_one(
     )
     for name, value in row.items():
         coefficient[name] = value
+    slope_types = {"baseline_slope", "slope_change", "period_slope"}
+    coefficient["estimate_units"] = np.where(
+        coefficient["coefficient_type"].isin(slope_types),
+        f"{row['units']} yr-1",
+        row["units"],
+    )
     return coefficient, {**row, **result.summary}, result.fitted, result.residual
 
 

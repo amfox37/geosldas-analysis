@@ -170,6 +170,9 @@ and represented-area series. `scripts/audit_phase1_interrupted_series.py`
 independently reconstructs the 43-series contract, verifies all transition
 terms and FDR families, enforces the P7 constraint, and confirms
 `delta = DA - OL` for every paired domain series.
+The coefficient table retains each response's source `units` and separately
+labels `estimate_units`: level changes use the source units, while baseline,
+slope-change, and period-slope estimates use source units per year.
 
 ## Core trend statistics
 
