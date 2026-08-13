@@ -174,6 +174,62 @@ The coefficient table retains each response's source `units` and separately
 labels `estimate_units`: level changes use the source units, while baseline,
 slope-change, and period-slope estimates use source units per year.
 
+## Independent changepoint detection
+
+`config/changepoint_detection.json` and
+`scripts/changepoint_detection.py` define the independent detection stage. The
+implementation uses `ruptures` 1.1.10, pinned in
+`requirements-changepoints.txt`; it does not reimplement PELT. It consumes the
+same 43 complete area-weighted monthly series written by the known-transition
+stage, preserving its run matrix, masks, units, paired support, and provenance.
+
+Calendar-month effects are estimated jointly with one global linear trend and
+only the month effects are removed. Detection is therefore performed on a
+trend-preserving seasonally adjusted response. Two PELT methods are run across
+the complete predeclared penalty grid:
+
+- the primary method uses a piecewise AR(1), intercept, and linear-trend
+  Gaussian profile-likelihood cost;
+- the sensitivity method uses a Gaussian profile-likelihood linear cost after
+  Prais-Winsten prewhitening.
+
+The prewhitening AR(1) is the median of estimates from overlapping 60-month
+locally detrended windows stepped by 30 months. This prevents a long level or
+slope change from being mistaken for persistence. The ordinary global-trend
+residual AR(1) is retained as a diagnostic. Each segment must contain at least
+24 months.
+
+The primary penalty is 1.25 times the BIC parameter-count penalty. Multipliers
+0.5, 0.75, 1.0, 1.25, 1.5, and 2.0 are all retained in the output. A break is
+accepted only when it appears in the primary method at 1.25 times BIC, recurs
+within three months in at least half the primary-method penalty grid, and has a
+prewhitened-method break within three months. Thus an accepted date is both
+penalty-stable and cross-method, not merely the output of one favorable tuning.
+
+Accepted dates are compared one-to-one with P2-P9. The primary agreement
+tolerance is +/-3 months and +/-6 months is retained as a sensitivity. P7 can
+be matched and displayed but is exempt from detection-agreement scoring because
+its entry and exit are only 15 months apart under a 24-month segment floor.
+Unmatched accepted breaks are retained; they are not forced onto the nearest
+observing-system boundary.
+
+`scripts/validate_changepoint_detection.py` tests seasonal white-noise and
+AR(1)=0.8 nulls, an isolated P6 level shift, a gradual P6 slope hinge, two
+opposing level shifts, and a level shift near the minimum-segment edge. The
+fixed guard allows at most 0.25 accepted false breaks per null series and
+requires at least 70% recovery within six months for the abrupt isolated,
+two-break, and edge scenarios. Gradual slope recovery is reported but does not
+control the gate: its poor date localization is an explicit method limitation,
+and known-date slope inference remains the job of the interrupted-series model.
+
+`scripts/build_phase1_changepoints.py` writes accepted-candidate diagnostics,
+the complete penalty grid, P2-P9 comparisons, model diagnostics, and the
+seasonally adjusted monthly fields. `scripts/audit_phase1_changepoints.py`
+reconstructs the 43-series contract, verifies the 344 boundary rows and P7
+exemption, checks every accepted break against the consensus/stability/segment
+rules, and confirms the observed series are unchanged from the interrupted
+series product.
+
 ## Core trend statistics
 
 `config/trend_statistics.json` and `scripts/trend_statistics.py` implement the

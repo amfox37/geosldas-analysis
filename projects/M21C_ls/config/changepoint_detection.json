@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "library": "ruptures",
+  "minimum_library_version": "1.1.10",
+  "record_length_months": 288,
+  "minimum_valid_fraction": 1.0,
+  "minimum_segment_months": 24,
+  "seasonal_adjustment": "global_linear_trend_preserving_calendar_month_regression",
+  "methods": {
+    "primary": "pelt_ar1_linear",
+    "sensitivity": "pelt_prewhitened_linear",
+    "ar_order": 1,
+    "prewhitening_ar1_estimator": "median_overlapping_locally_detrended_windows",
+    "ar1_window_months": 60,
+    "ar1_window_step_months": 30
+  },
+  "penalty": {
+    "basis": "bic_parameter_count_times_log_n_with_gaussian_profile_likelihood_cost",
+    "primary_multiplier": 1.25,
+    "multipliers": [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+  },
+  "acceptance": {
+    "penalty_match_tolerance_months": 3,
+    "minimum_penalty_stability_fraction": 0.5,
+    "method_consensus_tolerance_months": 3
+  },
+  "known_boundary_comparison": {
+    "primary_tolerance_months": 3,
+    "sensitivity_tolerance_months": 6,
+    "p7_detection_exempt": true
+  },
+  "validation": {
+    "random_seed": 20260814,
+    "simulation_ar1": 0.8,
+    "maximum_mean_accepted_false_breaks": 0.25,
+    "minimum_known_break_recovery_fraction": 0.7,
+    "recovery_guard_scenarios": [
+      "ar1_level_P6",
+      "ar1_two_levels_P3_P6",
+      "ar1_level_near_start"
+    ],
+    "planted_level_change_innovation_sd": 8.0,
+    "planted_slope_endpoint_change_innovation_sd": 8.0
+  }
+}
