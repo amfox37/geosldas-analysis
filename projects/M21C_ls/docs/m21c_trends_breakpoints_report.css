@@ -1,0 +1,118 @@
+@page {
+  size: Letter;
+  margin: 0.65in 0.7in 0.7in 0.7in;
+}
+
+html {
+  color: #171717;
+  background: white;
+}
+
+body {
+  max-width: 8.2in;
+  margin: 0 auto;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9.8pt;
+  line-height: 1.34;
+}
+
+h1 {
+  margin-top: 0.6em;
+  margin-bottom: 0.35em;
+  font-size: 19pt;
+  color: #16324f;
+  break-after: avoid;
+}
+
+h2 {
+  margin-top: 1.05em;
+  margin-bottom: 0.3em;
+  font-size: 13.5pt;
+  color: #24557a;
+  border-bottom: 1px solid #c8d3dc;
+  padding-bottom: 0.12em;
+  break-after: avoid;
+}
+
+h3 {
+  font-size: 11.5pt;
+  color: #333333;
+  break-after: avoid;
+}
+
+p, li {
+  orphans: 3;
+  widows: 3;
+}
+
+blockquote {
+  margin: 0.8em 1em;
+  padding: 0.4em 0.8em;
+  border-left: 4px solid #5c88a8;
+  background: #f2f6f8;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.7em 0 1em 0;
+  font-size: 9pt;
+  break-inside: avoid;
+}
+
+th, td {
+  border: 1px solid #b9c4cc;
+  padding: 0.28em 0.42em;
+  vertical-align: top;
+}
+
+th {
+  background: #e8eff3;
+  color: #17334a;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  max-height: 7.2in;
+  margin: 0.7em auto 0.25em auto;
+  break-inside: avoid;
+}
+
+figure {
+  margin: 0.8em 0 1.1em 0;
+  break-inside: avoid;
+}
+
+figcaption {
+  margin: 0.25em 0 0.8em 0;
+  font-size: 8.5pt;
+  color: #424242;
+}
+
+code {
+  font-size: 0.92em;
+}
+
+#title-block-header {
+  margin-bottom: 1.2em;
+  border-bottom: 2px solid #24557a;
+  padding-bottom: 0.8em;
+}
+
+#title-block-header .title {
+  margin-bottom: 0.15em;
+  font-size: 25pt;
+}
+
+#title-block-header .subtitle {
+  margin: 0;
+  color: #475b68;
+  font-size: 13pt;
+  font-weight: normal;
+}
+
+#title-block-header .date {
+  color: #5f6b73;
+  font-size: 10pt;
+}
