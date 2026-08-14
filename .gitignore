@@ -14,6 +14,8 @@ __pycache__/
 !projects/M21C_ls/docs/monthly_synthesis_report_figures/*.png
 !projects/M21C_ls/docs/trends_breakpoints_report_figures/
 !projects/M21C_ls/docs/trends_breakpoints_report_figures/*.png
+!projects/M21C_ls/docs/paper_figures/
+!projects/M21C_ls/docs/paper_figures/*.png
 
 
 # Ignore possible symlinked build and install directories
@@ -79,7 +81,7 @@ era5_monthly_nc/
 era5l_monthly_*/
 
 # Top-level paper figure directory
-paper_figures/
+/paper_figures/
 
 # CERISE public deliverables are intentionally archived in git.
 !projects/cerise/data/public_deliverables/

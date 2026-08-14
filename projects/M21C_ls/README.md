@@ -56,6 +56,8 @@ segment.
   - Fixed water years, 48,067-tile mask, storage definition, compressed-precipitation guard, soil-persistence threshold, and 5-degree/10-degree bootstrap contract.
 - `docs/monthly_synthesis_report_out.md` / `.pdf`
   - Shareable synthesis report, including the Analysis A robustness and water-year differential-budget results.
+- `docs/m21c_paper_figures.md`
+  - GitHub-renderable gallery of the revised manuscript Figures 1-13 and the Figure 8 Terra/Aqua supplements.
 
 ### Figure / utility notebooks
 
