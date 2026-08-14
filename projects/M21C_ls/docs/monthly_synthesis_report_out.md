@@ -486,3 +486,60 @@ This suggests that the snow and SM observing systems are connected through land-
 ## Short Version
 
 Snow DA adds or removes real snow water. Across six MODIS-only seasons, within-tile snow-DA correction anomalies remain positively associated with later modeled infiltration, root-zone soil moisture, ET, runoff, and storage anomalies after year and OL snow-amount controls. DA-induced soil-water differences also produce physically coherent energy-partitioning responses. The post-2007 snow-to-SM result is not that stronger snow DA activity produces larger later SM DA activity. The stronger result is directional: snow-added water is followed by more negative later SM DA corrections, suggesting partial compensation by the subsequent SM analysis.
+
+<!-- TARGETED_SNOW_HYDROLOGY_ROBUSTNESS_START -->
+## Targeted robustness checks for the snow-DA water budget
+
+These post hoc sensitivity tests address three identified design issues: overlap between the old MAM predictor and AMJ/MJJ responses, mismatch between annual input and its OL-snow control, and appreciable snow-DA input in September at the Oct-Sep boundary. They preserve the 48,067-tile Northern Hemisphere seasonal-snow mask and the six 2001-2006 MODIS-only years, before microwave soil-moisture DA began.
+
+The raw-increment product was confirmed as a **per-month increment sum**: each stored month is already the sum of native submonthly increments within that month, so no temporal differencing was applied. The existing Oct-Sep baseline was reproduced exactly, including a six-year mean signed input of 58.24 kg m-2 yr-1.
+
+### Non-overlapping Oct-Mar seasonal attribution
+
+The predictor is signed snow-water input from October through March; responses begin in April or May, giving zero overlapping months. M3 removes tile means, common response-year effects, and response-year March OL snow mass. Coefficients are native response units per kg m-2 of signed snow input; standardized values are the response associated with one within-tile predictor SD.
+
+| Response | Oct-Mar M3 [5-degree 95% CI] | Per within-tile SD | Signed MAM M3 | MAM per within-tile SD | Retained vs pooled | Classification |
+|---|---:|---:|---:|---:|---:|---|
+| AMJ snowmelt | 0.0923 [0.0723, 0.113] | 1.98 | 0.751 | 12.3 | 40.8% | pathway diagnostic |
+| AMJ infiltration | 0.0067 [-0.00486, 0.0186] | 0.144 | 0.394 | 6.45 | 7.7% | pathway diagnostic |
+| MJJ RZMC | 6.01e-05 [4.81e-05, 7.33e-05] | 0.00129 | 0.000174 | 0.00285 | 79.3% | survives |
+| MJJ ET | 0.103 [0.0824, 0.125] | 2.2 | 0.201 | 3.3 | 87.7% | survives |
+| MJJ total runoff | 0.0553 [0.0406, 0.0703] | 1.19 | 0.301 | 4.93 | 58.5% | survives |
+| MJJ total water | 0.147 [0.121, 0.172] | 3.15 | 0.333 | 5.46 | 86.0% | survives |
+
+All four classified downstream responses survive: their M3 intervals exclude zero with 5-degree and 10-degree blocks and after the 1st-99th percentile predictor-anomaly trim. The standardized Oct-Mar effects are smaller than signed MAM, ranging from 24% of the MAM value for runoff to 67% for ET, but remain positive. Snowmelt remains a positive pathway diagnostic; infiltration is near zero after controls and its interval includes zero.
+
+The Oct-Mar and MAM signed predictors correlate at r=0.587 pooled and r=0.431 after tile demeaning. Classification uses the inherited MAM thresholds without modification after this post hoc window change. Snowmelt and infiltration remain pathway diagnostics, not pass/fail outcomes. M4 remains unfitted because the archive has no pre-assimilation MODIS availability count.
+
+![Oct-Mar signed control sequence](monthly_synthesis_report_figures/analysisA_octmar_signed_control_sequence.png)
+
+### Water-year marginal partition control sensitivity
+
+These dimensionless regressions estimate the within-tile marginal partition of an additional unit of Oct-Sep snow-DA input. They are not an independent existence or causal test. In every control formulation, runoff + ET + storage + residual slopes sum to exactly one by construction.
+
+| Snow control | Runoff [95% CI] | ET [95% CI] | Storage [95% CI] | Residual [95% CI] |
+|---|---:|---:|---:|---:|
+| water-year maximum OL snow mass | 0.751 [0.715, 0.787] | 0.181 [0.153, 0.212] | 0.084 [0.074, 0.096] | -0.016 [-0.022, -0.011] |
+| March OL snow mass | 0.750 [0.716, 0.782] | 0.181 [0.151, 0.212] | 0.085 [0.074, 0.097] | -0.016 [-0.022, -0.011] |
+| MAM mean OL snow mass | 0.749 [0.712, 0.781] | 0.182 [0.155, 0.214] | 0.085 [0.076, 0.095] | -0.016 [-0.022, -0.011] |
+
+Replacing the old MAM control with the full-year peak changes the marginal runoff slope from 0.749 to 0.751 and ET from 0.182 to 0.181. For context, direct positive-input accounting describes the average fate of all added water (64.3% runoff and 35.9% ET), whereas this regression describes a marginal unit; the two are not expected to be numerically equivalent.
+
+### Accounting-boundary and September sensitivity
+
+Mean September signed input is 9.01 kg m-2, or 15.5% of the mean Oct-Sep annual input. In snow-addition tile-years the corresponding percentage is 14.5%. September DA-OL changes are 0.24 kg m-2 snow mass, 9.16 kg m-2 snowmelt, 4.09 kg m-2 runoff, 1.31 kg m-2 ET, and 1.70 kg m-2 August-to-September total-land-water change. The small remaining snow-mass change alongside substantial melt and runoff indicates that much of the September correction is melted and redistributed within September rather than retained as snow at the boundary. These monthly-mean quantities are a timing diagnostic, not an exact monthly closure.
+
+The all-tile six-year mean signed input is 58.24 kg m-2 yr-1 for Oct-Sep and 57.37 kg m-2 yr-1 for Sep-Aug. The table below reports the positive-input tile-year partition; brackets are 5-degree spatial-block 95% intervals.
+
+| Boundary | Positive input | Runoff [95% CI] | ET [95% CI] | Storage [95% CI] | Residual [95% CI] | Surface runoff | Baseflow |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Oct-Sep | 71.32 kg m-2 | 64.3% [61.1, 67.2] | 35.9% [32.9, 39.0] | 3.9% [3.6, 4.3] | -4.1% [-4.8, -3.5] | 43.1% | 21.2% |
+| Sep-Aug | 70.65 kg m-2 | 64.5% [61.2, 67.9] | 36.0% [32.8, 39.4] | 4.2% [3.8, 4.6] | -4.7% [-5.5, -4.0] | 43.2% | 21.3% |
+
+The boundary shift is below the pre-set 5 percentage-point runoff/ET reporting threshold for the headline partition. Storage changes by +0.3 percentage points. The residual changes by -0.6 percentage points, below the 2-point discussion threshold. Thus the boundary shift does not explain a meaningful part of the negative Oct-Sep residual under the stated reporting rule.
+Annual residuals are negative in 6 of 6 Oct-Sep years and 6 of 6 Sep-Aug years.
+
+![Water-year boundary sensitivity](monthly_synthesis_report_figures/water_year_budget_boundary_sensitivity.png)
+
+Interpretive roles remain distinct: **direct accounting** describes the average fate of snow-added water; the **water-year regression** estimates marginal partition; and the **Oct-Mar seasonal regression** tests whether prior within-location input predicts later hydrological response.
+<!-- TARGETED_SNOW_HYDROLOGY_ROBUSTNESS_END -->

@@ -1,0 +1,49 @@
+{
+  "analysis_title": "Targeted robustness checks for MODIS-only snow-DA hydrology",
+  "data_directory": "/Users/amfox/Desktop/GEOSldas_diagnostics/test_data/M21C_land_sweeper_v2",
+  "baseline_archive": "projects/M21C_ls/output/monthly_synthesis_diagnostics/water_year_snow_da_budget/water_year_tile_budgets.nc",
+  "response_years": [2001, 2002, 2003, 2004, 2005, 2006],
+  "modis_only_start": "2000-06-01",
+  "microwave_soil_moisture_da_start": "2007-06-01",
+  "expected_tile_count": 48067,
+  "expected_octsep_mean_signed_input_kg_m2": 58.23735595217806,
+  "expected_input_tolerance_kg_m2": 0.01,
+  "minimum_abs_domain_input_for_fraction_kg_m2": 0.1,
+  "maximum_abs_annual_tile_precip_difference_kg_m2": 0.2,
+  "maximum_abs_annual_domain_precip_difference_kg_m2": 0.001,
+  "minimum_valid_years": 4,
+  "minimum_within_tile_sd_kg_m2": 0.1,
+  "trim_lower_quantile": 0.01,
+  "trim_upper_quantile": 0.99,
+  "bootstrap": {
+    "primary_block_degrees": 5.0,
+    "coarse_block_degrees": 10.0,
+    "replicates": 1000,
+    "seed": 21023
+  },
+  "classification": {
+    "survives_retained_fraction": 0.40,
+    "non_survival_retained_fraction": 0.15,
+    "note": "Inherited criteria, applied without modification to a post hoc window change."
+  },
+  "signed_mam_m3_benchmarks": {
+    "snowmelt": 0.751,
+    "infiltration": 0.394,
+    "rzmc": 0.000174,
+    "et": 0.201,
+    "total_runoff": 0.301,
+    "total_water": 0.333
+  },
+  "signed_mam_m3_benchmark_tolerances": {
+    "snowmelt": 0.0005,
+    "infiltration": 0.0005,
+    "rzmc": 0.0000005,
+    "et": 0.0005,
+    "total_runoff": 0.0005,
+    "total_water": 0.0005
+  },
+  "boundary_reporting_thresholds_percentage_points": {
+    "runoff_or_et": 5.0,
+    "residual": 2.0
+  }
+}
