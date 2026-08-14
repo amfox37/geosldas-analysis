@@ -91,7 +91,7 @@ Why Analysis A is strong:
 
 Main finding:
 
-High MAM snow DA activity is associated with larger AMJ/MJJ hydrologic responses in seasonal-snow regions.
+Across the six clean MODIS-only seasons, high MAM snow DA activity is associated with larger AMJ/MJJ hydrologic responses in seasonal-snow regions. The association remains positive within tiles after common year effects and within-tile OL MAM snow amount are controlled.
 
 Responses include:
 
@@ -104,7 +104,7 @@ Responses include:
 
 Suggested wording:
 
-> During the MODIS-only period, snow DA produces real snow-water corrections that propagate into melt-season hydrology. Regions and years with stronger MAM snow DA activity show larger subsequent DA-OL responses in infiltration, root-zone soil moisture, ET, runoff, and total water storage.
+> Across six MODIS-only seasons (2001–2006), unusually strong MAM snow-DA corrections within a seasonal-snow tile are associated with unusually large subsequent modeled DA-OL responses in infiltration, root-zone soil moisture, ET, runoff, and total water storage, including after common year effects and OL MAM snow amount are controlled.
 
 Interpretation:
 
@@ -141,6 +141,130 @@ The first two panels keep MAM snow DA increments in native units because the inc
 ![Analysis A binned snow activity to response magnitude percent](monthly_synthesis_report_figures/analysisA_binned_snow_activity_to_response_magnitude_percent.png)
 
 This repeats Figure 2 with response magnitudes expressed as percent changes relative to OL. It is a relative-impact companion, not a replacement for the absolute response-magnitude figure.
+
+## Analysis A robustness: spatial and temporal snow-climatology controls
+
+This falsification analysis preserves the original 2001–2006 MODIS-only Analysis A and asks whether its pooled snow-activity relationship survives removal of persistent tile climatology, common year effects, and within-tile variation in open-loop MAM snow mass. It remains a model-internal `DA - OL` analysis, not causal proof or independent hydrologic validation.
+
+The original eight-bin Figure 2 sample and statistics were reproduced numerically before controls were applied. Every response then used one response-specific complete-case sample restricted to tiles with at least four of the six years. Between-tile fits are weighted by each tile's valid-year count. Confidence intervals use 1,000 spatial-block bootstrap replicates with approximately 5° × 5° blocks; the 10° results are retained as a sensitivity. The local inputs do not contain a clean pre-assimilation MODIS availability count, so M4 was not fitted.
+
+| Response | N tiles | N tile-years | Pooled β | Between β | Within M1 | + year FE M2 | + OL snow M3 [95% CI] | Retained | Tile-wise r median [IQR] | Signed M3 | 1–99% trim M3 | Evidence |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| AMJ snowmelt | 48,067 | 288,402 | 0.748 | 0.764 | 0.696 | 0.673 | 0.679 [0.654, 0.701] | 91% | 0.729 [0.358, 0.911] | 0.751 | 0.649 | not classified |
+| AMJ infiltration | 48,067 | 288,402 | 0.369 | 0.378 | 0.341 | 0.338 | 0.343 [0.322, 0.362] | 93% | 0.589 [0.177, 0.848] | 0.394 | 0.331 | not classified |
+| MJJ RZMC | 48,067 | 288,402 | 0.000229 | 0.000238 | 0.000198 | 0.000152 | 0.000151 [0.000134, 0.000167] | 66% | 0.626 [0.248, 0.846] | 0.000174 | 0.000145 | survives |
+| MJJ ET | 48,067 | 288,402 | 0.265 | 0.28 | 0.213 | 0.181 | 0.18 [0.16, 0.201] | 68% | 0.598 [0.211, 0.823] | 0.201 | 0.185 | survives |
+| MJJ total runoff | 48,067 | 288,402 | 0.314 | 0.315 | 0.311 | 0.248 | 0.255 [0.229, 0.286] | 81% | 0.567 [0.198, 0.796] | 0.301 | 0.229 | survives |
+| MJJ total water | 48,067 | 288,402 | 0.381 | 0.384 | 0.372 | 0.282 | 0.28 [0.252, 0.305] | 74% | 0.621 [0.232, 0.844] | 0.333 | 0.281 | survives |
+
+Coefficient units are response units per `kg m-2` of the corresponding MAM snow-increment predictor. The signed M3 column uses signed `snow_net` and signed responses; the other coefficient columns use `snow_abs_netpack` and absolute response magnitude.
+
+All six selected fields were finite throughout the static mask, so the >=4-year restriction retained the original 48,067 tiles and 288,402 tile-years. Consequently, the restricted and original-sample pooled coefficients are identical here; both are retained separately in the output table so a future input change cannot silently conflate them.
+
+Adding OL MAM snow amount changes the primary M2 coefficients only modestly: MJJ ET -0.6%, MJJ total runoff +3.0%, MJJ total water -0.6%, MJJ RZMC -0.8%. Thus, year-to-year background snow amount does not explain away the within-tile relationship. All primary M3 intervals also remain above zero with 10° blocks and after trimming predictor anomalies below the 1st or above the 99th percentile.
+
+Across the six pathways, 78.0–90.9% of eligible tiles have positive tile-wise correlations, depending on response and formulation. The medians and IQRs in the table summarize their full distributions; no individual six-year tile correlation is assigned significance.
+
+### Identifying variation
+
+The practical near-zero threshold was fixed before response fitting at a within-tile predictor SD of `0.1 kg m-2`. Adequate identification required at least half the eligible tiles to exceed this threshold and within-tile variation to account for at least 5% of total predictor variance.
+
+| Predictor | Tiles | Tile-years | Within SD median [IQR] | Below threshold | Within / total variance | Between / total variance |
+|---|---:|---:|---:|---:|---:|---:|
+| snow activity | 48,067 | 288,402 | 12.04 [5.93, 19.86] | 5.4% | 22.6% | 77.4% |
+| signed snow increment | 48,067 | 288,402 | 11.41 [4.99, 19.12] | 5.5% | 19.1% | 80.9% |
+
+### Controlled diagnostics
+
+![Within-tile absolute-activity diagnostics](monthly_synthesis_report_figures/analysisA_robustness_binned_magnitude.png)
+
+The points are equal-count within-tile anomaly bins; bars are 95% spatial-block bootstrap intervals. Each panel reports the outer-bin center range so a visually flat relation can be interpreted against the available predictor contrast.
+
+![Within-tile signed diagnostics](monthly_synthesis_report_figures/analysisA_robustness_binned_signed.png)
+
+The signed version receives equal statistical treatment and greater interpretive weight where it conflicts with the absolute-magnitude result, because absolute responses can co-scale with background process variance.
+
+![Sequential controls](monthly_synthesis_report_figures/analysisA_robustness_control_sequence.png)
+
+This figure makes the M2-to-M3 change explicit: M2 removes persistent tile effects and common year effects; M3 additionally asks whether snow-DA activity predicts response after accounting for whether OL itself was snowier than usual in that tile-year.
+
+![Tile-wise correlation distributions](monthly_synthesis_report_figures/analysisA_robustness_tilewise_correlations.png)
+
+Individual six-year tile correlations are descriptive only; no tile-level significance is assigned. The 1st–99th percentile predictor-anomaly trim and the coarser 10° bootstrap are included in the machine-readable results table.
+
+### Predeclared classification: A
+
+At least three primary responses satisfy every predeclared survival criterion.
+
+This classification is scoped to six MODIS-only seasons (2001–2006), the existing Northern Hemisphere seasonal-snow mask, and modeled `DA - OL` responses. Even a surviving relationship supports a physically coherent modeled propagation pathway under these controls; it does not establish a causal hydrologic effect through independent observations.
+
+## Water-year differential snow-DA budget and soil-moisture response
+
+This extension follows the native signed snow-water increments through six complete MODIS-only water years (October 2000 through September 2006). SFMC and RZMC diagnose the timing and persistence of the soil response but are excluded from the closing equation because total land-water storage already contains soil water.
+
+### Storage-definition audit
+
+Integrated `DA - OL WCHANGELAND` does not equal the change in the `DA - OL TWLAND` state anomaly. Instead, `dET + dRunoff + integrated dWCHANGELAND` is near zero, showing that WCHANGELAND is a model-process tendency that omits the discontinuous analysis mass injection. The closing storage term is therefore the September-to-September change in monthly-mean `DA - OL TWLAND`, the best same-season endpoint approximation available from monthly means. This limitation remains part of the result.
+
+### Annual domain budgets
+
+| Water year | Snow-DA input | Extra runoff | Extra ET | Storage change | Residual | Residual / input |
+|---|---:|---:|---:|---:|---:|---:|
+| WY2001 | 32.57 | 19.61 | 12.60 | 2.82 | -2.46 | -7.6% |
+| WY2002 | 43.46 | 24.14 | 15.31 | 4.29 | -0.28 | -0.7% |
+| WY2003 | 64.50 | 40.98 | 24.15 | 3.12 | -3.75 | -5.8% |
+| WY2004 | 67.50 | 45.44 | 23.27 | 2.35 | -3.56 | -5.3% |
+| WY2005 | 72.97 | 51.14 | 24.53 | 0.23 | -2.93 | -4.0% |
+| WY2006 | 68.43 | 47.57 | 24.13 | -0.23 | -3.05 | -4.5% |
+| **6-WY mean** | **58.24** | **38.15** | **20.67** | **2.10** | **-2.67** | **-4.6%** |
+
+Values are area-weighted means in `kg m-2 water year-1`. The annual state-proxy residual ranges from -7.6% to -0.7% of domain snow input. Conceptually identical precipitation forcing differs slightly after independent float32 compression: the maximum absolute annual tile discrepancy is `0.102 kg m-2` and the largest absolute annual area-weighted domain-mean discrepancy is `0.000127 kg m-2`. Snowmelt and infiltration are retained as pathway diagnostics and are not added to the closing terms.
+
+![Water-year monthly climatology](monthly_synthesis_report_figures/water_year_budget_monthly_climatology.png)
+
+![Annual water-year budgets](monthly_synthesis_report_figures/water_year_budget_annual.png)
+
+### Positive-input partition
+
+- Total runoff: 64.3% [5-degree spatial-block 95% interval 61.1%, 67.4%].
+- Surface runoff: 43.1% [41.1%, 45.1%].
+- Baseflow: 21.2% [19.1%, 23.3%].
+- ET: 35.9% [32.8%, 39.1%].
+- September storage change: 3.9% [3.6%, 4.3%].
+- Residual: -4.1% [-4.9%, -3.5%].
+
+![Positive-input six-year partition](monthly_synthesis_report_figures/water_year_budget_positive_partition.png)
+
+| Sample | Native signed input | Runoff | ET | Storage | Residual |
+|---|---:|---:|---:|---:|---:|
+| All-sample net | 58.24 kg m-2 | 65.5% | 35.5% | 3.6% | -4.6% |
+| Snow addition | 71.32 kg m-2 | 64.3% | 35.9% | 3.9% | -4.1% |
+| Snow removal | -18.93 kg m-2 | 38.3% | 46.1% | 10.5% | 5.2% |
+
+Fractions use native signed mass and are never based on absolute snow activity. The snow-removal row therefore reports signed response divided by signed input; its positive percentages describe same-direction water removal. Across the six individual years, runoff accounts for 55.6–70.1% of the net domain input, so the pooled runoff result is not produced by one exceptional year.
+
+### Controlled water-year response
+
+| Response | M3 beta | 5-degree block 95% CI |
+|---|---:|---:|
+| Runoff | 0.749 | [0.711, 0.783] |
+| ET | 0.182 | [0.155, 0.213] |
+| Storage | 0.085 | [0.075, 0.097] |
+| Residual | -0.016 | [-0.022, -0.011] |
+
+These dimensionless M3 slopes use within-tile signed snow input, year effects, and OL MAM snow amount. By construction, the runoff, ET, storage, and residual slopes sum to one. The direct domain accounting remains the primary budget result; the controlled regression independently supports runoff as the dominant response to an incremental within-tile snow correction.
+
+### Soil-moisture consequence
+
+For snow-addition tile-years, the area-weighted mean peak RZMC response is `0.0189 m3 m-3`, and May is the most common peak month although peak timing is broad. The MJJ mean response is `0.0108 m3 m-3`, RZMC is positive for 11.7 of 12 months on average, and the mean September response remains `0.0082 m3 m-3`.
+
+Persistence is strongly right-censored: 67.2% of snow-addition tile-years never fall below `0.001 m3 m-3` after their within-year peak by September. Among uncensored cases, the area-weighted mean time to the threshold is 4.5 months. Because the mean `DA - OL RZMC` anomaly is already positive in October, these counts include inherited state differences from prior assimilation and should not be read as the residence time of only the current water-year increment.
+
+![Snow-to-soil-moisture pathway](monthly_synthesis_report_figures/water_year_soil_moisture_pathway.png)
+
+![Soil-moisture binned diagnostics](monthly_synthesis_report_figures/water_year_soil_moisture_binned.png)
+
+The interpretation is deliberately model-internal: snow DA modifies snow water, the root zone becomes wetter, and the model redistributes that perturbation through ET, runoff, and changing storage. RZMC and SFMC describe how strongly and for how long the soil state changes; they are not independent validation and do not enter the mass balance twice.
 
 ## Highlight 2: Later SM DA Response Splits Into Two Claims
 
@@ -328,7 +452,7 @@ This figure tracks the monthly `DA - OL` water-budget terms and increment contex
 
 ## Suggested Figure Set
 
-For a short report-out, use four figures.
+For a short report-out, use five figures.
 
 1. **Analysis A process-chain maps**
    - Shows spatial coherence from MAM snow increments to AMJ/MJJ hydrology.
@@ -336,10 +460,13 @@ For a short report-out, use four figures.
 2. **Analysis A binned snow activity versus response magnitude**
    - Shows that stronger snow DA activity corresponds to larger hydrologic response magnitude during the MODIS-only period.
 
-3. **Analysis B signed snow correction versus signed SM correction**
+3. **Analysis A sequential spatial/temporal controls**
+   - Shows how much of the pooled relationship remains after tile effects, year effects, and OL MAM snow amount.
+
+4. **Analysis B signed snow correction versus signed SM correction**
    - Shows the new directional result: snow-added water is followed by more negative later SM DA corrections.
 
-4. **Analysis C RZMC versus energy partitioning**
+5. **Analysis C RZMC versus energy partitioning**
    - Shows physically coherent hydro-energy response when DA makes root-zone soil moisture wetter or drier than OL.
 
 Optional supporting figures:
@@ -350,7 +477,7 @@ Optional supporting figures:
 
 ## Suggested Final Takeaway
 
-The strongest new result is that MODIS snow DA produces real snow-water corrections that propagate into melt-season hydrology. The coupled hydro-energy response is also physically coherent: DA-induced soil-water differences alter ET and turbulent heat partitioning in expected directions.
+The strongest new result is narrowly scoped to the six clean MODIS-only seasons: within seasonal-snow tiles, unusually strong MAM snow-DA corrections are associated with unusually large later modeled hydrologic responses. The association survives tile, year, and OL snow-amount controls and is directionally consistent when signed snow increments and responses are used. This supports a physically coherent modeled pathway; it is not independent validation or causal proof. The broader hydro-energy response is also physically coherent: DA-induced soil-water differences alter ET and turbulent heat partitioning in expected directions.
 
 The post-2007 snow-to-SM relationship is directional rather than magnitude-based. The magnitude/activity relationship should be dropped as a headline result. The stronger signal is signed: where snow DA adds water, later SM DA corrections tend to be more negative, suggesting partial compensation of the snow-DA wetting signal by the subsequent SM analysis.
 
@@ -358,4 +485,4 @@ This suggests that the snow and SM observing systems are connected through land-
 
 ## Short Version
 
-Snow DA adds or removes real snow water. In the MODIS-only period, those corrections propagate into melt-season hydrology: infiltration, root-zone soil moisture, ET, runoff, and storage. DA-induced soil-water differences also produce physically coherent energy-partitioning responses. The post-2007 snow-to-SM result is not that stronger snow DA activity produces larger later SM DA activity. The stronger result is directional: snow-added water is followed by more negative later SM DA corrections, suggesting partial compensation by the subsequent SM analysis.
+Snow DA adds or removes real snow water. Across six MODIS-only seasons, within-tile snow-DA correction anomalies remain positively associated with later modeled infiltration, root-zone soil moisture, ET, runoff, and storage anomalies after year and OL snow-amount controls. DA-induced soil-water differences also produce physically coherent energy-partitioning responses. The post-2007 snow-to-SM result is not that stronger snow DA activity produces larger later SM DA activity. The stronger result is directional: snow-added water is followed by more negative later SM DA corrections, suggesting partial compensation by the subsequent SM analysis.

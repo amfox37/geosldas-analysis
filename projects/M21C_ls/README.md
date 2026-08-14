@@ -44,6 +44,19 @@ segment.
 - `notebooks/snow_da_impact_OLv8_vs_DAv8_M21C_land_sweeper.ipynb`
   - Snow DA impact analysis across OLv8 and DAv8 experiments.
 
+- `notebooks/monthly_synthesis_snow_sm_diagnostics.ipynb`
+  - Monthly snow-DA, hydrology, soil-moisture-DA, and energy synthesis.
+- `scripts/analysis_a_robustness.py`
+  - Reproduces Analysis A, then applies pooled/between/within controls, OL-snow and year controls, signed fits, spatial-block uncertainty, and the predeclared A-D classification.
+- `config/analysis_a_robustness.json`
+  - Fixed years, sample, mask, variation, bootstrap, trimming, response, and classification contract for the Analysis A falsification test.
+- `scripts/water_year_snow_da_budget.py`
+  - Builds WY2001-WY2006 signed snow-input budgets, runoff/ET/storage partitions, controlled M3 responses, and SFMC/RZMC evolution, peak, and persistence diagnostics.
+- `config/water_year_snow_da_budget.json`
+  - Fixed water years, 48,067-tile mask, storage definition, compressed-precipitation guard, soil-persistence threshold, and 5-degree/10-degree bootstrap contract.
+- `docs/monthly_synthesis_report_out.md` / `.pdf`
+  - Shareable synthesis report, including the Analysis A robustness and water-year differential-budget results.
+
 ### Figure / utility notebooks
 
 - `notebooks/LS_insitu_plotter_102625.ipynb` - broad in-situ plotting/inspection notebook.
@@ -59,6 +72,7 @@ segment.
 - `docs/phase1_state_trend_results.md` - matched OL/DA background trends and their relationship to the DA-minus-OL fields.
 - `docs/phase1_interrupted_series_results.md` - audited P1-P9 domain-mean transition results and calibration limits.
 - `docs/phase1_changepoint_results.md` - audited independent-break recovery, known-boundary agreement, and limits.
+- `docs/m21c_trends_breakpoints_report.md` / `.pdf` - consolidated, shareable trends and observing-system-breakpoint report.
 - `notebooks/phase1_trends_breakpoints_summary.ipynb` - inline figures for P6 convergence, boundary agreement, controls, and penalty stability.
 - `notebooks/phase1_state_trend_maps.ipynb` - Robinson maps of matched OL, DA, and DA-minus-OL trends for precipitation, soil moisture, and snow states.
 - `config/trend_breakpoint_inputs.json` - monthly file, source, dimension, date, and tile-area contract.
@@ -132,6 +146,8 @@ python projects/M21C_ls/scripts/validate_interrupted_time_series.py
 python projects/M21C_ls/scripts/validate_changepoint_detection.py
 python projects/M21C_ls/scripts/build_phase1_changepoints.py
 python projects/M21C_ls/scripts/audit_phase1_changepoints.py
+python projects/M21C_ls/scripts/analysis_a_robustness.py
+python projects/M21C_ls/scripts/water_year_snow_da_budget.py
 ```
 
 ## Notebook Runtime/Smoke-Test Runbook

@@ -1,0 +1,93 @@
+@page {
+  size: Letter;
+  margin: 0.58in 0.62in 0.65in 0.62in;
+}
+
+html {
+  color: #171717;
+  background: white;
+}
+
+body {
+  max-width: 8.2in;
+  margin: 0 auto;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9.4pt;
+  line-height: 1.32;
+}
+
+h1 {
+  margin: 0.5em 0 0.35em;
+  color: #16324f;
+  font-size: 20pt;
+  break-after: avoid;
+}
+
+h2 {
+  margin: 1em 0 0.3em;
+  padding-bottom: 0.12em;
+  border-bottom: 1px solid #c8d3dc;
+  color: #24557a;
+  font-size: 13.2pt;
+  break-after: avoid;
+}
+
+h3 {
+  color: #333333;
+  font-size: 11.2pt;
+  break-after: avoid;
+}
+
+p, li {
+  orphans: 3;
+  widows: 3;
+}
+
+blockquote {
+  margin: 0.7em 1em;
+  padding: 0.35em 0.75em;
+  border-left: 4px solid #5c88a8;
+  background: #f2f6f8;
+}
+
+table {
+  width: 100%;
+  margin: 0.6em 0 0.9em;
+  border-collapse: collapse;
+  font-size: 7.2pt;
+  break-inside: avoid;
+}
+
+th, td {
+  padding: 0.24em 0.3em;
+  border: 1px solid #b9c4cc;
+  vertical-align: top;
+}
+
+th {
+  color: #17334a;
+  background: #e8eff3;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  max-height: 7.25in;
+  margin: 0.65em auto 0.2em;
+  break-inside: avoid;
+}
+
+figure {
+  margin: 0.7em 0 1em;
+  break-inside: avoid;
+}
+
+figcaption {
+  margin: 0.2em 0 0.7em;
+  color: #424242;
+  font-size: 8.2pt;
+}
+
+code {
+  font-size: 0.92em;
+}

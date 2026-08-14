@@ -178,3 +178,101 @@ confirmed.
 
 Do not overclaim DA-minus-OL differences as improvement without independent
 validation.
+
+## Analysis A Robustness Workflow
+
+The publication-oriented Analysis A now has a separate falsification workflow:
+
+- contract: `config/analysis_a_robustness.json`;
+- implementation: `scripts/analysis_a_robustness.py`;
+- derived output: `output/monthly_synthesis_diagnostics/analysisA_robustness/`;
+- report section: `docs/monthly_synthesis_report_out.md`.
+
+This workflow does not replace or alter the original notebook products. It
+first rebuilds the original 2001-2006 tile-year sample and asserts that its
+eight-bin Figure 2 statistics match the saved product. It also fails if a date
+escapes the MODIS-only period or if MAM `snow_abs_netpack` is smaller than the
+absolute MAM `snow_net` value for any finite tile-year.
+
+For each of six responses, the workflow uses one common complete-case sample
+for its magnitude and signed formulations and requires at least four of the six
+years per tile. In the current inputs all selected values are finite, so the
+restriction retains all 48,067 seasonal-snow tiles and 288,402 tile-years.
+
+The fitted sequence is:
+
+- `M0`: pooled tile-year relationship;
+- `M1`: tile-demeaned relationship;
+- `M2`: `M1` plus year fixed effects;
+- `M3`: `M2` plus the within-tile anomaly of OL MAM `SNOMASLAND`.
+
+The between-tile coefficient uses tile means weighted by valid-year count.
+Magnitude fits pair MAM `snow_abs_netpack` with the original absolute `DA - OL`
+response definition. Signed fits pair MAM `snow_net` with signed `DA - OL`
+responses. M4 is intentionally omitted because the local monthly inputs do not
+contain a clean pre-assimilation, tile-level MODIS availability count.
+
+The practical identifying-variation threshold was fixed before fitting the
+responses at a within-tile predictor SD of `0.1 kg m-2`. Identification is
+declared adequate only when at least half the eligible tiles exceed that value
+and within-tile variance is at least 5% of total variance.
+
+Uncertainty uses 1,000 spatial-block bootstrap replicates that retain all years
+and tiles in each sampled block. The primary blocks are approximately 5 by 5
+degrees; 10-degree blocks are a sensitivity. Additional sensitivities remove
+predictor anomalies below the 1st or above the 99th percentile and compare
+M1, M2, and M3 directly. Individual six-year tile correlations are descriptive
+and are never assigned tile-level significance.
+
+The predeclared classification is applied only to MJJ ET, total runoff, total
+water, and RZMC. The current production result is A: all four have positive M3
+coefficients, 5-degree block intervals above zero, retained fractions above
+40%, and directionally consistent positive signed M3 coefficients. This is
+evidence for a physically coherent modeled propagation pathway in six
+MODIS-only seasons, not causal proof or independent validation.
+
+## Water-Year Differential Budget
+
+The follow-on workflow is fixed by
+`config/water_year_snow_da_budget.json` and implemented in
+`scripts/water_year_snow_da_budget.py`. It uses conventional October-September
+WY2001-WY2006 and the same 48,067-tile Northern Hemisphere seasonal-snow mask.
+Every tile-year retains the native signed `snow_net` input, absolute snow
+activity, snowmelt, infiltration, ET, surface runoff, baseflow, total runoff,
+storage change, residual, and monthly SFMC/RZMC trajectories.
+
+The closing equation is `I_snow = dET + dRunoff + dStorage + residual`.
+`dStorage` is the September-to-September change in monthly-mean `DA - OL
+TWLAND`. Integrated `DA - OL WCHANGELAND` is retained separately because the
+source audit showed that it closes the model-process tendency balance but
+omits the discontinuous analysis injection. Snowmelt and infiltration are
+pathway diagnostics rather than additional closing terms. SFMC and RZMC are
+state diagnostics and are also excluded because total land-water storage
+already contains soil water.
+
+The compressed OL and DA precipitation fields are conceptually common forcing
+but are not bit-identical. The production gate allows at most `0.2 kg m-2` for
+an annual tile discrepancy and reports the observed maximum (`0.102 kg m-2`)
+and maximum annual area-weighted domain discrepancy (`0.000127 kg m-2`). This
+retains the known float32 compression artifact without silently accepting a
+material forcing mismatch.
+
+For snow-addition tile-years, the six-year direct partition is 64.3% runoff
+(43.1% surface runoff and 21.2% baseflow), 35.9% ET, 3.9% September storage
+change, and -4.1% residual. The 5-degree spatial-block 95% interval for total
+runoff is 61.1-67.4%; 10-degree blocks are retained as a sensitivity. Annual
+domain runoff fractions span 55.6-70.1% across the six water years.
+
+RZMC and SFMC describe the intermediate state response. Snow-addition
+tile-years have an area-weighted peak RZMC difference of `0.0189 m3 m-3`, MJJ
+mean difference of `0.0108 m3 m-3`, and September difference of `0.0082 m3
+m-3`. Persistence is right-censored in 67.2% of cases at the predeclared
+`0.001 m3 m-3` threshold. Because the mean RZMC difference is already positive
+in October, persistence includes inherited DA-OL state differences and is not
+the residence time of only the current water-year snow increment.
+
+The derived tile archive and full CSV outputs live under
+`output/monthly_synthesis_diagnostics/water_year_snow_da_budget/`. The archive
+is reused by default; pass `--rebuild-tile-budget` only when the source files or
+mask definition change. Permanent figures and the interpreted result are in
+`docs/monthly_synthesis_report_out.md` and its PDF rendering.

@@ -1,0 +1,48 @@
+{
+  "analysis_title": "Water-year differential snow-DA budget and soil-moisture response",
+  "data_directory": "/Users/amfox/Desktop/GEOSldas_diagnostics/test_data/M21C_land_sweeper_v2",
+  "water_years": [2001, 2002, 2003, 2004, 2005, 2006],
+  "modis_only_start": "2000-06-01",
+  "microwave_soil_moisture_da_start": "2007-06-01",
+  "mask": {
+    "expected_tile_count": 48067,
+    "minimum_latitude_degrees_north": 20.0,
+    "snow_cover_possible_threshold": 0.05,
+    "snow_mass_possible_threshold_kg_m2": 5.0,
+    "maximum_mean_jja_snow_cover_fraction": 0.20
+  },
+  "minimum_abs_domain_input_for_fraction_kg_m2": 0.1,
+  "maximum_abs_annual_tile_precip_difference_kg_m2": 0.2,
+  "precipitation_check": {
+    "conceptual_difference": 0.0,
+    "compressed_input_note": "PRECTOTCORRLAND is stored independently as float32 in the compressed DA and OL files. Existing Analysis E found near-zero MODIS-only domain means but isolated monthly tile differences up to about 0.060 kg m-2. The annual tile guard detects a scientifically material forcing mismatch while retaining this known storage artifact.",
+    "report": "Maximum absolute annual tile difference and maximum absolute annual area-weighted domain-mean difference"
+  },
+  "storage_diagnostic": {
+    "endpoint_and_tendency_expected_to_agree": false,
+    "reason": "The audit shows dET + dRunoff + integrated dWCHANGELAND is the near-zero model-process balance. WCHANGELAND does not include the discontinuous snow-analysis mass injection and therefore cannot equal the change in the DA-minus-OL state anomaly.",
+    "required_check": "Report both the state-proxy residual I_snow - dET - dRunoff - dStorage and the process identity dET + dRunoff + integrated dWCHANGELAND for every water year."
+  },
+  "rzmc_persistence_threshold_m3_m3": 0.001,
+  "soil_moisture_binned_diagnostics": 8,
+  "bootstrap": {
+    "primary_block_degrees": 5.0,
+    "coarse_block_degrees": 10.0,
+    "replicates": 1000,
+    "seed": 21022
+  },
+  "storage": {
+    "primary_closing_term": "September-to-September monthly-mean DA-minus-OL TWLAND state change",
+    "state_proxy": "September monthly-mean DA-minus-OL TWLAND minus prior-September monthly-mean DA-minus-OL TWLAND",
+    "state_proxy_limitation": "Monthly means do not provide literal October 1 and September 30 endpoint states. The same-calendar-month proxy spans 12 months at a consistent seasonal phase and is the best available independent endpoint approximation.",
+    "wchangeland_role": "Supporting process-tendency diagnostic only; excluded from the increment-inclusive closing storage term."
+  },
+  "soil_water_storage": {
+    "status": "unavailable",
+    "reason": "The compressed monthly inputs contain SFMC and RZMC diagnostic states and total TWLAND, but no separate native prognostic soil-water storage state. RZMC and SFMC remain interpretive diagnostics and are not added to the closing budget."
+  },
+  "snow_sublimation": {
+    "status": "not_used_as_mass_term",
+    "reason": "A latent-heat component is available, but no independently verified native snow-sublimation water-mass flux is present. EVLAND remains the established total ET term to avoid double counting."
+  }
+}

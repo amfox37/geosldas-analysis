@@ -1,0 +1,45 @@
+{
+  "analysis_title": "Analysis A robustness: spatial and temporal snow-climatology controls",
+  "data_directory": "/Users/amfox/Desktop/GEOSldas_diagnostics/test_data/M21C_land_sweeper_v2",
+  "years": [2001, 2002, 2003, 2004, 2005, 2006],
+  "modis_only_start": "2000-06-01",
+  "modis_only_end": "2007-05-31",
+  "minimum_valid_years": 4,
+  "mask": {
+    "minimum_latitude_degrees_north": 20.0,
+    "snow_cover_possible_threshold": 0.05,
+    "snow_mass_possible_threshold_kg_m2": 5.0,
+    "maximum_mean_jja_snow_cover_fraction": 0.20
+  },
+  "magnitude_bins": 8,
+  "signed_bins": 8,
+  "minimum_within_tile_sd_kg_m2": 0.1,
+  "adequate_variation_minimum_tile_fraction": 0.5,
+  "adequate_variation_minimum_within_variance_fraction": 0.05,
+  "bootstrap": {
+    "primary_block_degrees": 5.0,
+    "coarse_block_degrees": 10.0,
+    "replicates": 1000,
+    "seed": 21021
+  },
+  "trim_lower_quantile": 0.01,
+  "trim_upper_quantile": 0.99,
+  "classification": {
+    "primary_responses": ["et", "total_runoff", "total_water", "rzmc"],
+    "minimum_responses": 3,
+    "survives_retained_fraction": 0.40,
+    "does_not_survive_retained_fraction": 0.15
+  },
+  "responses": {
+    "snowmelt": {"variable": "SMLAND", "season": "AMJ", "units": "kg m-2 season-1", "classification": false},
+    "infiltration": {"variable": "QINFILLAND", "season": "AMJ", "units": "kg m-2 season-1", "classification": false},
+    "rzmc": {"variable": "RZMC", "season": "MJJ", "units": "m3 m-3", "classification": true},
+    "et": {"variable": "EVLAND", "season": "MJJ", "units": "kg m-2 season-1", "classification": true},
+    "total_runoff": {"variable": "TOTAL_RUNOFF", "season": "MJJ", "units": "kg m-2 season-1", "classification": true},
+    "total_water": {"variable": "TWLAND", "season": "MJJ", "units": "kg m-2", "classification": true}
+  },
+  "modis_availability_covariate": {
+    "status": "unavailable",
+    "reason": "The local monthly synthesis inputs contain no pre-assimilation tile-level MODIS availability count. M4 is intentionally omitted rather than using a post-QC or model-dependent proxy."
+  }
+}
