@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytest
 
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
@@ -15,6 +16,7 @@ from plot_snow_hydrology_manuscript_figures import (  # noqa: E402
     EXPECTED_ANNUAL,
     positive_partition_row,
     validate_annual_budget,
+    validate_monthly_pathway,
     validate_modis_only_window,
     validate_octmar,
 )
@@ -78,6 +80,44 @@ def test_octmar_validation_retains_nonoverlap_and_infiltration_null():
         }
     )
     validate_octmar(table)
+
+
+def test_monthly_pathway_requires_finite_et_values():
+    monthly = pd.DataFrame(
+        {
+            "water_month": range(1, 13),
+            "month": ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"],
+            "snow_net_monthly": np.arange(1.0, 13.0),
+            "dSnowmelt_monthly": np.arange(1.0, 13.0),
+            "dSFMC_monthly": np.full(12, 0.01),
+            "dRZMC_monthly": np.full(12, 0.01),
+            "dRunoff_total_monthly": np.arange(1.0, 13.0),
+            "dET_monthly": np.arange(1.0, 13.0),
+        }
+    )
+    partition = pd.DataFrame([{"sample": "addition", "n_tile_years": 247545}])
+    soil_summary = pd.DataFrame(
+        [
+            {"metric": "peak_dRZMC", "n": 247545, "area_weighted_mean": 0.0189},
+            {"metric": "mjj_mean_dRZMC", "n": 247545, "area_weighted_mean": 0.0108},
+        ]
+    )
+    peak_timing = pd.DataFrame(
+        [{"state": "RZMC", "month": "May", "area_weighted_fraction": 1.0}]
+    )
+    september = pd.DataFrame(
+        [
+            {
+                "variable": "signed_snow_input",
+                "snow_addition_tile_years_mean_kg_m2": 12.0,
+            }
+        ]
+    )
+
+    validate_monthly_pathway(monthly, partition, soil_summary, peak_timing, september)
+    monthly.loc[0, "dET_monthly"] = np.nan
+    with pytest.raises(AssertionError, match="non-finite"):
+        validate_monthly_pathway(monthly, partition, soil_summary, peak_timing, september)
 
 
 def test_modis_only_figure_windows_end_before_microwave_sm_da():

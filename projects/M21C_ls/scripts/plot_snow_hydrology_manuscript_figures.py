@@ -195,6 +195,16 @@ def validate_monthly_pathway(
 ) -> dict[str, float | str]:
     if monthly["month"].tolist() != MONTHS or monthly["water_month"].tolist() != list(range(1, 13)):
         raise AssertionError("Figure 15 monthly source is not ordered Oct-Sep")
+    pathway_columns = [
+        "snow_net_monthly",
+        "dSnowmelt_monthly",
+        "dSFMC_monthly",
+        "dRZMC_monthly",
+        "dRunoff_total_monthly",
+        "dET_monthly",
+    ]
+    if not np.isfinite(monthly[pathway_columns].to_numpy(dtype=float)).all():
+        raise AssertionError("Figure 15 monthly pathway contains non-finite values")
     addition = partition.set_index("sample").loc["addition"]
     summary = soil_summary.set_index("metric")
     if int(addition["n_tile_years"]) != 247545 or int(summary.loc["peak_dRZMC", "n"]) != 247545:
@@ -447,9 +457,27 @@ def plot_figure15(
     panel_label(ax, "(c)", x=-0.065)
 
     ax = axes[3]
-    ax.plot(x, monthly["dRunoff_total_monthly"], marker="o", color=COLORS["total_runoff"])
+    ax.plot(
+        x,
+        monthly["dRunoff_total_monthly"],
+        marker="o",
+        linewidth=2.1,
+        color=COLORS["total_runoff"],
+        label="Runoff",
+    )
     ax.fill_between(x, 0, monthly["dRunoff_total_monthly"], color=COLORS["total_runoff"], alpha=0.10)
-    ax.set_ylabel(r"$\Delta$Runoff" + "\n" + r"(kg m$^{-2}$ month$^{-1}$)")
+    ax.plot(
+        x,
+        monthly["dET_monthly"],
+        marker="o",
+        linewidth=1.8,
+        linestyle="--",
+        color=COLORS["et"],
+        label="ET",
+    )
+    ax.fill_between(x, 0, monthly["dET_monthly"], color=COLORS["et"], alpha=0.08)
+    ax.set_ylabel(r"$\Delta$Water flux" + "\n" + r"(kg m$^{-2}$ month$^{-1}$)")
+    ax.legend(loc="upper left", frameon=False, ncols=2)
     ax.set_xlabel("Accounting-year month")
     panel_label(ax, "(d)", x=-0.065)
 
@@ -734,7 +762,7 @@ def main() -> None:
                 relative(paths["soil_summary"], root),
                 relative(paths["peak_timing"], root),
             ),
-            "Retains the old pathway concept but removes infiltration and persistence/residence-time claims, emphasizes RZMC, and aligns snow input, snowmelt, soil moisture, and runoff on one Oct-Sep axis.",
+            "Retains the old pathway concept but removes infiltration and persistence/residence-time claims, emphasizes RZMC, and aligns snow input, snowmelt, soil moisture, runoff, and ET on one Oct-Sep axis.",
         ),
         FigureProduct(
             "Supplemental Figure Sx: non-overlapping attribution",

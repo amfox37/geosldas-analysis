@@ -35,7 +35,7 @@ Sources:
 - `projects/M21C_ls/output/monthly_synthesis_diagnostics/water_year_snow_da_budget/soil_moisture_summary_snow_addition.csv`
 - `projects/M21C_ls/output/monthly_synthesis_diagnostics/water_year_snow_da_budget/soil_moisture_peak_timing.csv`
 
-Difference from the old figure: Retains the old pathway concept but removes infiltration and persistence/residence-time claims, emphasizes RZMC, and aligns snow input, snowmelt, soil moisture, and runoff on one Oct-Sep axis.
+Difference from the old figure: Retains the old pathway concept but removes infiltration and persistence/residence-time claims, emphasizes RZMC, and aligns snow input, snowmelt, soil moisture, runoff, and ET on one Oct-Sep axis.
 
 ### Supplemental Figure Sx: non-overlapping attribution
 
