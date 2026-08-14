@@ -28,15 +28,19 @@ Use the following files as the authoritative working context, in this order:
 
    `projects/M21C_ls/docs/notes/coauthor_feedback_ledger.md`
 
-4. **Current manuscript being rebuilt**
+4. **Writing voice and claim discipline**
+
+   `projects/M21C_ls/docs/notes/writing_style_guide.md`
+
+5. **Current manuscript being rebuilt**
 
    `projects/M21C_ls/docs/manuscript/manuscript.md`
 
-5. **Current figure set**
+6. **Current figure set**
 
    `projects/M21C_ls/docs/paper_figures/`
 
-6. **Current analysis reports**
+7. **Current analysis reports**
 
    `projects/M21C_ls/docs/`
 
@@ -83,9 +87,10 @@ Before drafting or editing any manuscript section:
 
 1. Read `current_scientific_state.md`.
 2. Read `manuscript_rebuild_plan.md`.
-3. Check `coauthor_feedback_ledger.md` for relevant unresolved items.
-4. Inspect the current manuscript section.
-5. Inspect the relevant analysis reports and figures.
-6. Only then draft.
+3. Read `writing_style_guide.md`.
+4. Check `coauthor_feedback_ledger.md` for relevant unresolved items.
+5. Inspect the current manuscript section.
+6. Inspect the relevant analysis reports and figures.
+7. Only then draft.
 
 When uncertain, prefer the newest accepted GitHub analysis product over older manuscript text.
