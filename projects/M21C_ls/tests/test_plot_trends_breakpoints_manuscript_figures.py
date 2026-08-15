@@ -40,6 +40,10 @@ def test_standardized_monthly_uses_full_record_sample_standard_deviation():
     assert np.isclose(result.std(ddof=1), 1.0)
 
 
+def test_main_figure_uses_variable_specific_delta_scales():
+    assert figures.MAIN_TREND_DELTA_SCALES == {"RZMC": "separate", "FRLANDSNO": "state"}
+
+
 def test_trend_rows_rejects_unknown_delta_scale():
-    with pytest.raises(ValueError, match="delta_scale"):
-        figures.plot_trend_rows(["RZMC"], "unused", delta_scale="magnify")
+    with pytest.raises(ValueError, match="delta_scales"):
+        figures.plot_trend_rows(["RZMC"], "unused", delta_scales={"RZMC": "magnify"})
