@@ -60,6 +60,37 @@ def load_variable_selection(
     return frame.set_index("analysis_variable", drop=False)
 
 
+def load_derived_variables(
+    path: str | Path = DEFAULT_VARIABLE_SELECTION,
+) -> dict[str, dict[str, Any]]:
+    """Load and validate structured derived-variable definitions."""
+
+    payload = _load_json(path)
+    definitions = payload.get("derived_variables", {})
+    if not isinstance(definitions, dict):
+        raise ValueError("derived_variables must be an object")
+    validated: dict[str, dict[str, Any]] = {}
+    for name, raw in definitions.items():
+        if not isinstance(raw, dict):
+            raise ValueError(f"Derived-variable definition for {name} must be an object")
+        operation = str(raw.get("operation", ""))
+        components = raw.get("source_variables", [])
+        if operation != "sum":
+            raise ValueError(f"Unsupported derived-variable operation for {name}: {operation}")
+        if (
+            not isinstance(components, list)
+            or len(components) < 2
+            or any(not str(component).strip() for component in components)
+        ):
+            raise ValueError(f"Derived variable {name} needs at least two source variables")
+        validated[str(name)] = {
+            **raw,
+            "operation": operation,
+            "source_variables": [str(component) for component in components],
+        }
+    return validated
+
+
 def _normalise_units(value: Any) -> str:
     return " ".join(str(value or "").split())
 
@@ -95,6 +126,7 @@ class MonthlySeriesLoader:
         self.contract = _load_json(self.input_contract_path)
         self.dataset_contracts = self.contract["datasets"]
         self.selection = load_variable_selection(self.variable_selection_path)
+        self.derived_variables = load_derived_variables(self.variable_selection_path)
         self._datasets: dict[str, xr.Dataset] = {}
         self._mask_dataset: xr.Dataset | None = None
 
@@ -254,6 +286,49 @@ class MonthlySeriesLoader:
         }
         return output
 
+    def _source_variables(self, analysis_variable: str, source_variable: str) -> list[str]:
+        definition = self.derived_variables.get(analysis_variable)
+        if definition is None:
+            return [source_variable]
+        if source_variable != analysis_variable:
+            raise ValueError(
+                f"Derived variable {analysis_variable} must use itself as source_variable"
+            )
+        return list(definition["source_variables"])
+
+    def _analysis_values(
+        self, dataset_key: str, analysis_variable: str, source_variable: str
+    ) -> xr.DataArray:
+        """Return one native or explicitly derived monthly analysis field."""
+
+        components = self._source_variables(analysis_variable, source_variable)
+        values = [self._monthly_values(dataset_key, component) for component in components]
+        if len(values) == 1:
+            return values[0]
+        units = {_normalise_units(value.attrs.get("units", "")) for value in values}
+        transforms = {str(value.attrs.get("monthly_transform", "")) for value in values}
+        if len(units) != 1:
+            raise ValueError(
+                f"Derived variable {analysis_variable} has incompatible component units: {units}"
+            )
+        if len(transforms) != 1:
+            raise ValueError(
+                f"Derived variable {analysis_variable} has incompatible monthly transforms"
+            )
+        output = values[0]
+        for value in values[1:]:
+            output = output + value
+        definition = self.derived_variables[analysis_variable]
+        output = output.rename(analysis_variable)
+        output.attrs = {
+            "long_name": str(definition.get("long_name", analysis_variable)),
+            "units": units.pop(),
+            "source_variables": ",".join(components),
+            "derived_operation": "sum",
+            "monthly_transform": transforms.pop(),
+        }
+        return output
+
     def selected_variables(self, phase: int | None = None) -> pd.DataFrame:
         """Return all selected variables, optionally restricted to a phase."""
 
@@ -362,8 +437,9 @@ class MonthlySeriesLoader:
         ol_key = str(row["ol_dataset"] or "")
         da_key = str(row["da_dataset"] or "")
         analysis_mask = self.mask(mask)
+        source_variables = self._source_variables(analysis_variable, source_variable)
         eligible = analysis_mask.broadcast_like(
-            self._source_values(ol_key or da_key, source_variable)
+            self._source_values(ol_key or da_key, source_variables[0])
         ).astype(bool).rename("eligible")
         eligible.attrs = {
             "long_name": "months and tiles eligible under the selected analysis mask",
@@ -372,8 +448,8 @@ class MonthlySeriesLoader:
         }
 
         if ol_key and da_key:
-            ol = self._monthly_values(ol_key, source_variable)
-            da = self._monthly_values(da_key, source_variable)
+            ol = self._analysis_values(ol_key, analysis_variable, source_variable)
+            da = self._analysis_values(da_key, analysis_variable, source_variable)
             if ol.dims != da.dims or not np.array_equal(ol.time.values, da.time.values):
                 raise ValueError(f"OL and DA fields do not align for {analysis_variable}")
             ol_units = _normalise_units(ol.attrs.get("units", ""))
@@ -403,7 +479,7 @@ class MonthlySeriesLoader:
             output = xr.Dataset({"ol": ol, "da": da, "delta": delta, "eligible": eligible})
             paired = True
         elif da_key:
-            value = self._monthly_values(da_key, source_variable)
+            value = self._analysis_values(da_key, analysis_variable, source_variable)
             value = value.where(np.isfinite(value) & analysis_mask).rename("value")
             value.attrs = {
                 **value.attrs,

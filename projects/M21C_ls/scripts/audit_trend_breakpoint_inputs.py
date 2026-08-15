@@ -16,6 +16,7 @@ import xarray as xr
 from m21c_periods import load_period_frames
 from trend_breakpoint_series import (
     find_legacy_increment_variables,
+    load_derived_variables,
     load_variable_selection,
     read_tile_area,
 )
@@ -87,6 +88,7 @@ def audit(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.DataFrame]:
     inventory = pd.read_csv(inventory_path)
     variable_registry = pd.read_csv(variable_registry_path)
     selection = load_variable_selection(args.variable_selection)
+    derived_variables = load_derived_variables(args.variable_selection)
     input_contract = json.loads(args.input_contract.read_text())
     dataset_contracts = input_contract["datasets"]
     expected_start = pd.Timestamp(input_contract["record_start"])
@@ -219,44 +221,51 @@ def audit(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.DataFrame]:
             )
             if not in_contract:
                 continue
-            variable = selected.source_variable
-            exists = dataset in actual_variables and variable in actual_variables[dataset]
-            add_check(
-                checks,
-                f"selected_variable:{selected.analysis_variable}:{dataset}",
-                exists,
-                f"{dataset}/{variable}",
+            definition = derived_variables.get(selected.analysis_variable)
+            variables = (
+                definition["source_variables"]
+                if definition is not None
+                else [selected.source_variable]
             )
-            if not exists:
-                continue
-
-            filename = dataset_contracts[dataset]["filename"]
-            inventory_key = (filename, variable)
-            in_inventory = inventory_key in inventory_index.index
-            detail = "missing from input inventory"
-            if in_inventory:
-                inv = inventory_index.loc[inventory_key]
-                dims_match = str(inv["dims"]) == actual_dims[(dataset, variable)]
-                units_match = str(inv["units"]) == actual_units[(dataset, variable)]
-                in_inventory = bool(dims_match and units_match)
-                detail = (
-                    f"dims={actual_dims[(dataset, variable)]}, "
-                    f"units={actual_units[(dataset, variable)]}"
+            for variable in variables:
+                suffix = f":{variable}" if len(variables) > 1 else ""
+                exists = dataset in actual_variables and variable in actual_variables[dataset]
+                add_check(
+                    checks,
+                    f"selected_variable:{selected.analysis_variable}:{dataset}{suffix}",
+                    exists,
+                    f"{dataset}/{variable}",
                 )
-            add_check(
-                checks,
-                f"inventory_contract:{selected.analysis_variable}:{dataset}",
-                in_inventory,
-                detail,
-            )
+                if not exists:
+                    continue
 
-            registry_key = (dataset_contracts[dataset]["family"], variable)
-            add_check(
-                checks,
-                f"variable_registry:{selected.analysis_variable}:{dataset}",
-                registry_key in registry_index.index,
-                f"source={registry_key[0]}, variable={variable}",
-            )
+                filename = dataset_contracts[dataset]["filename"]
+                inventory_key = (filename, variable)
+                in_inventory = inventory_key in inventory_index.index
+                detail = "missing from input inventory"
+                if in_inventory:
+                    inv = inventory_index.loc[inventory_key]
+                    dims_match = str(inv["dims"]) == actual_dims[(dataset, variable)]
+                    units_match = str(inv["units"]) == actual_units[(dataset, variable)]
+                    in_inventory = bool(dims_match and units_match)
+                    detail = (
+                        f"dims={actual_dims[(dataset, variable)]}, "
+                        f"units={actual_units[(dataset, variable)]}"
+                    )
+                add_check(
+                    checks,
+                    f"inventory_contract:{selected.analysis_variable}:{dataset}{suffix}",
+                    in_inventory,
+                    detail,
+                )
+
+                registry_key = (dataset_contracts[dataset]["family"], variable)
+                add_check(
+                    checks,
+                    f"variable_registry:{selected.analysis_variable}:{dataset}{suffix}",
+                    registry_key in registry_index.index,
+                    f"source={registry_key[0]}, variable={variable}",
+                )
 
     selected_datasets = set(selection["ol_dataset"]) | set(selection["da_dataset"])
     legacy_variables = find_legacy_increment_variables(selection["source_variable"])

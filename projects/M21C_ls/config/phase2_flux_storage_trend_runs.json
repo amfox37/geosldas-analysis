@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "phase": 2,
+  "matrix_kind": "primary",
+  "description": "Focused Phase 2 DA-minus-OL trends for ET, total runoff, and total land-water storage.",
+  "require_all_phase_variables": false,
+  "expected_primary_variable_count": 3,
+  "expected_run_count": 3,
+  "runs": [
+    {"run_id": "EVLAND_delta_valid_land", "variable": "EVLAND", "series": "delta", "mask": "valid_land", "role": "primary", "rationale": "Global paired DA-minus-OL evapotranspiration impact; monthly rates are converted to totals."},
+    {"run_id": "TOTAL_RUNOFF_delta_valid_land", "variable": "TOTAL_RUNOFF", "series": "delta", "mask": "valid_land", "role": "primary", "rationale": "Global paired DA-minus-OL total-runoff impact, defined as surface runoff plus baseflow and converted to monthly totals."},
+    {"run_id": "TWLAND_delta_valid_land", "variable": "TWLAND", "series": "delta", "mask": "valid_land", "role": "primary", "rationale": "Global paired DA-minus-OL total land-water storage impact."}
+  ]
+}

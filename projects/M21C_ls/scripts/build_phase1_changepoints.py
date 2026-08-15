@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Detect and compare independent changepoints in all 43 Phase 1 domain series."""
+"""Detect and compare independent changepoints in a trend-domain catalogue."""
 
 from __future__ import annotations
 
@@ -33,6 +33,7 @@ from phase1_changepoint_workflow import (
     audit_changepoint_outputs,
 )
 from phase1_interrupted_workflow import DEFAULT_MONTHLY
+from phase1_interrupted_workflow import phase1_series_catalogue
 from phase1_trend_workflow import DEFAULT_RUN_MATRIX
 from trend_breakpoint_series import DEFAULT_VARIABLE_SELECTION
 
@@ -146,9 +147,14 @@ def main() -> int:
     if args.n_jobs == 0:
         raise ValueError("--n-jobs cannot be zero")
     settings = load_changepoint_config(args.config)
+    catalogue = phase1_series_catalogue(
+        args.run_matrix, variable_selection=args.variable_selection
+    )
     with xr.open_dataset(args.input_monthly) as source:
-        if source.sizes.get("series") != 43 or source.sizes.get("time") != 288:
-            raise ValueError("Input interrupted-series monthly file is not the 43 x 288 product")
+        if source.sizes.get("series") != len(catalogue) or source.sizes.get("time") != 288:
+            raise ValueError(
+                "Input interrupted-series monthly dimensions do not match the run matrix"
+            )
         source = source.load()
     series_ids = source["series_id"].values.astype(str)
     time = source.time.values
@@ -214,7 +220,7 @@ def main() -> int:
             },
         },
         attrs={
-            "title": "M21C Phase 1 independent changepoint preprocessing",
+            "title": "M21C independent changepoint preprocessing",
             "configuration": json.dumps(settings, sort_keys=True),
             "config_path": str(args.config),
             "observing_system_registry": str(args.registry),

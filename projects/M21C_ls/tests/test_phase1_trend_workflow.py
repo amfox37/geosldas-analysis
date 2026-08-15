@@ -13,11 +13,17 @@ SCRIPTS_ROOT = PROJECT_ROOT / "scripts"
 if str(SCRIPTS_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_ROOT))
 
-from phase1_trend_workflow import audit_trend_output, load_phase1_runs
+from phase1_trend_workflow import audit_trend_output, load_phase1_runs, load_trend_runs
 from trend_statistics import compute_trend_statistics
 
 
 STATE_CONTEXT_MATRIX = PROJECT_ROOT / "config" / "phase1_state_trend_runs.json"
+PHASE2_PRIMARY_MATRIX = (
+    PROJECT_ROOT / "config" / "phase2_flux_storage_trend_runs.json"
+)
+PHASE2_CONTEXT_MATRIX = (
+    PROJECT_ROOT / "config" / "phase2_flux_storage_state_trend_runs.json"
+)
 
 
 def test_phase1_matrix_has_one_primary_run_per_selected_variable() -> None:
@@ -53,6 +59,22 @@ def test_state_context_matrix_has_matched_ol_and_da_runs() -> None:
     }.items():
         assert (variable, "ol", mask) in signatures
         assert (variable, "da", mask) in signatures
+
+
+def test_focused_phase2_matrices_cover_delta_ol_and_da() -> None:
+    primary_payload, primary = load_trend_runs(PHASE2_PRIMARY_MATRIX)
+    context_payload, context = load_trend_runs(PHASE2_CONTEXT_MATRIX)
+
+    variables = {"EVLAND", "TOTAL_RUNOFF", "TWLAND"}
+    assert primary_payload["phase"] == context_payload["phase"] == 2
+    assert len(primary) == 3
+    assert len(context) == 6
+    assert {(run["variable"], run["series"]) for run in primary} == {
+        (variable, "delta") for variable in variables
+    }
+    assert {(run["variable"], run["series"]) for run in context} == {
+        (variable, series) for variable in variables for series in ("ol", "da")
+    }
 
 
 def _trend_output(run: dict[str, str]) -> xr.Dataset:

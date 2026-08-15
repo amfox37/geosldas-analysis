@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build area-weighted P1-P9 interrupted-series results for Phase 1."""
+"""Build area-weighted P1-P9 interrupted-series results for a trend matrix."""
 
 from __future__ import annotations
 
@@ -131,7 +131,11 @@ def main() -> int:
     area_sum: list[np.ndarray] = []
     time_values: np.ndarray | None = None
 
-    print(f"Loading {len(catalogue)} area-weighted Phase 1 domain series", flush=True)
+    phase = int(json.loads(args.run_matrix.read_text())["phase"])
+    print(
+        f"Loading {len(catalogue)} area-weighted Phase {phase} domain series",
+        flush=True,
+    )
     loaded_count = 0
     with MonthlySeriesLoader(
         args.data_dir,
@@ -213,7 +217,7 @@ def main() -> int:
             "series_id": ("series", series_ids),
         },
         attrs={
-            "title": "M21C Phase 1 area-weighted P1-P9 interrupted time series",
+            "title": f"M21C Phase {phase} area-weighted P1-P9 interrupted time series",
             "configuration": json.dumps(settings, sort_keys=True),
             "config_path": str(args.config),
             "observing_system_registry": str(args.registry),

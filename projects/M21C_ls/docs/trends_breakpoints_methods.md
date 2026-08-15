@@ -47,8 +47,20 @@ See `docs/raw_increment_summaries_methods.md` for the full derivation.
 `config/trend_breakpoint_variable_selection.json` selects variables from the
 existing monthly datasets without redefining their units or aggregation. Phase
 1 covers soil moisture, snow, precipitation context, and raw-derived increment
-activity. Phase 2 adds water-budget and energy-partitioning responses after the
-statistical implementation passes synthetic and real-data validation.
+activity. The first focused Phase 2 run adds evapotranspiration, total runoff
+(`RUNSURFLAND + BASEFLOWLAND`), and total land-water storage after the
+statistical implementation passed synthetic and real-data validation. Other
+registered Phase 2 water-budget and energy-partitioning fields remain deferred.
+
+`config/phase2_flux_storage_trend_runs.json` declares the three primary paired
+`DA - OL` fields, and
+`config/phase2_flux_storage_state_trend_runs.json` declares the six matched OL
+and DA context fields. All use `valid_land`. The primary matrix expands to nine
+area-weighted domain series for known-transition and independent changepoint
+analysis. Total runoff is a structured derived variable in the selection
+contract: both components are converted from monthly mean rates to monthly
+totals, summed within each experiment, and then placed on strict paired-finite
+OL/DA support.
 
 `config/phase1_trend_runs.json` is the production matrix. It contains exactly
 one primary run for each of the 17 Phase 1 variables plus four predeclared

@@ -12,7 +12,7 @@ import pandas as pd
 import xarray as xr
 
 from interrupted_time_series import load_interrupted_config
-from phase1_trend_workflow import DEFAULT_OUTPUT_DIR, DEFAULT_RUN_MATRIX, load_phase1_runs
+from phase1_trend_workflow import DEFAULT_OUTPUT_DIR, DEFAULT_RUN_MATRIX, load_trend_runs
 from trend_breakpoint_series import DEFAULT_VARIABLE_SELECTION
 from trend_statistics import benjamini_hochberg
 
@@ -42,7 +42,7 @@ def phase1_series_catalogue(
 ) -> pd.DataFrame:
     """Expand matrix rows into the OL, DA, delta, and DA-only domain series."""
 
-    _, runs = load_phase1_runs(run_matrix, variable_selection=variable_selection)
+    _, runs = load_trend_runs(run_matrix, variable_selection=variable_selection)
     rows: list[dict[str, str]] = []
     for run in runs:
         source_series = ["ol", "da", "delta"] if run["series"] == "delta" else ["value"]

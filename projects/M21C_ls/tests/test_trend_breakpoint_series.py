@@ -70,6 +70,26 @@ def _land_dataset(experiment: str) -> xr.Dataset:
     return dataset
 
 
+def _water_dataset(experiment: str) -> xr.Dataset:
+    offset = 1.0e-6 if experiment == "da" else 0.0
+    surface = np.full((3, 3), 2.0e-6 + offset, dtype="float32")
+    baseflow = np.full((3, 3), 1.0e-6 + offset, dtype="float32")
+    if experiment == "da":
+        baseflow[1, 1] = np.nan
+    return xr.Dataset(
+        {
+            "RUNSURFLAND": (
+                ("time", "tile"), surface, {"units": "kg m-2 s-1"}
+            ),
+            "BASEFLOWLAND": (
+                ("time", "tile"), baseflow, {"units": "kg m-2 s-1"}
+            ),
+        },
+        coords={"time": TIME},
+        attrs={"source_root": f"/synthetic/{experiment.upper()}_SOURCE"},
+    )
+
+
 @pytest.fixture()
 def synthetic_inputs(tmp_path: Path) -> dict[str, Path]:
     data_dir = tmp_path / "data"
@@ -77,6 +97,8 @@ def synthetic_inputs(tmp_path: Path) -> dict[str, Path]:
 
     _land_dataset("ol").to_netcdf(data_dir / "ol_land.nc", engine="scipy")
     _land_dataset("da").to_netcdf(data_dir / "da_land.nc", engine="scipy")
+    _water_dataset("ol").to_netcdf(data_dir / "ol_water.nc", engine="scipy")
+    _water_dataset("da").to_netcdf(data_dir / "da_water.nc", engine="scipy")
 
     catch = xr.Dataset(
         {
@@ -137,6 +159,18 @@ def synthetic_inputs(tmp_path: Path) -> dict[str, Path]:
                 "family": "inst3_raw_diagnostic",
                 "source_token": "DA_SOURCE",
             },
+            "ol_water_budget": {
+                "filename": "ol_water.nc",
+                "experiment": "ol",
+                "family": "water_budget",
+                "source_token": "OL_SOURCE",
+            },
+            "da_water_budget": {
+                "filename": "da_water.nc",
+                "experiment": "da",
+                "family": "water_budget",
+                "source_token": "DA_SOURCE",
+            },
         },
     }
     contract_path = tmp_path / "inputs.json"
@@ -154,12 +188,20 @@ def synthetic_inputs(tmp_path: Path) -> dict[str, Path]:
     ]
     selection = {
         "schema_version": 1,
+        "derived_variables": {
+            "TOTAL_RUNOFF": {
+                "operation": "sum",
+                "source_variables": ["RUNSURFLAND", "BASEFLOWLAND"],
+                "long_name": "Total runoff",
+            }
+        },
         "columns": columns,
         "variables": [
             ["SFMC", "ol_land", "da_land", "SFMC", "paired_state", 1, "trend_of_DA_minus_OL", ""],
             ["PRECTOTCORRLAND", "ol_land", "da_land", "PRECTOTCORRLAND", "paired_flux", 1, "trend_of_DA_minus_OL", ""],
             ["snow_net", "", "catch_raw_cumulative", "snow_net", "cumulative_prognostic_increment", 1, "signed_trend", ""],
             ["RZMC_INC_MEAN", "", "inst3_raw_diagnostic", "RZMC_INC_MEAN", "diagnostic_state_correction", 1, "signed_trend", ""],
+            ["TOTAL_RUNOFF", "ol_water_budget", "da_water_budget", "TOTAL_RUNOFF", "paired_flux", 2, "trend_of_DA_minus_OL", ""],
         ],
     }
     selection_path = tmp_path / "selection.json"
@@ -216,6 +258,22 @@ def test_water_rate_is_converted_to_monthly_total(synthetic_inputs: dict[str, Pa
     assert fields["delta"].attrs["monthly_transform"].startswith("monthly mean rate")
     np.testing.assert_allclose(fields["delta"].isel(time=0), 1.0e-6 * june_seconds)
     np.testing.assert_allclose(fields["delta"].isel(time=1), 1.0e-6 * july_seconds)
+
+
+def test_total_runoff_sums_components_before_strict_pairing(
+    synthetic_inputs: dict[str, Path],
+) -> None:
+    with _loader(synthetic_inputs) as loader:
+        fields = loader.load_tile_series("TOTAL_RUNOFF").load()
+
+    june_seconds = 30 * 86400.0
+    np.testing.assert_allclose(fields["ol"].isel(time=0), 3.0e-6 * june_seconds)
+    np.testing.assert_allclose(fields["da"].isel(time=0), 5.0e-6 * june_seconds)
+    np.testing.assert_allclose(fields["delta"].isel(time=0), 2.0e-6 * june_seconds)
+    assert np.isnan(fields["ol"].isel(time=1, tile=1))
+    assert np.isnan(fields["da"].isel(time=1, tile=1))
+    assert fields["delta"].attrs["units"] == "kg m-2 month-1"
+    assert fields["delta"].attrs["source_variable"] == "TOTAL_RUNOFF"
 
 
 def test_existing_increment_and_diagnostic_monthly_values_are_not_reaggregated(
