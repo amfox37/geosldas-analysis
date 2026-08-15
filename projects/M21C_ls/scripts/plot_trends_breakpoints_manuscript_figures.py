@@ -494,7 +494,7 @@ def validate_transition_products(periods: pd.DataFrame) -> dict[str, object]:
     if pd.DatetimeIndex(monthly["time"].values)[-1] != periods.iloc[-1]["end"].replace(day=1):
         raise AssertionError("Monthly transition series does not end in the final P9 month")
     if not set(TIMESERIES).issubset(set(map(str, monthly["series_id"].values))):
-        raise AssertionError("One or more Figure Y production monthly series are missing")
+        raise AssertionError("One or more Figure 17 production monthly series are missing")
     return {"coefficients": coefficients, "selected": selected, "monthly": monthly}
 
 
@@ -683,7 +683,7 @@ def plot_observing_system_transitions(
         1.0,
         "(d)",
     )
-    return save_figure(fig, "figYY_observing_system_transitions")
+    return save_figure(fig, "fig17_observing_system_transitions")
 
 
 def breakpoint_display_label(variable: str, mask: str) -> str:
@@ -770,7 +770,7 @@ def build_assets() -> list[FigureAsset]:
     transition = validate_transition_products(periods)
     breakpoints = validate_breakpoint_products(transition["coefficients"])
 
-    fig_x = plot_trend_rows(["RZMC", "FRLANDSNO"], "figXX_longterm_rzmc_scf_trends")
+    fig_x = plot_trend_rows(["RZMC", "FRLANDSNO"], "fig16_longterm_rzmc_scf_trends")
     fig_y = plot_observing_system_transitions(periods, transition["monthly"], transition["selected"])
     precip = plot_trend_rows(["PRECTOTCORRLAND"], "figSXX_precipitation_trends")
     sfmc = plot_trend_rows(["SFMC"], "figSXX_sfmc_trends")
@@ -783,7 +783,7 @@ def build_assets() -> list[FigureAsset]:
 
     assets = [
         FigureAsset(
-            "Main Figure X: long-term state trends",
+            "Main Figure 16: long-term state trends",
             *fig_x,
             caption=(
                 "Long-term June 2000-May 2024 trends in (a-c) root-zone soil moisture (RZMC) and "
@@ -801,7 +801,7 @@ def build_assets() -> list[FigureAsset]:
             provenance="Exact production slope; mapped significance is significant_fdr; Robinson projection; 60 S cutoff.",
         ),
         FigureAsset(
-            "Main Figure Y: observing-system transitions",
+            "Main Figure 17: observing-system transitions",
             *fig_y,
             caption=(
                 "Changes in soil-water data-assimilation behavior across the P1-P9 observing-system "
@@ -919,7 +919,7 @@ def write_report(assets: list[FigureAsset], periods: pd.DataFrame) -> None:
             "",
             "- Maps follow the existing report convention: Robinson projection, 60 S cutoff, grey land, thin coastlines, segmented RdBu_r scales centered on a white zero bin, and black stippling.",
             "- OL and DA share a symmetric color scale within each row. DA-OL uses a separately labeled symmetric scale where needed; snow mass/depth retain the OL/DA scale so negligible differences are not visually exaggerated.",
-            "- Figure Y panel (a) shows unsmoothed monthly production series. Full-record z scoring is display-only; interrupted-series inference remains in native units.",
+            "- Figure 17 panel (a) shows unsmoothed monthly production series. Full-record z scoring is display-only; interrupted-series inference remains in native units.",
             "- The requested optional all-boundary decorative summary was not produced; the accepted breakpoint-agreement matrix already provides the auditable all-boundary view.",
             "",
             "## Discrepancies",

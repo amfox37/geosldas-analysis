@@ -4,21 +4,21 @@ These figures are plotting-only products generated from the accepted Phase 1 tre
 
 ## Outputs And Captions
 
-### Main Figure X: long-term state trends
+### Main Figure 16: long-term state trends
 
-- PNG: `projects/M21C_ls/output/paper_figures/figXX_longterm_rzmc_scf_trends.png`
-- PDF: `projects/M21C_ls/output/paper_figures/figXX_longterm_rzmc_scf_trends.pdf`
-- Tracked review PNG: `projects/M21C_ls/docs/paper_figures/figXX_longterm_rzmc_scf_trends.png`
+- PNG: `projects/M21C_ls/output/paper_figures/fig16_longterm_rzmc_scf_trends.png`
+- PDF: `projects/M21C_ls/output/paper_figures/fig16_longterm_rzmc_scf_trends.pdf`
+- Tracked review PNG: `projects/M21C_ls/docs/paper_figures/fig16_longterm_rzmc_scf_trends.png`
 - Sources: `RZMC_{ol,da,delta}_valid_land_trend_statistics.nc`, `FRLANDSNO_{ol,da,delta}_seasonal_snow_trend_statistics.nc`
 - Provenance: Exact production slope; mapped significance is significant_fdr; Robinson projection; 60 S cutoff.
 
 **Draft caption.** Long-term June 2000-May 2024 trends in (a-c) root-zone soil moisture (RZMC) and (d-f) snow-cover fraction (SCF) for the open-loop (OL), data-assimilation (DA), and paired DA-OL series. Trends are exact Theil-Sen slopes after trend-preserving removal of the calendar-month climatology. Black stippling denotes trends significant after Benjamini-Hochberg false-discovery-rate control at 0.05. RZMC uses the valid-land domain and SCF the Northern Hemisphere seasonal-snow domain. The DA-OL panels show the trend of the paired DA-OL series rather than the difference between independently estimated OL and DA trends.
 
-### Main Figure Y: observing-system transitions
+### Main Figure 17: observing-system transitions
 
-- PNG: `projects/M21C_ls/output/paper_figures/figYY_observing_system_transitions.png`
-- PDF: `projects/M21C_ls/output/paper_figures/figYY_observing_system_transitions.pdf`
-- Tracked review PNG: `projects/M21C_ls/docs/paper_figures/figYY_observing_system_transitions.png`
+- PNG: `projects/M21C_ls/output/paper_figures/fig17_observing_system_transitions.png`
+- PDF: `projects/M21C_ls/output/paper_figures/fig17_observing_system_transitions.pdf`
+- Tracked review PNG: `projects/M21C_ls/docs/paper_figures/fig17_observing_system_transitions.png`
 - Sources: `phase1_changepoint_monthly.nc`, `phase1_interrupted_series_coefficients.csv`, `observing_system_registry.json`
 - Provenance: Monthly production seasonal_adjusted fields; display-only full-record z scores; native-unit P6 inference.
 
@@ -80,7 +80,7 @@ These figures are plotting-only products generated from the accepted Phase 1 tre
 
 - Maps follow the existing report convention: Robinson projection, 60 S cutoff, grey land, thin coastlines, segmented RdBu_r scales centered on a white zero bin, and black stippling.
 - OL and DA share a symmetric color scale within each row. DA-OL uses a separately labeled symmetric scale where needed; snow mass/depth retain the OL/DA scale so negligible differences are not visually exaggerated.
-- Figure Y panel (a) shows unsmoothed monthly production series. Full-record z scoring is display-only; interrupted-series inference remains in native units.
+- Figure 17 panel (a) shows unsmoothed monthly production series. Full-record z scoring is display-only; interrupted-series inference remains in native units.
 - The requested optional all-boundary decorative summary was not produced; the accepted breakpoint-agreement matrix already provides the auditable all-boundary view.
 
 ## Discrepancies
