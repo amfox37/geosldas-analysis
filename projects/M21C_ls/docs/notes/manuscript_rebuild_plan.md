@@ -396,6 +396,21 @@ Include concise limitations:
 - snow-process attribution is intentionally restricted to the pre-SM-DA period
 - residual water-budget error reflects available temporal sampling
 - causality at known observing-system boundaries should be expressed carefully
+- the statistical procedures are deliberately conservative throughout, so a null
+  result means "not resolved" rather than "no effect"
+
+That last point deserves its own short paragraph rather than a clause. Every
+choice in §2.7 is tilted toward under-claiming: the Hamed–Rao variance factor is
+floored at one and driven only by positive autocorrelation, mapped significance
+uses FDR rather than pointwise stippling, the transition bootstrap simulates at
+the upper 95% bound on residual persistence, and accepted changepoints must
+survive both a penalty grid and a second autocorrelation treatment. The synthetic
+calibration quantifies the cost: roughly 25% FDR power for planted level shifts
+and roughly 8.3% for planted slope shifts. Non-detection at P4, P5, P7, P8, and
+P9 should therefore be described as failure to resolve a change, never as
+evidence that the transition had no effect. Supporting detail and the full
+calibration tables are in `../manuscript/supporting_information.md` (S2.11); the
+plain-language version is in `statistics_plain_language_primer.md` (§3.5, §7).
 
 Potential forward-looking implication:
 

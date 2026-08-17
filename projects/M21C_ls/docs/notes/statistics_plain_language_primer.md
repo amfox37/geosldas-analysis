@@ -2,7 +2,7 @@
 
 This document is an internal learning and reference guide. Its purpose is to explain what each statistical method in Sections 2.6 and 2.7 is doing, why it is needed, what assumptions it makes, and what conclusions it does and does not support. It is intentionally more repetitive and pedagogical than the manuscript or Supporting Information.
 
-It is not manuscript prose and should never be pasted into the paper. The formal, publication-facing versions live in `../manuscript/manuscript.md` (§2.6, §2.7) and `../manuscript/supporting_information.md`. A much shorter orientation summary lives alongside this file in `statistics_primer.md`; this document is the long form.
+It is not manuscript prose and should never be pasted into the paper. The formal, publication-facing versions live in `../manuscript/manuscript.md` (§2.6, §2.7) and `../manuscript/supporting_information.md`. This file supersedes the earlier short orientation note `statistics_primer.md`, which was retired once §2.7 had been drafted and this document written.
 
 ---
 
