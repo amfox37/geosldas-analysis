@@ -426,7 +426,7 @@ The trend analysis uses paired OL, DA, and DA−OL monthly fields for June 2000�
 
 The primary interpretation is:
 
-> **DA generally preserves the broad long-term behavior of OL rather than introducing widespread secular drift, although regional RZMC trends can be modified substantially.**
+> **DA generally preserves the broad long-term behavior of OL rather than introducing widespread secular drift, while modifying regional trends in root-zone soil moisture and total land-water storage and, over smaller areas, evapotranspiration and runoff.**
 
 ### Precipitation
 
@@ -462,22 +462,34 @@ FDR-significant DA−OL trends are essentially absent.
 
 ### Root-zone soil moisture
 
-RZMC is the important exception.
+RZMC exhibits a clear regional response to DA.
 
 The area with significant regional trends increases from approximately:
 
 - **4.36% in OL**
 - to **9.18% in DA**
 
-Significant paired DA−OL trends cover approximately:
+Significant paired DA−OL trends occur at approximately:
 
-> **7.01% of the valid-land domain**
+> **7.01% of valid-land tiles**
 
 and are predominantly positive.
 
 There is **no significant global land-mean RZMC trend**.
 
 The correct interpretation is therefore regional modification of trends, not a global DA-induced wetting trend.
+
+### Evapotranspiration, total runoff, and total land-water storage
+
+A focused extension applied the same paired trend framework to evapotranspiration, total runoff, and total land-water storage. None of the nine area-weighted OL, DA, or DA−OL domain series has a significant whole-record trend after autocorrelation correction and false-discovery-rate control.
+
+At the tile scale, significant paired DA−OL trends occur at **4,121 ET tiles (3.66%; 3.75% of land area)**, **5,434 total-runoff tiles (4.83%; 5.00% of land area)**, and **8,590 total-storage tiles (7.63%; 8.15% of land area)**. The changes are predominantly positive: 3,598 of the significant ET tiles, 4,443 runoff tiles, and 8,030 storage tiles have positive DA−OL trends.
+
+OL and DA tile slopes remain strongly correlated, with correlations of **0.948 for ET, 0.968 for runoff, and 0.932 for total storage**. Thus, as for RZMC, DA largely preserves the background spatial trend structure while superimposing smaller regional trend modifications. The effect is broadest for total land-water storage.
+
+The accepted long-term interpretation is therefore:
+
+> **The evolving DA system modifies regional water-cycle trends without producing a resolved global secular trend in RZMC, ET, runoff, or total land-water storage.**
 
 ## 17. Observing-system transitions and April 2015
 
@@ -502,13 +514,25 @@ For example, absolute prognostic soil-water correction activity increases by app
 
 > **+10.61 kg m⁻²**
 
-The transition analysis shows:
+The corresponding focused analysis of ET, runoff, and total land-water storage provides additional physical context for the April 2015 transition. Total land-water storage DA−OL increases by **2.144 kg m⁻²** at P6, with a **95% bootstrap interval of 0.932–3.266 kg m⁻² and q = 0.009**. This is a formally significant positive storage shift.
+
+ET DA−OL also increases at P6 by **0.502 kg m⁻² month⁻¹**, with an individual bootstrap interval of **0.094–0.883 kg m⁻² month⁻¹**, and PELT independently places an ET changepoint exactly in April 2015. However, the prescribed-date coefficient has **q = 0.072** and therefore does **not** survive the separate nine-series boundary-family FDR correction. It should be described as convergent or suggestive rather than formally FDR-significant.
+
+Total runoff has no comparable P6 response: its estimated level change is **+0.230 kg m⁻² month⁻¹**, with an interval of **−0.170 to +0.623 kg m⁻² month⁻¹ and q = 0.478**.
+
+The original soil-water transition analysis shows:
 
 - **10 primary diagnostic series** have accepted independent changepoints exactly in April 2015
 - **9 of those 10** also have significant known-date P6 level changes
 - no accepted changepoint occurs in paired OL or DA state-control series
 
-The accepted independent-break inventory contains:
+The focused flux/storage analysis independently identifies April 2015 changepoints in both ET and total storage. This strengthens the interpretation of April 2015 as a system-level land-water transition while retaining the distinction between formal and suggestive individual responses.
+
+A second physically relevant transition occurs near P2 during the MODIS-only period. Total runoff DA−OL increases by **0.790 kg m⁻² month⁻¹** at P2, with a **95% interval of 0.379–1.176 kg m⁻² month⁻¹ and q = 0.0045**. The P2 runoff slope is also positive at **0.108 kg m⁻² month⁻¹ yr⁻¹** with an interval of **0.021–0.194 and q = 0.0349**. PELT places an accepted runoff changepoint in June 2002, one month before the registered July 2002 P2 boundary.
+
+Because snow-cover assimilation is the only satellite land DA operating during this early period, the runoff transition is physically consistent with the independent MODIS-only snow-water-budget result showing a runoff-dominated fate of assimilation-added snow water. The temporal agreement nevertheless remains an observing-system association and should not be presented as proof that the introduction of Aqua uniquely caused the runoff change.
+
+The accepted independent-break inventory from the original state/correction analysis contains:
 
 - **37 total accepted breaks**
 - **20 paired DA−OL**
@@ -523,6 +547,10 @@ The manuscript should say that the April 2015 change:
 - is **consistent with** a SMAP-driven change in analysis behavior
 
 Do not claim that statistical coincidence uniquely proves SMAP is the sole cause of every contemporaneous change.
+
+The overall transition interpretation is:
+
+> **The evolving observing system produces clear changes in correction activity and discrete changes in the analyzed land-water state, most clearly in April 2015, without producing a corresponding global secular drift. The April 2015 transition is expressed most strongly through soil-water correction activity, root-zone soil moisture, and total land-water storage, whereas the clearest runoff transition occurs earlier during the MODIS-only period.**
 
 ## 18. Current main-text figure sequence
 
@@ -599,6 +627,8 @@ The Supplement should contain most of the diagnostic machinery, including:
 - precipitation trend control
 - SFMC trends
 - snow-mass and snow-depth trends
+- ET / total-runoff / total-land-water-storage trend maps
+- ET / total-runoff / total-land-water-storage transition-series diagnostics
 - breakpoint-boundary agreement
 - changepoint sensitivity analyses
 
@@ -704,11 +734,14 @@ Unless explicitly superseded by a later documented decision:
 10. The snow-DA → later SM-DA magnitude/activity hypothesis is not supported.
 11. The signed later SM correction has a weak but coherent opposing tendency.
 12. Hydro-energy changes are physical-consistency diagnostics, not independent flux validation.
-13. DA generally preserves broad long-term behavior while modifying regional RZMC trends.
-14. There is no significant global land-mean RZMC trend.
-15. SCF long-term decline is essentially unchanged by DA.
-16. Precipitation is a null forcing-control check, not independent validation.
-17. Fig. 16 shows RZMC and SCF trends.
-18. Fig. 17 shows observing-system transitions.
-19. Fox et al. (2025) and Fox et al. (2026) should carry much of the detailed soil-moisture DA methods burden.
-20. The manuscript's core argument is **evolving observational influence + physical propagation + temporal consistency**, not simply whether DA improves validation metrics.
+13. DA generally preserves broad long-term behavior while modifying regional RZMC and total-land-water-storage trends and, over smaller areas, ET and runoff trends.
+14. No significant global land-mean whole-record trend is resolved in OL, DA, or DA−OL ET, total runoff, or total land-water storage.
+15. At P6, total land-water storage DA−OL has a significant +2.144 kg m⁻² level shift; ET shows convergent but not FDR-significant evidence for a positive shift, and runoff has no resolved P6 level change.
+16. The clearest total-runoff transition occurs near P2 in the MODIS-only period and is consistent with, but does not independently prove, the snow-DA runoff pathway.
+17. There is no significant global land-mean RZMC trend.
+18. SCF long-term decline is essentially unchanged by DA.
+19. Precipitation is a null forcing-control check, not independent validation.
+20. Fig. 16 shows RZMC and SCF trends.
+21. Fig. 17 shows observing-system transitions.
+22. Fox et al. (2025) and Fox et al. (2026) should carry much of the detailed soil-moisture DA methods burden.
+23. The manuscript's core argument is **evolving observational influence + physical propagation + temporal consistency**, not simply whether DA improves validation metrics.
