@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "description": "Fixed geographic regions for the regional RZMC DA-OL observing-system transition diagnostic. Boxes are simple lat/lon bounds intersected with the static valid_land mask and with a fixed all-month finite OL/DA sample, so regional membership is constant across all 288 months.",
+  "provenance": "Region bounds were drawn by eye from the Figure 16 DA-OL RZMC trend panel and rounded to whole degrees; they are NOT defined from significant-trend tiles and there is no algorithm or external source behind the exact values. The analysis they support is a timing decomposition of the Figure 16 result - when did the established regional trends appear - rather than an independent test that these regions are special.",
+  "regions": [
+    {
+      "region_id": "global",
+      "label": "Global valid land",
+      "bounds": null
+    },
+    {
+      "region_id": "aus",
+      "label": "Australia",
+      "bounds": {
+        "lat_min": -45.0,
+        "lat_max": -10.0,
+        "lon_min": 112.0,
+        "lon_max": 154.0
+      }
+    },
+    {
+      "region_id": "safr",
+      "label": "Southern Africa",
+      "bounds": {
+        "lat_min": -35.0,
+        "lat_max": -15.0,
+        "lon_min": 10.0,
+        "lon_max": 41.0
+      }
+    },
+    {
+      "region_id": "nafr_me",
+      "label": "North Africa / Middle East",
+      "bounds": {
+        "lat_min": 12.0,
+        "lat_max": 37.0,
+        "lon_min": -18.0,
+        "lon_max": 60.0
+      }
+    },
+    {
+      "region_id": "wna",
+      "label": "Western North America",
+      "bounds": {
+        "lat_min": 30.0,
+        "lat_max": 60.0,
+        "lon_min": -125.0,
+        "lon_max": -100.0
+      }
+    },
+    {
+      "region_id": "neur",
+      "label": "Northern Eurasia",
+      "bounds": {
+        "lat_min": 50.0,
+        "lat_max": 70.0,
+        "lon_min": 60.0,
+        "lon_max": 140.0
+      }
+    }
+  ]
+}
