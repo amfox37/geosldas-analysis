@@ -2,23 +2,46 @@
 """Figure 14 (4-panel): absolute OL/DA annual water balance, the DA-OL difference
 budget, and the partition of the positive snow-DA input.
 
-Seasonal-snow domain, WY2001-WY2006. Storage endpoints from catch_internal_rst
-restarts; peat free-water change from PEATCLSM_FSWCHANGE.
+Seasonal-snow domain, WY2001-WY2006. Reads only production output from
+water_year_snow_da_budget.py; run that first. Storage endpoints come from
+catch_internal_rst restarts and peat free-water change from PEATCLSM_FSWCHANGE,
+both wired into that pipeline.
 """
 from __future__ import annotations
 from pathlib import Path
-import numpy as np, matplotlib
+import numpy as np, pandas as pd, matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
 
 ROOT = Path(__file__).resolve().parent.parent
-_z = np.load(ROOT / "output" / "monthly_synthesis_diagnostics" /
-             "water_year_snow_da_budget" / "fig14_revised_inputs.npz")
-W  = {"OL": _z["wb_OL"], "DA": _z["wb_DA"]}   # WY x [P,I,ET,Rs,Rb,dS,FSW,res]
-Cd = _z["diff"]                               # WY x [I,dRs,dRb,dET,dS,dFSW,res]
-B  = _z["partition"]                          # term x [frac, lo, hi]
+BUDGET = ROOT / "output" / "monthly_synthesis_diagnostics" / "water_year_snow_da_budget"
+YEAR_ROWS = lambda f: f[f["water_year"].astype(str).str.fullmatch(r"\d+")]
+
+# (a), (b): per-run absolute balances
+_abs = YEAR_ROWS(pd.read_csv(BUDGET / "annual_absolute_budgets.csv"))
+W = {
+    run: _abs[_abs["run"] == run].sort_values("water_year")[
+        ["precipitation", "I_snow", "ET", "runoff_surface", "baseflow",
+         "storage", "peat_free_water", "residual"]
+    ].to_numpy()
+    for run in ("OL", "DA")
+}
+# (c): DA - OL differential budget
+Cd = YEAR_ROWS(pd.read_csv(BUDGET / "annual_domain_budgets.csv")).sort_values("water_year")[
+    ["I_snow", "dRunoff_surface", "dBaseflow", "dET", "dStorage", "dPeatFreeWater", "residual"]
+].to_numpy()
+# (d): snow-addition partition with 5-degree spatial-block intervals
+_part = pd.read_csv(BUDGET / "six_year_integrated_partitions.csv").set_index("sample").loc["addition"]
+_unc = pd.read_csv(BUDGET / "partition_spatial_block_uncertainty.csv")
+_unc = _unc[(_unc["sample"] == "addition") & (_unc["block_degrees"] == 5.0)].set_index("variable")
+B = np.array([
+    [_part[f"fraction_{term}"], _unc.loc[term, "ci_low"], _unc.loc[term, "ci_high"]]
+    for term in ["dRunoff_surface", "dBaseflow", "dET", "dStorage",
+                 "dPeatFreeWater", "residual", "dRunoff_total"]
+])
+POSITIVE_INPUT = float(_part["I_snow"])
 YEARS = [f"WY{y}" for y in range(2001, 2007)]
 
 C = dict(et="#e0a02c", rs="#2a9d8f", rb="#83c5be", ds="#4a72b0",
@@ -103,7 +126,7 @@ top = max(hi[0], hi[1]) + 3.0
 axD.plot([0, 0, 1, 1], [top - 1.2, top, top, top - 1.2], color="0.2", lw=1.1, zorder=4)
 axD.text(0.5, top + 0.8, f"Total runoff\n{rt:.1f}% [{rtl:.1f}, {rth:.1f}]",
          ha="center", va="bottom", fontsize=9.8, fontweight="bold", linespacing=1.25)
-axD.text(0.985, 0.985, r"Mean positive input: 71.3 kg m$^{-2}$ yr$^{-1}$",
+axD.text(0.985, 0.985, f"Mean positive input: {POSITIVE_INPUT:.1f} kg m$^{{-2}}$ yr$^{{-1}}$",
          transform=axD.transAxes, ha="right", va="top", fontsize=9.2)
 axD.set_title("(d) Partition of the added water", loc="left",
               fontweight="bold", fontsize=12)
