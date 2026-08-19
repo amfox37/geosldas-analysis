@@ -253,21 +253,52 @@ Middle East (+0.95). These are not interpreted here.
 
 ### Reading
 
-The two boundaries behave differently with depth. At P2 the change is at least
-as large at the surface as in the root zone, whereas the P6 change is resolved
-only in the root zone despite SMAP sensing the surface layer directly.
+The two boundaries behave differently with depth, and the contrast supports
+rather than complicates the RZMC result.
 
-One hypothesis consistent with this, though not established by the analysis, is
-that the surface layer relaxes toward forcing-driven equilibrium on a timescale
-of days, so persistent analysis increments do not accumulate into a sustained
-mean offset there, whereas the root zone integrates them over months. That
-would also be consistent with the whole-record trend result, where significant
-paired DA−OL trends cover 7.01% of valid-land tiles for RZMC but only 1.25% for
-SFMC.
+**P2 behaves coherently through the soil column.** The same northern regions
+respond in both layers, with the larger SFMC amplitude expected for a
+perturbation expressed strongly near the surface.
 
-The practical implication for the manuscript is that adding SFMC would not
-strengthen the regional transition story. It reproduces the P2 result, adds
-nothing at P6, and introduces three uninterpreted comparisons.
+**P6 is qualitatively different.** The SMAP-era observing-system change produces
+a persistent shift in root-zone soil moisture but little sustained shift in the
+surface layer. Because the loss of significance comes mainly from the smaller
+SFMC effect rather than from inflated uncertainty, this is a genuine depth
+dependence rather than a statistical-power artifact.
+
+This is consistent with the much shorter memory of surface soil moisture, which
+makes a sustained mean offset harder to maintain there, and with the EnKF's
+ability to project surface-observation information directly into deeper
+soil-water states through ensemble cross-covariances (Section 2.3 of the
+manuscript). It should **not** be described as SMAP increments acting first on
+the surface and then propagating downward: the filter updates `rzexc` directly,
+so no physical downward transport is required for the root-zone shift to arise.
+
+It also fits the Fig. 16 asymmetry, where significant paired DA−OL trends cover
+7.01% of valid-land tiles for RZMC but only 1.25% for SFMC.
+
+### Status of SFMC in the manuscript
+
+SFMC is a **secondary robustness and mechanistic check**, not a co-primary
+endpoint. Three consequences follow:
+
+1. Figure 17 stays RZMC-only. Adding SFMC would make the figure busier without
+   adding a result at P6.
+2. The main RZMC inference keeps its established **six-region** family per
+   transition. The SFMC repeat is not pooled into it, and the families are not
+   expanded to twelve tests per boundary.
+3. The SFMC outcome is worth one or two sentences in Results or Discussion,
+   with a supplemental table or figure only if space allows. Draft wording:
+
+   > Repeating the regional period analysis for surface soil moisture reproduced
+   > the P2−P1 pattern but not the P6−P5 response: none of the six regions
+   > showed a significant P6−P5 SFMC change, and the corresponding effect sizes
+   > were 31–91% smaller than for RZMC. Thus, the SMAP-era transition is
+   > expressed primarily in the deeper soil-moisture state rather than as a
+   > persistent surface-moisture offset.
+
+The diagnostic did what it was meant to: it tested whether adding SFMC would
+help. It would not — but the reason is itself informative.
 
 ## 8. Status
 
