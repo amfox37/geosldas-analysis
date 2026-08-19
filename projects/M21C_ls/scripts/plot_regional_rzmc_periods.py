@@ -8,7 +8,7 @@ import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt, matplotlib.dates as mdates
 
 HERE = Path(__file__).resolve().parent; sys.path.insert(0, str(HERE))
-from changepoint_detection import seasonal_adjustment  # noqa: E402
+from regional_rzmc_common import seasonal_adjustment  # noqa: E402
 from m21c_periods import load_period_frames  # noqa: E402
 
 ROOT = HERE.parent
@@ -103,7 +103,7 @@ def main():
          plt.Line2D([],[],color="black",lw=1.6,ls="--"),
          plt.Line2D([],[],color="0.45",lw=0.8,ls="--")]
     fig.legend(h, ["monthly DA $-$ OL", "observing-system period mean",
-                   "transition resolved (FDR $q<0.05$)", "period boundary"],
+                   "adjacent period means differ (FDR $q<0.05$)", "period boundary"],
                loc="lower center", ncols=4, frameon=False, fontsize=9.5,
                bbox_to_anchor=(0.5, -0.005))
     fig.suptitle("Regional area-weighted RZMC DA $-$ OL by observing-system period, "

@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Diagnostic: regional RZMC DA-OL series and blind changepoint detection.
+"""Build area-weighted regional RZMC DA-OL monthly series.
 
-Reuses the audited MonthlySeriesLoader and detect_changepoints workflow without
-modifying either. Regional masks are static: a lat/lon box intersected with
+Reuses the audited MonthlySeriesLoader without modifying it. Regional masks are static: a lat/lon box intersected with
 valid_land and with the set of tiles finite in OL and DA in every month, so the
 contributing sample cannot change through the record.
 """
@@ -21,7 +20,6 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from trend_breakpoint_series import MonthlySeriesLoader  # noqa: E402
-import changepoint_detection as cpd  # noqa: E402
 from m21c_periods import load_period_frames  # noqa: E402
 
 ROOT = HERE.parent

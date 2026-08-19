@@ -6,9 +6,9 @@ figure.** Produced 2026-08-18 from the audited monthly OL v2 / DA v3 products.
 Figure 16 establishes **where** assimilation changes root-zone soil moisture
 over the long term. This analysis asks **when** those changes happened.
 
-Scientific question: *do the regional RZMC DA−OL trends shown in Fig. 16 arise
-from gradual drift, or from step changes at the documented observing-system
-boundaries — and is the responsible boundary the same everywhere?*
+Scientific question: *are the regional RZMC DA−OL differences shown in Fig. 16
+distributed uniformly through the record, or concentrated in particular
+observing-system periods — and are the same periods responsible everywhere?*
 
 The dates are not unknown regime shifts; they are documented observing-system
 changes. The analysis therefore uses the P1–P9 boundaries directly rather than
@@ -35,15 +35,20 @@ That provenance is appropriate here because the analysis is a **timing
 decomposition of a result Fig. 16 has already established**, not an independent
 test that these regions are special. Fig. 16 shows where the DA effect on RZMC
 is regionally concentrated; the question here is when that effect appeared. A
-24-year trend of a given magnitude is consistent with slow drift, an early
-step, a late step, or a ramp, so the timing is genuinely additional information
-not contained in the trend estimate.
+24-year trend of a given magnitude is consistent with many temporal
+distributions of the underlying change, so where in the record that change is
+concentrated is additional information not contained in the trend estimate.
 
 The consequence for wording is specific: results below must not be stated as
 "these regions show significant transitions," which the region selection cannot
-support. They should be stated as the Fig. 16 trends resolving into step
-changes at particular boundaries, with the responsible boundary differing by
+support. They should be stated as the Fig. 16 differences being concentrated in
+particular observing-system periods, with the periods responsible differing by
 region. That is what the tests actually address.
+
+Note also that the estimand is a difference of period means, which a gradual
+ramp through one period can produce as readily as an abrupt change at its
+boundary. Nothing here distinguishes those two, so the results must not be
+described as steps, jumps, or discontinuities at boundaries.
 
 ![Tiles selected by each region](regional_rzmc_diagnostic_figures/regional_tile_membership.png)
 
@@ -91,9 +96,8 @@ replicates (`regional_uncertainty_sensitivity.csv`).
 | Moving-block bootstrap | 12 | 0.70 |
 
 Effective-*n* and the parametric bootstrap give the **identical** significance
-pattern. The block bootstrap is more liberal and adds only three marginal cases
-(global P5−P4; southern Africa and western North America P9−P8); with ρ ≈ 0.8
-and 12 blocks per replicate it understates low-frequency variance.
+pattern. The block bootstrap gives smaller standard errors and adds three marginal cases
+(global P5−P4; southern Africa and western North America P9−P8).
 
 Every headline result is significant under all three methods. Effective-*n* is
 retained: it is the most conservative, the simplest to state, and it agrees
@@ -103,9 +107,11 @@ exactly with the more rigorous parametric bootstrap.
 
 ![Regional RZMC DA−OL by observing-system period](regional_rzmc_diagnostic_figures/regional_rzmc_period_means.png)
 
-Two elements only: faint monthly series and the bold period mean. The steps
-between period means *are* the estimated differences, so nothing further is
-marked.
+Two elements only: faint monthly series and the bold period mean. The changes
+in level between successive period means *are* the estimated differences, so
+nothing further is marked. Dashed black boundaries mark adjacent period means
+that differ under FDR; this indicates where the difference is resolved, not
+that the change occurred abruptly at that date.
 
 ## 4. Adjacent-period differences
 
@@ -136,12 +142,13 @@ With 95% intervals and q-values:
 
 ## 5. Findings
 
-**The Fig. 16 regional trends are not gradual drift.** In every region with a
-resolved transition, the period means are close to flat within periods and step
-between them, so the long-term trend is carried by one or two discrete changes
-at observing-system boundaries rather than by continuous evolution.
+**The long-term regional RZMC differences seen in Fig. 16 are concentrated in
+particular observing-system periods rather than being distributed uniformly
+through the record.** In every region with a resolved comparison, one or two
+adjacent-period differences account for most of the change across the record.
 
-**The responsible boundary differs by region**, which is the substantive result.
+**The periods associated with the largest changes differ regionally**, which is
+the substantive result.
 
 **P6 is the only transition producing a coherent multi-region RZMC change.**
 Four of six regions, strongest in Australia (+3.46) and southern Africa (+3.57),
@@ -171,11 +178,12 @@ the least interpretable of the six.
 - Region bounds were drawn by eye from Fig. 16. The analysis is a timing
   decomposition of that figure, not an independent test of regional
   significance, and must be described that way. In particular the P6 magnitudes
-  are not an unbiased regional estimate: three of the five regions were chosen
-  for having strong positive DA−OL trends, and a sustained post-2015 step is
-  itself a positive trend. The P2 result does not carry this caveat — western
-  North America and northern Eurasia were not selected on the boundary they
-  turned out to respond at.
+  are not an unbiased regional estimate: the regions were chosen for having
+  coherent DA−OL trend structure, and any persistent shift — whenever it occurs
+  — itself contributes to a positive 24-year trend. Selection on the trend can
+  therefore enrich for changes at any boundary, so the P2 comparisons carry the
+  same caveat as the P6 ones. The snow-region P2 versus dry-region P6 contrast
+  is exploratory.
 - The estimand is a period-mean difference, not a boundary discontinuity.
 - Serial correlation is high (ρ = 0.63–0.80), so effective sample sizes are
   roughly a tenth of the month counts. P7 (15 months) resolves nothing and

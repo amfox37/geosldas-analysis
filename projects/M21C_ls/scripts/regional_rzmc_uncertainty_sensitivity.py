@@ -12,7 +12,7 @@ import numpy as np, pandas as pd, xarray as xr
 from scipy.stats import norm
 
 HERE = Path(__file__).resolve().parent; sys.path.insert(0, str(HERE))
-from changepoint_detection import seasonal_adjustment  # noqa: E402
+from regional_rzmc_common import seasonal_adjustment  # noqa: E402
 from m21c_periods import load_period_frames  # noqa: E402
 
 ROOT = HERE.parent
