@@ -64,12 +64,28 @@ Effect on Figure 14 (domain-mean recomputation, not a pipeline rerun):
 | peat excluded | −0.186 | −0.3% |
 | peat excluded + endpoint fix | −0.041 | −0.07% |
 
-**Term B is a storage-endpoint sampling artefact.** `dStorage` is taken as the
-difference of *September monthly means* of `TWLAND`, while fluxes are integrated
+**Term B is a storage-endpoint problem.** `dStorage` is taken as the difference
+of *September monthly means* of `TWLAND`, while fluxes are integrated
 1 Oct – 30 Sep. A monthly mean approximates mid-month, so the estimate is offset
-by ~2 weeks at each end. Using the mean of the September and October monthly
-means instead reduces the bias by 78% (−0.186 → −0.041 kg m⁻² yr⁻¹) and the RMS
-error from 1.010 to 0.741.
+by ~2 weeks at each end.
+
+**Correction, 19 Aug 2026.** An earlier version of this brief stated that using
+the mean of the September and October monthly means reduces the bias by 78%.
+**That figure was wrong.** It was computed on a peat-excluded domain and does
+not generalise. On the full seasonal-snow domain all monthly-mean estimators
+perform about equally, and the Sep/Oct midpoint is marginally *worse* than the
+September mean:
+
+| estimator | bias | RMS |
+|---|---:|---:|
+| September mean (current) | +0.983 | 1.252 |
+| Sep/Oct midpoint | +1.143 | 1.196 |
+| cubic spline at 1 Oct | +1.126 | 1.159 |
+
+kg m⁻² yr⁻¹, DA−OL, against `∫WCHANGELAND + I_snow`. Because the choice of
+sampling point barely changes the answer, Term B is not a timing artefact and
+**cannot be fixed by a better monthly-mean estimator**. It needs true
+instantaneous endpoints — see Task 2.
 
 ---
 
@@ -212,31 +228,44 @@ with peatlands retained in the domain.
 
 ---
 
-## 3. Task 2: instantaneous `TWLAND` for the endpoint term
+## 3. Task 2: restart-derived `TWLAND` at water-year boundaries
 
-`TWLAND` appears **only** in time-averaged collections (`tavg24_1d_lnd_Nt`,
-`tavg24_2d_lnd_Nx`). There is no instantaneous collection carrying it, so a
-true endpoint value is not directly available.
+`TWLAND` appears only in time-averaged collections, so a true endpoint value is
+not available from HISTORY output. It can, however, be reconstructed from
+restarts, and that work is understood to be in progress.
 
-Two options, in order of preference:
+**Deliver per tile, not as a domain mean.** Figure 14 uses the Northern
+Hemisphere seasonal-snow domain (48,067 tiles: 20°N southern limit,
+snow-cover-possible thresholds of 0.05 SCF and 5 kg m⁻² snow mass, and mean JJA
+SCF < 0.20 to exclude permanent ice) — not global valid land. Per-tile delivery
+lets us apply that mask, and any future mask, locally.
 
-**(a) Reconstruct it** from instantaneous prognostics using the model's own
-formula:
+### Specification
 
-    TWLAND = cdcr2/(1-wpwet) - catdef + rzexc + srfexc + capac + sum(wesnn)
+| property | required value |
+|---|---|
+| variable | `TWLAND`, **instantaneous**, ensemble mean over all 24 members |
+| dimensions | `time` = 7, `tile` = 112573, variable on `(time, tile)` |
+| times | 0000 UTC on 1 October, 2000 through 2006 |
+| tile ordering | identical to `LS_OLv8_M36.ldas_tilecoord.bin` |
+| units | `kg m-2`, float32 |
+| cell_methods | omit, or `time: point` — **not** `time: mean` |
+| coordinates | `time`, `lat` (tile), `lon` (tile) |
+| filenames | `OLv8_twland_wy_boundaries_compressed.nc`, `DAv8_twland_wy_boundaries_compressed.nc` |
 
-`cdcr2` and `wpwet` are static (in `clsm/` parameter files); the prognostics are
-in the restart files and possibly in `inst3_1d_lndfcstana_Nt` or
-`catch_progn_incr`. Please check which of `CATDEF`, `RZEXC`, `SRFEXC`, `CAPAC`,
-`WESNN` are archived instantaneously and at what frequency, for both OL and DA.
-A single value per 1 October and 30 September would be sufficient.
+Same global-attribute convention as the other products, plus a SHA-256 per file
+and a note recording which restart files were used.
 
-**(b) If reconstruction is not possible**, report that, and we will adopt the
-September/October two-month mean approximation, which we have already shown
-removes 78% of the bias.
+### Why per-year accuracy matters
 
-Do **not** trigger a model rerun for this. It is worth ~7% of the residual once
-peat is handled, and is not worth the cost on its own.
+Figure 14 panel (a) is a six-bar, per-water-year figure. Monthly-mean
+approximation errors are largely random in sign and cancel over six years, so an
+aggregate can look acceptable while individual years are poor — errors of ~18%
+on a single year, and sign flips where the true value is small. Exact endpoints
+are therefore required for the figure as drawn, not merely a refinement.
+
+The monthly-mean fallback remains relevant only for periods where restarts do
+not exist, should a future figure extend beyond WY2006.
 
 ---
 
