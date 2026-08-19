@@ -19,7 +19,7 @@ REG = json.loads((ROOT/"config"/"regional_rzmc_regions.json").read_text())["regi
 PCOL = ["#ece7d8","#e2eaf3","#e3efe3","#f8e8da","#eae2f0","#dff0ec","#f9e4ec","#e3e9f3","#f0ece0"]
 
 
-def main(var: str = "RZMC", series_key: str = "delta"):
+def main(var: str = "RZMC", series_key: str = "delta", paper: bool = False):
     FIGDIR.mkdir(parents=True, exist_ok=True)
     ds = xr.open_dataset(OUT/f"regional_{var.lower()}_monthly.nc"); t = pd.DatetimeIndex(ds.time.values)
     _, fine, _, _ = load_period_frames()
@@ -74,6 +74,14 @@ def main(var: str = "RZMC", series_key: str = "delta"):
                  "June 2000 – May 2024", fontsize=12.5, y=0.98)
     fig.tight_layout(rect=[0, 0.04, 1, 0.955])
     fig.savefig(FIGDIR/f"regional_{var.lower()}_period_means.png", dpi=200, bbox_inches="tight")
+    if paper:
+        review = ROOT/"docs"/"paper_figures"/"fig17_regional_rzmc_periods.png"
+        prod = ROOT/"output"/"paper_figures"
+        prod.mkdir(parents=True, exist_ok=True)
+        fig.savefig(review, dpi=300, bbox_inches="tight")
+        fig.savefig(prod/"fig17_regional_rzmc_periods.png", dpi=300, bbox_inches="tight")
+        fig.savefig(prod/"fig17_regional_rzmc_periods.pdf", bbox_inches="tight")
+        print("wrote fig17_regional_rzmc_periods.{png,pdf}")
     plt.close(fig)
 
     pd.set_option("display.width", 220)
@@ -90,4 +98,5 @@ def main(var: str = "RZMC", series_key: str = "delta"):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--variable", default="RZMC")
-    main(ap.parse_args().variable)
+    ap.add_argument("--paper", action="store_true")
+    _a = ap.parse_args(); main(_a.variable, paper=_a.paper)

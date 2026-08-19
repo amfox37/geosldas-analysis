@@ -106,7 +106,7 @@ Three interpretive limitations apply:
 
 ## S2.1 Distinct statistical questions
 
-The temporal analysis addresses three distinct questions: whole-record trends, changes at prescribed observing-system boundaries, and independently detected abrupt changepoints. These are estimated separately because a discrete level or slope change need not produce a significant whole-record trend, and a long-term trend need not correspond to an abrupt transition.
+The temporal analysis addresses two distinct questions: whether a variable exhibits a systematic whole-record trend, and when the regional differences identified by that trend analysis emerge within the P1–P9 observing-system chronology. These are estimated separately because a change confined to part of the record need not produce a significant whole-record trend, and a whole-record trend need not be concentrated in any single period.
 
 ## S2.2 Paired DA−OL trend estimand
 
@@ -152,109 +152,127 @@ Separately, the reported Theil–Sen confidence interval is a **first-order auto
 
 The Sen confidence interval and modified-Mann–Kendall/FDR decision are separate inferential products and need not agree exactly; mapped significance is defined by the FDR-controlled test. Production outputs expose an explicit `fdr_ci_disagreement` flag wherever the FDR test is significant but the adjusted Sen interval contains zero. Disagreement is absent for the paired state fields and the snow sensitivities, and reaches 22.1% of significant tiles for absolute soil-water activity and 8.9–13.6% for the SFMC correction diagnostics. The first-order interval is not plotted as inferential whiskers for the activity fields.
 
-## S2.6 Known-date interrupted time-series model
+## S2.6 Regional timing decomposition of RZMC trends
 
-The response is an area-weighted monthly domain series over the complete 288-month record. Tile weights are M36 land-tile areas from the GEOS LDAS tile-coordinate file; missing OL or DA values are cross-masked before any paired mean or difference is formed. The segmented design contains:
+The whole-record trend analysis establishes where assimilation alters root-zone
+soil moisture. This analysis asks when those regional differences emerge within
+the P1–P9 chronology.
 
+Six fixed domains are used: global valid land and five lat/lon boxes.
 
-| Component | Count |
-|---|---:|
-| Intercept | 1 |
-| P1 baseline slope | 1 |
-| Calendar-month fixed effects | 11 |
-| Level changes at P2–P9 | 8 |
-| Slope hinges at P2–P6, P8, P9 | 7 |
-| **Total fitted parameters** | **28** |
+| Region | Latitude | Longitude | Tiles |
+|---|---|---|---:|
+| Global valid land | — | — | 112,573 |
+| Australia | −45 to −10 | +112 to +154 | 6,417 |
+| Southern Africa | −35 to −15 | +10 to +41 | 3,253 |
+| North Africa / Middle East | +12 to +37 | −18 to +60 | 14,063 |
+| Western North America | +30 to +60 | −125 to −100 | 4,555 |
+| Northern Eurasia | +50 to +70 | +60 to +140 | 7,461 |
 
-The design is full rank over 288 months. P7 spans only 15 months: it receives a level-change term but no independently fitted slope hinge, and the P6 slope is carried until the P8 boundary. This constraint is inherited from the period registry and fixed before estimation.
+Each region is the set of `valid_land` tiles inside its box, intersected with
+the tiles finite in both OL and DA in every month. All 112,573 valid-land tiles
+are finite in all 288 months, so the contributing tile count and represented
+area are constant throughout the record in every region and no apparent change
+can arise from varying spatial support. Series are area-weighted by M36 tile
+area. The five regional boxes together cover 31.8% of valid land and do not
+tile the globe; global valid land is the complete domain rather than their sum.
 
-Three coefficient types appear in the output:
+The box bounds were drawn from broad coherent structures in the Fig. 16 RZMC
+DA−OL trend field, not from significant-trend tiles. Because they are
+nevertheless motivated by Fig. 16, the analysis is an exploratory timing
+decomposition of that result rather than an independent test that these regions
+are special. Any persistent shift contributes to a positive whole-record trend
+regardless of when it occurs, so selection on the trend field can enrich for
+differences at any boundary; this applies equally to the P2 and P6 comparisons.
 
-- **Level change** — immediate vertical displacement at a boundary, after accounting for seasonality and the piecewise trend; source units.
-- **Slope change** — change in the rate of evolution across a boundary; source units per year.
-- **Period slope** — the resulting slope within a defined period; source units per year.
+## S2.7 Period means and adjacent-period differences
 
-Period slopes are not assimilation impacts: several significant control period slopes appear in both OL and DA and are consistent with shared forcing or climate variability.
+Calendar-month effects are removed from each regional monthly series by a
+single least-squares fit containing an intercept, a global linear trend, and 11
+calendar-month indicators; only the fitted month effects are subtracted, so the
+long-term trend is retained. **This is not the four-step trend-preserving
+Theil–Sen adjustment of S2.3**, which is used for the tile-scale trend fields.
+The two procedures share the aim of removing seasonality without absorbing the
+trend but are estimated differently, and the regional results below use the
+adjustment described here.
 
-## S2.7 Prais–Winsten AR(1)
+For region $i$ and period $P_j$, the period mean is the arithmetic mean of the
+adjusted monthly series over that period, and the reported quantity at each
+boundary is the adjacent-period difference
 
-Serial dependence is fitted with iterative Prais–Winsten AR(1): the first-order residual persistence is estimated, the regression is transformed accordingly, the first observation is retained rather than discarded, and the procedure is refitted until the AR(1) estimate stabilizes. The production configuration allows at most 25 iterations with a convergence tolerance of 10⁻⁷ and caps the absolute AR(1) at 0.98.
+$$
+\Delta_{j} = \overline{\Delta \mathrm{RZMC}}_{P_{j+1}} - \overline{\Delta \mathrm{RZMC}}_{P_{j}} .
+$$
 
-Prais–Winsten supplies the fitted serial-dependence model used by the production bootstrap and is not itself the final uncertainty estimator. Both OLS with Newey–West standard errors and Prais–Winsten with Newey–West standard errors were anti-conservative in the fixed-seed 288-month AR(1) no-transition test, whereas the bootstrap passed the BH false-discovery guard.
+This is a difference in average assimilation influence between two periods. It
+is **not** an instantaneous discontinuity at the boundary: a gradual change
+within either period produces the same quantity as an abrupt one at the
+boundary, and the analysis does not distinguish them.
 
-## S2.8 Innovation-resampling bootstrap
+Serial dependence is handled with an AR(1) effective sample size. A single
+first-order autocorrelation $\rho$ and residual standard deviation $\sigma$ are
+estimated from residuals about the period means of that region, and each period
+mean of $n$ months is assigned the standard error $\sigma/\sqrt{n_{\mathrm{eff}}}$ with
 
-Primary transition p-values and confidence intervals come from a fixed-seed fitted-AR(1) innovation-resampling bootstrap:
+$$
+n_{\mathrm{eff}} = n\,\frac{1-\rho}{1+\rho}.
+$$
 
-1. fit the complete Prais–Winsten segmented model;
-2. obtain the whitened innovations from the fitted residuals;
-3. center the innovations;
-4. resample the centered innovations with replacement;
-5. propagate the resampled innovations through an AR(1) process, discarding a 120-month burn-in;
-6. add the simulated noise to the fitted deterministic model;
-7. refit the entire segmented model to the reconstructed series;
-8. repeat for 1,999 replicates.
+The standard error of an adjacent-period difference is the quadrature sum of
+the two period-mean standard errors, and 95% intervals are formed as
+$\Delta_j \pm 1.96$ standard errors. Estimated $\rho$ ranges from 0.63 to 0.80
+across the six regions, so effective sample sizes are roughly a tenth of the
+month counts; P7, at 15 months, resolves nothing and is not expected to.
 
-The complete model is refitted on every replicate, so the bootstrap distribution reflects estimation uncertainty in all 28 parameters jointly.
+Benjamini–Hochberg control at 0.05 is applied separately at each of the eight
+P2–P9 transitions across the six regional tests, matching the boundary-family
+convention used elsewhere in this analysis. Nine of the 48 comparisons are
+resolved.
 
-The simulation AR(1) parameter is the upper 95% large-sample confidence bound on the fitted AR(1), capped at 0.98; both the fitted and simulation values are reported. A 28-parameter segmented fit can absorb part of the true residual persistence into the deterministic component and bias the estimated AR(1) downward, so simulating at the upper bound makes the intervals conditional on a conservative persistence estimate.
+## S2.8 Serial-correlation and uncertainty sensitivity
 
-Inference uses centered two-sided empirical bootstrap p-values and basic bootstrap confidence intervals. Newey–West/Bartlett and independent-sample standard errors remain in the output as diagnostics and do not determine transition significance.
+The effective-$n$ interval was compared against a moving-block bootstrap
+(24-month blocks) and a fitted-AR(1) parametric bootstrap, both with 2,000
+replicates.
 
-## S2.9 FDR families for the known-boundary analysis
+| Method | Resolved of 48 | Median SE relative to effective-$n$ |
+|---|---:|---:|
+| Effective-$n$ AR(1) | 9 | 1.00 |
+| Fitted-AR(1) bootstrap | 9 | 0.90 |
+| Moving-block bootstrap | 12 | 0.70 |
 
-FDR control is applied separately within each predeclared coefficient family, where a family is one named boundary or period across all registered domain series. For the original state and correction-diagnostic analysis this gives:
+Effective-$n$ and the parametric bootstrap give the identical significance
+classification. The block bootstrap produces smaller standard errors and three
+additional marginal detections (global valid land P5−P4; southern Africa and
+western North America P9−P8). The headline P2−P1 and P6−P5 findings are
+resolved under all three methods. The effective-$n$ interval is retained
+because it is the most conservative of the three and agrees exactly with the
+fitted-AR(1) bootstrap.
 
-| Family type | Count |
-|---|---:|
-| Level-change boundaries (P2–P9) | 8 |
-| Slope-change boundaries | 7 |
-| Independently estimated period slopes | 8 |
-| **Total predeclared families** | **23** |
+## S2.9 Surface soil-moisture depth sensitivity
 
-P7 has no period-slope family, consistent with the P7 constraint in S2.6.
+The analysis was repeated for surface soil moisture using identical regions,
+seasonal adjustment, period definitions, uncertainty calculation and
+false-discovery-rate structure; only the variable differs, and both are computed
+by the same code path. SFMC is a secondary depth-sensitivity check and is not
+pooled into the RZMC families, which remain six regional tests per boundary.
 
-Families were predeclared by boundary and coefficient type so that each FDR correction corresponds to one scientific transition question.
+At P2−P1 the same three regions are resolved in both layers, with SFMC
+differences 1.14–1.23 times the corresponding RZMC differences. At P6−P5, four
+regions are resolved for RZMC and none for SFMC:
 
-The focused ET, runoff, and storage extension retains its own separate nine-series boundary families and is not combined with the original state and correction-diagnostic families. The extension's families are smaller, so its FDR threshold is less stringent than pooling would produce; the P6 ET level change fails FDR at $q = 0.072$ under this less stringent structure.
+| Region | RZMC | SFMC | SFMC/RZMC |
+|---|---:|---:|---:|
+| Global valid land | +1.52 | +1.01 | 0.67 |
+| Australia | +3.46 | +1.96 | 0.57 |
+| Southern Africa | +3.57 | +2.46 | 0.69 |
+| North Africa / Middle East | +1.62 | +0.14 | 0.09 |
 
-## S2.10 Independent changepoint detection with PELT
-
-Independent detection uses `ruptures` 1.1.10 and consumes the same complete area-weighted monthly series written by the known-transition stage, preserving its run matrix, masks, units, paired support, and provenance.
-
-**Seasonal handling.** Calendar-month effects are estimated jointly with one global linear trend, and only the month effects are removed. Detection is therefore performed on a trend-preserving seasonally adjusted response, consistent with S2.3.
-
-**Two methods.**
-
-- *Primary:* piecewise AR(1), intercept, and linear-trend Gaussian profile-likelihood cost.
-- *Sensitivity:* Gaussian profile-likelihood linear cost after Prais–Winsten prewhitening.
-
-**Prewhitening persistence.** The prewhitening AR(1) is the median of estimates from overlapping 60-month locally detrended windows stepped every 30 months, so that a long level or slope change is not absorbed as apparent persistence. The ordinary global-trend residual AR(1) is retained as a diagnostic.
-
-**Segment floor.** Each segment must contain at least 24 months.
-
-**Penalties.** The penalty basis is the BIC parameter-count penalty. Multipliers 0.5, 0.75, 1.0, 1.25, 1.5, and 2.0 are all retained in the output; the primary penalty is 1.25 × BIC.
-
-**Acceptance rule.** A changepoint is accepted only when all three conditions hold:
-
-1. it is present in the primary method at 1.25 × BIC;
-2. it recurs within three months in at least half of the primary-method penalty grid;
-3. a break from the independent prewhitened formulation occurs within three months.
-
-An accepted date is therefore both penalty-stable and cross-method.
-
-**Known-boundary comparison.** Accepted dates are compared one-to-one with P2–P9 using ±3 months as the primary tolerance and ±6 months as a sensitivity. Unmatched accepted breaks are retained as independently detected structural changes and are not forced onto the nearest observing-system boundary. P7 can be displayed and matched but is exempt from agreement scoring, because its 15-month duration is structurally incompatible with the 24-month segment floor.
-
-Per the calibration in S2.11, this configuration recovers abrupt changes well and localizes gradual slope hinges poorly. PELT results are used as corroboration of abrupt transitions; known-date slope inference comes from the interrupted-series model.
-
-## S2.11 Synthetic calibration
-
-Calibration results are tabulated in Table S2. These tests characterize the behavior of the implemented pipeline under the predeclared synthetic scenarios and are not claims of universal operating characteristics.
-
-Scenario configurations are: trend calibration on 288-month synthetic fields with a fixed seasonal cycle, seed 20260812, 100 series per scenario; interrupted-series calibration with 24 AR(1) = 0.8 no-transition series and 24 series for each planted P6 effect, 499 bootstrap replicates; and PELT calibration with 24 series per scenario, seed 20260814.
-
-Under the null scenarios, BH-controlled trend detection and accepted PELT breaks produce no false positives, and the interrupted-series analysis yields one null BH discovery across the 15 tested transition families. Abrupt P6 level shifts are recovered by PELT in 85.4–91.7% of cases within six months. Interval coverage is 91.7% for both planted P6 level and slope effects, and the autocorrelation-adjusted Sen interval covers at 87–97% against 43–56% for the nominal interval. FDR power is approximately 25% for planted level shifts and approximately 8.3% for planted slope shifts, so a non-significant slope coefficient is weak evidence about the absence of a slope change. Gradual P6 slope hinges are recovered by PELT in only 4.2% of cases, with a median localization error of approximately 24.5 months; the absence of a PELT break is therefore not evidence that a gradual slope transition is absent.
-
+Units ×10⁻³ m³ m⁻³. SFMC residual standard deviation is 1.22–1.59 times that of
+RZMC and SFMC standard errors on the P6−P5 difference are 1.05–1.31 times
+larger, while the effects themselves are 31–91% smaller. The loss of
+significance is therefore driven predominantly by smaller effect sizes rather
+than by inflated uncertainty. SFMC resolves 8 of 48 comparisons overall.
 
 ---
 
@@ -265,15 +283,13 @@ Under the null scenarios, BH-controlled trend detection and accepted PELT breaks
 | Where does assimilation-added snow water go? | Area-weighted fraction of $I_{\mathrm{snow}}$ appearing in each terminal budget term | Ratio of area-weighted aggregate response to area-weighted aggregate input over the snow-addition sample | 5° spatial-block bootstrap, 1,000 replicates (10° sensitivity) | None; a small predeclared set of partition terms | Average mass fate of added water over WY2001–WY2006 |
 | Does anomalous snow input predict an anomalous response at the same location? | Controlled marginal response per unit input, $\beta$ | OLS on within-tile anomalies with year fixed effects and OL MAM snow-mass control | 5° spatial-block bootstrap on the full design (10° sensitivity) | None; four closing responses on a common design | Marginal within-location partition; corroboration, not causal proof |
 | Does a field drift systematically over 24 years? | Theil–Sen slope of the paired DA−OL monthly series, per year | Exact Theil–Sen median pairwise slope after trend-preserving seasonal adjustment | Hamed–Rao modified Mann–Kendall variance inflation, lags 1–24, factor floored at 1 | BH FDR at 0.05 within each complete field; OL, DA, DA−OL separate families | Presence and sign of a monotonic long-term tendency at each tile |
-| Does the series step at a known observing-system date? | Level-change coefficient at that boundary, in source units | Segmented Prais–Winsten AR(1) regression, 28 parameters | Fitted-AR(1) innovation bootstrap, 1,999 replicates, conservative simulation AR(1) | BH FDR within each of 8 level-change boundary families | An abrupt offset in the domain series coincident with the boundary |
-| Does the rate of change alter at a known date? | Slope-change coefficient at that boundary, in source units per year | Same segmented model; hinges only where segment length permits | Same innovation bootstrap | BH FDR within each of 7 slope-change boundary families | A change in rate of evolution; low power by construction |
-| Does the data alone place a break near that date? | Accepted changepoint date | PELT with piecewise AR(1)+linear cost, confirmed against a prewhitened linear formulation | Piecewise AR(1) cost; locally estimated prewhitening AR(1) | None; acceptance is by penalty-stability and cross-method consensus | Independent corroboration of an abrupt structural change |
+| When do the regional RZMC differences identified in Fig. 16 emerge? | Difference between adjacent P1–P9 regional mean DA−OL RZMC | Area-weighted period means after removal of calendar-month effects | AR(1) effective sample size; fitted-AR(1) bootstrap sensitivity | BH FDR separately at each boundary across six regions | A change in average assimilation influence between observing-system periods; not an instantaneous discontinuity |
 
-These six quantities carry different units and interpretations and are not compared directly to one another.
+These quantities carry different units and interpretations and are not compared directly to one another.
 
 ---
 
-# Table S2. Synthetic calibration
+# Table S2. Synthetic calibration of the trend analysis
 
 | Method | Null / effect scenario | Serial dependence | Replicates / series | False-positive behavior | Recovery / coverage | Interpretive limitation |
 |---|---|---|---:|---|---|---|
@@ -282,17 +298,8 @@ These six quantities carry different units and interpretations and are not compa
 | Trend (modified MK + BH) | ±0.02 units yr⁻¹ | AR(1) = 0.8 | 100 series | — | 100% BH detection | Benchmark effect size; not a general power claim |
 | Theil–Sen nominal CI | ±0.02 units yr⁻¹ | AR(1) = 0.8 | 100 series | — | 43–56% coverage | Nominal interval is badly undercovered |
 | Theil–Sen adjusted CI | ±0.02 units yr⁻¹ | AR(1) = 0.8 | 100 series | — | 87–97% coverage | First-order adjustment only; not a test inversion |
-| Interrupted series | No transition | AR(1) = 0.8 | 24 series, 499 bootstrap | 1 null BH discovery across 15 families | — | Guard permits ≤2; not a zero-false-positive claim |
-| Interrupted series | Planted P6 level change | AR(1) = 0.8 | 24 series, 499 bootstrap | — | 91.7% coverage; ~25% FDR power | Low power; non-detection is not absence |
-| Interrupted series | Planted P6 slope change | AR(1) = 0.8 | 24 series, 499 bootstrap | — | 91.7% coverage; ~8.3% FDR power | Very low power for slope hinges |
-| PELT | No changepoint | White noise | 24 series | 0 accepted breaks | — | — |
-| PELT | No changepoint | AR(1) = 0.8 | 24 series | 0 accepted breaks | — | Guard permits ≤0.25 mean false breaks |
-| PELT | Isolated abrupt P6 level shift | AR(1) = 0.8 | 24 series | — | 91.7% within 6 months | — |
-| PELT | Two opposing level shifts | AR(1) = 0.8 | 24 series | — | 85.4% within 6 months | Multiple breaks reduce recovery |
-| PELT | Level shift near segment edge | AR(1) = 0.8 | 24 series | — | 91.7% within 6 months | — |
-| PELT | Gradual P6 slope hinge | AR(1) = 0.8 | 24 series | — | 4.2% within 6 months; median localization error ≈24.5 months | Absence of a PELT break is not evidence against a gradual change |
 
-Cells marked "—" are not applicable to that scenario. No cell is inferred; every populated value appears in a production validation report.
+Cells marked "—" are not applicable to that scenario. No cell is inferred; every populated value appears in a production validation report. The regional uncertainty comparison in S2.8 is a sensitivity analysis on real series rather than synthetic calibration and is reported there.
 
 ---
 
@@ -309,11 +316,8 @@ Final S-numbering is pending until the main Results are complete. Filenames are 
 | `figS05_precipitation_trends.png` | Precipitation trend control demonstrating that the common forcing produces no paired DA−OL trend. |
 | `figS06_sfmc_trends.png` | Surface soil-moisture trend control for OL, DA, and paired DA−OL. |
 | `figS07_snow_mass_depth_trends.png` | Snow-mass and snow-depth trend controls over the seasonal-snow domain. |
-| `figS08_breakpoint_boundary_agreement.png` | Agreement between independently detected changepoints and the P2–P9 observing-system boundaries. |
-| `p6_level_changes.png` | Detailed P6 level-change estimates across the primary transition series. |
-| `p6_soil_water_convergence.png` | Convergence of known-date and independently detected evidence for the April 2015 soil-water transition. |
-| `boundary_agreement_matrix.png` | Full accepted-changepoint versus known-boundary agreement matrix. |
 | `phase2_flux_storage_trend_maps.png` | Whole-record trend maps for ET, total runoff, and total land-water storage (OL, DA, DA−OL). |
-| `phase2_flux_storage_transition_series.png` | DA−OL ET, runoff, and storage domain series with accepted independent changepoints marked. |
+| `regional_masks_on_trend_field.png` | The six fixed regional domains drawn on the Fig. 16 RZMC DA−OL trend field. |
+| `regional_sfmc_period_means.png` | Regional surface-soil-moisture DA−OL by observing-system period, the depth-sensitivity counterpart to Fig. 17. |
 
 Ordering and numbering will be assigned once the main-text figure set is frozen.
