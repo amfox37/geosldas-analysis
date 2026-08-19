@@ -210,11 +210,11 @@ That endpoint is now the instantaneous 00Z October 1 state reconstructed from `c
 
 ### Peat free-standing water
 
-`catch_calc_wtotl` builds TWLAND from soil, canopy, and snow stores only; PEATCLSM free-standing surface water is deliberately excluded. On peat tiles (`POROS >= 0.9`) water moving into or out of that store therefore leaves the TWLAND-based budget entirely and lands in the residual. `PEATCLSM_FSWCHANGE` closes that gap and enters the budget as `dPeatFreeWater`. It is zero by construction on non-peat tiles, matching the model's own `FSW_CHANGE = 0.` initialization.
+`catch_calc_wtotl` builds TWLAND from soil, canopy, and snow stores only; PEATCLSM free-standing surface water is deliberately excluded. On peat tiles (`POROS >= 0.9`) water moving into or out of that store therefore leaves the TWLAND-based budget entirely and lands in the residual. `PEATCLSM_FSWCHANGE` closes that gap and enters the budget as `dPeatFreeStandingWater`. It is zero by construction on non-peat tiles, matching the model's own `FSW_CHANGE = 0.` initialization.
 
 ### Annual domain budgets
 
-| Water year | Snow-DA input | Extra runoff | Extra ET | Storage change | Peat free water | Residual | Residual / input |
+| Water year | Snow-DA input | Extra runoff | Extra ET | Storage change | Free-standing water | Residual | Residual / input |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | WY2001 | 32.57 | 19.61 | 12.60 | 2.56 | -0.95 | -1.25 | -3.8% |
 | WY2002 | 43.46 | 24.14 | 15.31 | 6.12 | -0.84 | -1.27 | -2.9% |
@@ -234,7 +234,7 @@ The annual budget residual ranges from -3.8% to -1.6% of domain snow input. Conc
 
 The differential budget cancels precipitation and every process common to both runs, so its residual is magnified twice over: the two per-run closure offsets carry opposite signs and therefore add, and the sum is then divided by the much smaller snow-DA input rather than by total input. Each run closes far more tightly on its own.
 
-| Run | Total input | ET | Runoff | Storage | Peat free water | Residual | Residual / input |
+| Run | Total input | ET | Runoff | Storage | Free-standing water | Residual | Residual / input |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | OL | 605.03 | 427.46 | 184.64 | -0.76 | -6.70 | +0.38 | +0.063% |
 | DA | 663.26 | 448.13 | 222.79 | 1.57 | -8.39 | -0.82 | -0.124% |
@@ -248,12 +248,12 @@ All values are six-water-year means in kg m-2 water year-1 over the seasonal-sno
 - baseflow: 21.2% [5-degree spatial-block 95% interval 19.1%, 23.3%]
 - ET: 35.9% [5-degree spatial-block 95% interval 32.8%, 39.1%]
 - storage: 4.2% [5-degree spatial-block 95% interval 3.9%, 4.6%]
-- peat free water: -2.7% [5-degree spatial-block 95% interval -3.4%, -2.1%]
+- peatland free-standing water: -2.7% [5-degree spatial-block 95% interval -3.4%, -2.1%]
 - residual: -1.7% [5-degree spatial-block 95% interval -2.0%, -1.5%]
 
 ![Positive-input six-year partition](monthly_synthesis_report_figures/water_year_budget_positive_partition.png)
 
-| Sample | Native signed input | Runoff | ET | Storage | Peat free water | Residual |
+| Sample | Native signed input | Runoff | ET | Storage | Free-standing water | Residual |
 |---|---:|---:|---:|---:|---:|---:|
 | All-sample net | 58.24 kg m-2 | 65.5% | 35.5% | 4.0% | -2.9% | -2.1% |
 | Snow addition | 71.32 kg m-2 | 64.3% | 35.9% | 4.2% | -2.7% | -1.7% |
@@ -268,7 +268,7 @@ Fractions use native signed mass and are never based on absolute snow activity. 
 | Runoff | 0.749 | [0.711, 0.783] |
 | ET | 0.182 | [0.155, 0.213] |
 | Storage | 0.085 | [0.074, 0.097] |
-| Peat free water | -0.017 | [-0.022, -0.012] |
+| Peatland free-standing water | -0.017 | [-0.022, -0.012] |
 | Residual | 0.001 | [0.000, 0.001] |
 
 These dimensionless M3 slopes use within-tile signed snow input, year effects, and OL MAM snow amount. By construction, the runoff, ET, storage, peat free-water, and residual slopes sum to one; the direct domain accounting remains the primary budget result.

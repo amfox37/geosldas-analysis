@@ -7,7 +7,7 @@ added to the closing equation because TWLAND already contains soil water.
 The closing equation carries two terms that monthly TWLAND alone cannot
 supply, both sourced from dedicated Discover deliveries:
 
-- dPeatFreeWater: PEATCLSM free-standing surface water. catch_calc_wtotl
+- dPeatFreeStandingWater: PEATCLSM free-standing surface water. catch_calc_wtotl
   deliberately excludes this store from TWLAND, so on peat tiles
   (POROS >= 0.9) water entering or leaving it leaks out of the budget.
 - dStorage: instantaneous 00Z Oct 1 TWLAND reconstructed from
@@ -36,17 +36,17 @@ from analysis_a_robustness import (
 
 
 MONTH_LABELS = ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]
-BUDGET_TERMS = ["I_snow", "dRunoff_total", "dET", "dStorage", "dPeatFreeWater", "residual"]
+BUDGET_TERMS = ["I_snow", "dRunoff_total", "dET", "dStorage", "dPeatFreeStandingWater", "residual"]
 PARTITION_TERMS = [
     "dRunoff_surface",
     "dBaseflow",
     "dET",
     "dStorage",
-    "dPeatFreeWater",
+    "dPeatFreeStandingWater",
     "residual",
 ]
 # Terms whose partition fractions must sum to one against I_snow.
-CLOSING_TERMS = ["dRunoff_total", "dET", "dStorage", "dPeatFreeWater", "residual"]
+CLOSING_TERMS = ["dRunoff_total", "dET", "dStorage", "dPeatFreeStandingWater", "residual"]
 SOIL_METRICS = [
     "peak_dRZMC_positive",
     "mjj_mean_dRZMC",
@@ -274,7 +274,7 @@ def load_budget_dataset(config: dict) -> xr.Dataset:
             "dTWLAND",
             "dWCHANGELAND",
             "dPrecipitation",
-            "dPeatFreeWater",
+            "dPeatFreeStandingWater",
         ]
         monthly = {name: np.full(shape, np.nan, dtype="float32") for name in monthly_names}
         annual_names = [
@@ -289,7 +289,7 @@ def load_budget_dataset(config: dict) -> xr.Dataset:
             "dStorage",
             "dStorage_monthly_proxy",
             "dStorage_process_tendency",
-            "dPeatFreeWater",
+            "dPeatFreeStandingWater",
             "residual",
             "process_balance_diagnostic",
             "dPrecipitation",
@@ -335,13 +335,13 @@ def load_budget_dataset(config: dict) -> xr.Dataset:
             monthly["dTWLAND"][year_index] = (da_water["TWLAND"] - ol_water["TWLAND"]).values
             monthly["dWCHANGELAND"][year_index] = monthly_flux_total(da_water["WCHANGELAND"] - ol_water["WCHANGELAND"]).values
             monthly["dPrecipitation"][year_index] = monthly_flux_total(da_land["PRECTOTCORRLAND"] - ol_land["PRECTOTCORRLAND"]).values
-            monthly["dPeatFreeWater"][year_index] = monthly_flux_total(
+            monthly["dPeatFreeStandingWater"][year_index] = monthly_flux_total(
                 da_fsw["PEATCLSM_FSWCHANGE"] - ol_fsw["PEATCLSM_FSWCHANGE"]
             ).values
 
             annual["I_snow"][year_index] = np.nansum(monthly["snow_net"][year_index], axis=0)
             annual["snow_abs_netpack"][year_index] = np.nansum(monthly["snow_abs_netpack"][year_index], axis=0)
-            for name in ["dSnowmelt", "dInfiltration", "dET", "dRunoff_surface", "dBaseflow", "dRunoff_total", "dWCHANGELAND", "dPrecipitation", "dPeatFreeWater"]:
+            for name in ["dSnowmelt", "dInfiltration", "dET", "dRunoff_surface", "dBaseflow", "dRunoff_total", "dWCHANGELAND", "dPrecipitation", "dPeatFreeStandingWater"]:
                 target = "dStorage_process_tendency" if name == "dWCHANGELAND" else name
                 annual[target][year_index] = np.nansum(monthly[name][year_index], axis=0)
 
@@ -358,7 +358,7 @@ def load_budget_dataset(config: dict) -> xr.Dataset:
                 - annual["dET"][year_index]
                 - annual["dRunoff_total"][year_index]
                 - annual["dStorage"][year_index]
-                - annual["dPeatFreeWater"][year_index]
+                - annual["dPeatFreeStandingWater"][year_index]
             )
             annual["process_balance_diagnostic"][year_index] = (
                 annual["dET"][year_index]
@@ -406,8 +406,8 @@ def load_budget_dataset(config: dict) -> xr.Dataset:
                 "domain": "Analysis A Northern Hemisphere seasonal-snow mask",
                 "storage_closing_term": config["storage"]["primary_closing_term"],
                 "storage_endpoint_source": opened["ol_twland_rst"].attrs.get("formula", ""),
-                "peat_free_water_role": config["peat_free_water"]["role"],
-                "peat_free_water_source": opened["ol_fsw"].attrs.get("note", ""),
+                "peat_free_standing_water_role": config["peat_free_standing_water"]["role"],
+                "peat_free_standing_water_source": opened["ol_fsw"].attrs.get("note", ""),
                 "storage_limitation": config["storage"]["state_proxy_limitation"],
                 "wchangeland_role": config["storage"]["wchangeland_role"],
                 "soil_moisture_role": "SFMC/RZMC are diagnostic states and are excluded from the mass-closing equation",
@@ -429,7 +429,7 @@ def load_budget_dataset(config: dict) -> xr.Dataset:
             "dStorage": "kg m-2",
             "dStorage_monthly_proxy": "kg m-2",
             "dStorage_process_tendency": "kg m-2",
-            "dPeatFreeWater": "kg m-2",
+            "dPeatFreeStandingWater": "kg m-2",
             "residual": "kg m-2",
             "process_balance_diagnostic": "kg m-2",
             "dPrecipitation": "kg m-2",
@@ -525,7 +525,7 @@ def absolute_domain_budgets(config: dict) -> pd.DataFrame:
                 row["storage"] = weighted_mean(
                     twland[restart_index[water_year]] - twland[restart_index[water_year - 1]], area
                 )
-                row["peat_free_water"] = weighted_mean(
+                row["peat_free_standing_water"] = weighted_mean(
                     sum_monthly_flux(fsw["PEATCLSM_FSWCHANGE"].sel(**select)).values[tile_indices], area
                 )
                 row["runoff_total"] = row["runoff_surface"] + row["baseflow"]
@@ -535,7 +535,7 @@ def absolute_domain_budgets(config: dict) -> pd.DataFrame:
                     - row["ET"]
                     - row["runoff_total"]
                     - row["storage"]
-                    - row["peat_free_water"]
+                    - row["peat_free_standing_water"]
                 )
                 row["fraction_residual"] = row["residual"] / row["input_total"]
                 rows.append(row)
@@ -568,7 +568,7 @@ def check_absolute_matches_differential(annual: pd.DataFrame, absolute: pd.DataF
         ("dRunoff_surface", "runoff_surface"),
         ("dBaseflow", "baseflow"),
         ("dStorage", "storage"),
-        ("dPeatFreeWater", "peat_free_water"),
+        ("dPeatFreeStandingWater", "peat_free_standing_water"),
         ("residual", "residual"),
         ("I_snow", "I_snow"),
     ]
@@ -724,7 +724,7 @@ def m3_regressions(dataset: xr.Dataset, config: dict) -> pd.DataFrame:
         "dBaseflow",
         "dET",
         "dStorage",
-        "dPeatFreeWater",
+        "dPeatFreeStandingWater",
         "residual",
     ] + SOIL_METRICS
     frame = dataset_to_frame(dataset, variables).dropna().copy()
@@ -800,7 +800,7 @@ def monthly_climatologies(dataset: xr.Dataset) -> tuple[pd.DataFrame, pd.DataFra
         "dInfiltration_monthly",
         "dET_monthly",
         "dRunoff_total_monthly",
-        "dPeatFreeWater_monthly",
+        "dPeatFreeStandingWater_monthly",
         "dSFMC_monthly",
         "dRZMC_monthly",
     ]
@@ -961,7 +961,7 @@ def plot_monthly_climatology(data: pd.DataFrame, path: Path) -> None:
 
 def plot_annual_budgets(annual: pd.DataFrame, path: Path) -> None:
     terms = ["I_snow"] + CLOSING_TERMS
-    labels = ["Snow-DA input", "Runoff", "ET", "Storage change", "Peat free water", "Residual"]
+    labels = ["Snow-DA input", "Runoff", "ET", "Storage change", "Peatland free-standing water", "Residual"]
     colors = ["#264653", "#2a9d8f", "#e9c46a", "#457b9d", "#8d6bb1", "#d1495b"]
     x = np.arange(len(annual))
     width = 0.14
@@ -983,7 +983,7 @@ def plot_positive_partition(partition: pd.DataFrame, uncertainty: pd.DataFrame, 
     row = partition.set_index("sample").loc["addition"]
     uncertainty = uncertainty[uncertainty["sample"] == "addition"].set_index("variable")
     terms = PARTITION_TERMS
-    labels = ["Surface runoff", "Baseflow", "ET", "Storage", "Peat free water", "Residual"]
+    labels = ["Surface runoff", "Baseflow", "ET", "Storage", "Peatland free-standing water", "Residual"]
     colors = ["#2a9d8f", "#57a773", "#e9c46a", "#457b9d", "#8d6bb1", "#d1495b"]
     values = np.array([row[f"fraction_{term}"] for term in terms])
     low = np.array([uncertainty.loc[term, "ci_low"] for term in terms])
@@ -1082,18 +1082,18 @@ def write_report_fragment(
         "",
         "### Peat free-standing water",
         "",
-        "`catch_calc_wtotl` builds TWLAND from soil, canopy, and snow stores only; PEATCLSM free-standing surface water is deliberately excluded. On peat tiles (`POROS >= 0.9`) water moving into or out of that store therefore leaves the TWLAND-based budget entirely and lands in the residual. `PEATCLSM_FSWCHANGE` closes that gap and enters the budget as `dPeatFreeWater`. It is zero by construction on non-peat tiles, matching the model's own `FSW_CHANGE = 0.` initialization.",
+        "`catch_calc_wtotl` builds TWLAND from soil, canopy, and snow stores only; PEATCLSM free-standing surface water is deliberately excluded. On peat tiles (`POROS >= 0.9`) water moving into or out of that store therefore leaves the TWLAND-based budget entirely and lands in the residual. `PEATCLSM_FSWCHANGE` closes that gap and enters the budget as `dPeatFreeStandingWater`. It is zero by construction on non-peat tiles, matching the model's own `FSW_CHANGE = 0.` initialization.",
         "",
         "### Annual domain budgets",
         "",
-        "| Water year | Snow-DA input | Extra runoff | Extra ET | Storage change | Peat free water | Residual | Residual / input |",
+        "| Water year | Snow-DA input | Extra runoff | Extra ET | Storage change | Free-standing water | Residual | Residual / input |",
         "|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for _, row in annual.iterrows():
         label = f"WY{row['water_year']}" if isinstance(row["water_year"], (int, np.integer)) else str(row["water_year"])
         fraction = row["residual"] / row["I_snow"]
         lines.append(
-            f"| {label} | {row['I_snow']:.2f} | {row['dRunoff_total']:.2f} | {row['dET']:.2f} | {row['dStorage']:.2f} | {row['dPeatFreeWater']:.2f} | {row['residual']:.2f} | {100 * fraction:.1f}% |"
+            f"| {label} | {row['I_snow']:.2f} | {row['dRunoff_total']:.2f} | {row['dET']:.2f} | {row['dStorage']:.2f} | {row['dPeatFreeStandingWater']:.2f} | {row['residual']:.2f} | {100 * fraction:.1f}% |"
         )
     lines.extend(
         [
@@ -1108,14 +1108,14 @@ def write_report_fragment(
             "",
             "The differential budget cancels precipitation and every process common to both runs, so its residual is magnified twice over: the two per-run closure offsets carry opposite signs and therefore add, and the sum is then divided by the much smaller snow-DA input rather than by total input. Each run closes far more tightly on its own.",
             "",
-            "| Run | Total input | ET | Runoff | Storage | Peat free water | Residual | Residual / input |",
+            "| Run | Total input | ET | Runoff | Storage | Free-standing water | Residual | Residual / input |",
             "|---|---:|---:|---:|---:|---:|---:|---:|",
         ]
     )
     for _, row in absolute[absolute["water_year"] == "6-WY mean"].iterrows():
         lines.append(
             f"| {row['run']} | {row['input_total']:.2f} | {row['ET']:.2f} | {row['runoff_total']:.2f} | "
-            f"{row['storage']:.2f} | {row['peat_free_water']:.2f} | {row['residual']:+.2f} | "
+            f"{row['storage']:.2f} | {row['peat_free_standing_water']:.2f} | {row['residual']:+.2f} | "
             f"{100 * row['fraction_residual']:+.3f}% |"
         )
     lines.extend(
@@ -1133,7 +1133,7 @@ def write_report_fragment(
         ("dBaseflow", "baseflow"),
         ("dET", "ET"),
         ("dStorage", "storage"),
-        ("dPeatFreeWater", "peat free water"),
+        ("dPeatFreeStandingWater", "peatland free-standing water"),
         ("residual", "residual"),
     ]:
         lines.append(
@@ -1145,14 +1145,14 @@ def write_report_fragment(
             "",
             "![Positive-input six-year partition](monthly_synthesis_report_figures/water_year_budget_positive_partition.png)",
             "",
-            "| Sample | Native signed input | Runoff | ET | Storage | Peat free water | Residual |",
+            "| Sample | Native signed input | Runoff | ET | Storage | Free-standing water | Residual |",
             "|---|---:|---:|---:|---:|---:|---:|",
         ]
     )
     for sample, label in [("all", "All-sample net"), ("addition", "Snow addition"), ("removal", "Snow removal")]:
         row = partition.set_index("sample").loc[sample]
         lines.append(
-            f"| {label} | {row['I_snow']:.2f} kg m-2 | {100 * row['fraction_dRunoff_total']:.1f}% | {100 * row['fraction_dET']:.1f}% | {100 * row['fraction_dStorage']:.1f}% | {100 * row['fraction_dPeatFreeWater']:.1f}% | {100 * row['fraction_residual']:.1f}% |"
+            f"| {label} | {row['I_snow']:.2f} kg m-2 | {100 * row['fraction_dRunoff_total']:.1f}% | {100 * row['fraction_dET']:.1f}% | {100 * row['fraction_dStorage']:.1f}% | {100 * row['fraction_dPeatFreeStandingWater']:.1f}% | {100 * row['fraction_residual']:.1f}% |"
         )
     lines.extend(
         [
@@ -1165,7 +1165,7 @@ def write_report_fragment(
             "|---|---:|---:|",
         ]
     )
-    for variable, label in [("dRunoff_total", "Runoff"), ("dET", "ET"), ("dStorage", "Storage"), ("dPeatFreeWater", "Peat free water"), ("residual", "Residual")]:
+    for variable, label in [("dRunoff_total", "Runoff"), ("dET", "ET"), ("dStorage", "Storage"), ("dPeatFreeStandingWater", "Peatland free-standing water"), ("residual", "Residual")]:
         row = primary_reg.loc[variable]
         lines.append(f"| {label} | {row['m3_beta']:.3f} | [{row['ci_low']:.3f}, {row['ci_high']:.3f}] |")
     lines.extend(

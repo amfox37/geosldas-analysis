@@ -57,10 +57,10 @@
     "status": "not_used_as_mass_term",
     "reason": "A latent-heat component is available, but no independently verified native snow-sublimation water-mass flux is present. EVLAND remains the established total ET term to avoid double counting."
   },
-  "peat_free_water": {
+  "peat_free_standing_water": {
     "status": "included_as_mass_term",
     "variable": "PEATCLSM_FSWCHANGE",
-    "budget_term": "dPeatFreeWater",
+    "budget_term": "dPeatFreeStandingWater",
     "role": "PEATCLSM free-standing surface water change, a store catch_calc_wtotl deliberately excludes from TWLAND. Without it, water moving into or out of free-standing water on peat tiles leaves the TWLAND-based budget and appears in the residual.",
     "peat_tile_definition": "POROS >= PEATCLSM_POROS_THRESHOLD = 0.90 (catch_constants.F90)",
     "non_peat_value": "0.0 by construction, matching FSW_CHANGE = 0. initialization in catchment.F90",

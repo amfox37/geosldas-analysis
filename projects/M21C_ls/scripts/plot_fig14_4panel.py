@@ -24,13 +24,13 @@ _abs = YEAR_ROWS(pd.read_csv(BUDGET / "annual_absolute_budgets.csv"))
 W = {
     run: _abs[_abs["run"] == run].sort_values("water_year")[
         ["precipitation", "I_snow", "ET", "runoff_surface", "baseflow",
-         "storage", "peat_free_water", "residual"]
+         "storage", "peat_free_standing_water", "residual"]
     ].to_numpy()
     for run in ("OL", "DA")
 }
 # (c): DA - OL differential budget
 Cd = YEAR_ROWS(pd.read_csv(BUDGET / "annual_domain_budgets.csv")).sort_values("water_year")[
-    ["I_snow", "dRunoff_surface", "dBaseflow", "dET", "dStorage", "dPeatFreeWater", "residual"]
+    ["I_snow", "dRunoff_surface", "dBaseflow", "dET", "dStorage", "dPeatFreeStandingWater", "residual"]
 ].to_numpy()
 # (d): snow-addition partition with 5-degree spatial-block intervals
 _part = pd.read_csv(BUDGET / "six_year_integrated_partitions.csv").set_index("sample").loc["addition"]
@@ -39,7 +39,7 @@ _unc = _unc[(_unc["sample"] == "addition") & (_unc["block_degrees"] == 5.0)].set
 B = np.array([
     [_part[f"fraction_{term}"], _unc.loc[term, "ci_low"], _unc.loc[term, "ci_high"]]
     for term in ["dRunoff_surface", "dBaseflow", "dET", "dStorage",
-                 "dPeatFreeWater", "residual", "dRunoff_total"]
+                 "dPeatFreeStandingWater", "residual", "dRunoff_total"]
 ])
 POSITIVE_INPUT = float(_part["I_snow"])
 YEARS = [f"WY{y}" for y in range(2001, 2007)]
@@ -48,7 +48,7 @@ C = dict(et="#e0a02c", rs="#2a9d8f", rb="#83c5be", ds="#4a72b0",
          fsw="#8d6bb1", res="#8a8a8a", P="#c0392b", I="#2b6cb0")
 TERMS = (("et", "Evapotranspiration", None), ("rs", "Surface runoff", None),
          ("rb", "Baseflow", None), ("ds", "Storage change", None),
-         ("fsw", "Peat free water", None), ("res", "Residual", "//"))
+         ("fsw", "Peatland free-standing water", None), ("res", "Residual", "//"))
 
 fig = plt.figure(figsize=(14.0, 10.4))
 gs = fig.add_gridspec(2, 2, hspace=0.30, wspace=0.13,
@@ -109,7 +109,7 @@ axC.text(0.985, 0.975,
          transform=axC.transAxes, ha="right", va="top", fontsize=9.2)
 
 # ---- (d) partition ----
-labs = ["Surface\nrunoff", "Baseflow", "ET", "Storage", "Peat free\nwater", "Residual"]
+labs = ["Surface\nrunoff", "Baseflow", "ET", "Storage", "Free-standing\nwater", "Residual"]
 cols = [C["rs"], C["rb"], C["et"], C["ds"], C["fsw"], C["res"]]
 v, lo, hi = B[:6, 0] * 100, B[:6, 1] * 100, B[:6, 2] * 100
 xb = np.arange(6)

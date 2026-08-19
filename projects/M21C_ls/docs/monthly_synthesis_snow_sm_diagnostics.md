@@ -241,9 +241,9 @@ Every tile-year retains the native signed `snow_net` input, absolute snow
 activity, snowmelt, infiltration, ET, surface runoff, baseflow, total runoff,
 storage change, residual, and monthly SFMC/RZMC trajectories.
 
-The closing equation is `I_snow = dET + dRunoff + dStorage + dPeatFreeWater +
+The closing equation is `I_snow = dET + dRunoff + dStorage + dPeatFreeStandingWater +
 residual`. `dStorage` is the change in `DA - OL TWLAND` between instantaneous
-00Z 1 October restart endpoints. `dPeatFreeWater` is the change in PEATCLSM
+00Z 1 October restart endpoints. `dPeatFreeStandingWater` is the change in PEATCLSM
 free-standing surface water, a store that `TWLAND` excludes by construction. Integrated `DA - OL WCHANGELAND` is retained separately because the
 source audit showed that it closes the model-process tendency balance but
 omits the discontinuous analysis injection. Snowmelt and infiltration are
