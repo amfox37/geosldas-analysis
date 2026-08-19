@@ -241,9 +241,10 @@ Every tile-year retains the native signed `snow_net` input, absolute snow
 activity, snowmelt, infiltration, ET, surface runoff, baseflow, total runoff,
 storage change, residual, and monthly SFMC/RZMC trajectories.
 
-The closing equation is `I_snow = dET + dRunoff + dStorage + residual`.
-`dStorage` is the September-to-September change in monthly-mean `DA - OL
-TWLAND`. Integrated `DA - OL WCHANGELAND` is retained separately because the
+The closing equation is `I_snow = dET + dRunoff + dStorage + dPeatFreeWater +
+residual`. `dStorage` is the change in `DA - OL TWLAND` between instantaneous
+00Z 1 October restart endpoints. `dPeatFreeWater` is the change in PEATCLSM
+free-standing surface water, a store that `TWLAND` excludes by construction. Integrated `DA - OL WCHANGELAND` is retained separately because the
 source audit showed that it closes the model-process tendency balance but
 omits the discontinuous analysis injection. Snowmelt and infiltration are
 pathway diagnostics rather than additional closing terms. SFMC and RZMC are
@@ -258,8 +259,8 @@ retains the known float32 compression artifact without silently accepting a
 material forcing mismatch.
 
 For snow-addition tile-years, the six-year direct partition is 64.3% runoff
-(43.1% surface runoff and 21.2% baseflow), 35.9% ET, 3.9% September storage
-change, and -4.1% residual. The 5-degree spatial-block 95% interval for total
+(43.1% surface runoff and 21.2% baseflow), 35.9% ET, 4.2% storage change,
+-2.7% peatland free-standing water, and -1.7% residual. The 5-degree spatial-block 95% interval for total
 runoff is 61.1-67.4%; 10-degree blocks are retained as a sensitivity. Annual
 domain runoff fractions span 55.6-70.1% across the six water years.
 

@@ -146,6 +146,9 @@ fig.legend(handles=handles, loc="lower center", ncols=5, frameon=False,
 fig.suptitle("Land water budget over the Northern Hemisphere seasonal-snow domain, "
              "WY2001–WY2006", fontsize=13, y=0.972)
 
-out = ROOT / "docs" / "paper_figures" / "fig14_snow_da_water_budget_4panel.png"
-fig.savefig(out, dpi=300)
-print("wrote", out)
+stem = "fig14_snow_da_water_budget_4panel"
+for directory, suffix in (("docs", ".png"), ("output", ".png"), ("output", ".pdf")):
+    out = ROOT / directory / "paper_figures" / f"{stem}{suffix}"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out, dpi=300)
+    print("wrote", out.relative_to(ROOT))

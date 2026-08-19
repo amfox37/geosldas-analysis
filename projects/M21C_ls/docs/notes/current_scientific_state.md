@@ -247,15 +247,16 @@ Across six complete water years, the mean signed snow-DA input is approximately:
 
 The aggregate residual is approximately:
 
-> **−2.67 kg m⁻² yr⁻¹**, or about **−4.6%**
+> **−1.21 kg m⁻² yr⁻¹**, or about **−2.1%**
 
 For **snow-addition tile-years**, the directly accounted fate of assimilation-added snow water is approximately:
 
 - **43.1% surface runoff**
 - **21.2% baseflow**
 - **35.9% evapotranspiration**
-- **3.9% storage change**
-- **−4.1% residual**
+- **4.2% storage change**
+- **−2.7% peatland free-standing water**
+- **−1.7% residual**
 
 Therefore:
 
@@ -271,7 +272,7 @@ The positive-input sample contains approximately:
 
 The 5° spatial-block interval for total runoff is approximately:
 
-> **61.1–67.2%**
+> **61.1–67.4%**
 
 Annual direct runoff fractions span approximately:
 
@@ -311,9 +312,9 @@ The float32 comparison gives approximately:
 
 This supports the interpretation that the water-budget differences arise from DA rather than unmatched precipitation forcing.
 
-`WCHANGELAND` does not contain the analysis mass injection in the form needed for this differential budget. The accepted budget therefore uses the actual September-to-September change in `TWLAND`.
+`WCHANGELAND` does not contain the analysis mass injection in the form needed for this differential budget. The accepted budget therefore uses the change in `TWLAND` between instantaneous 00Z 1 October restart endpoints, together with an explicit PEATCLSM free-standing water term for the store that `TWLAND` excludes.
 
-The residual is small but systematically negative.
+The residual is small, systematically negative, and nearly constant across water years.
 
 The likely explanation is the approximation involved in using monthly-mean endpoint storage rather than instantaneous same-date storage.
 

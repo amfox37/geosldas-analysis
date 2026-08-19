@@ -6,13 +6,13 @@ The four figures below are plotting-only products built from the accepted machin
 
 | Figure | PNG | PDF | PNG dimensions | Figure size |
 |---|---|---|---:|---:|
-| Figure 14: snow-DA water-budget accounting | `projects/M21C_ls/output/paper_figures/fig14_snow_da_water_budget.png` | `projects/M21C_ls/output/paper_figures/fig14_snow_da_water_budget.pdf` | 4170 x 1774 px at 300 DPI | 13.8 x 5.8 in |
+| Figure 14: snow-DA water-budget accounting | `projects/M21C_ls/output/paper_figures/fig14_snow_da_water_budget_4panel.png` | `projects/M21C_ls/output/paper_figures/fig14_snow_da_water_budget_4panel.pdf` | 4200 x 3120 px at 300 DPI | 14.0 x 10.4 in |
 | Figure 15: monthly snow-DA pathway | `projects/M21C_ls/output/paper_figures/fig15_snow_da_monthly_pathway.png` | `projects/M21C_ls/output/paper_figures/fig15_snow_da_monthly_pathway.pdf` | 3484 x 2614 px at 300 DPI | 11.5 x 8.6 in |
 | Supplemental Figure S3: non-overlapping attribution | `projects/M21C_ls/output/paper_figures/fig_supp_snow_da_octmar_attribution.png` | `projects/M21C_ls/output/paper_figures/fig_supp_snow_da_octmar_attribution.pdf` | 4084 x 2325 px at 300 DPI | 13.5 x 7.4 in |
 | Supplemental Figure S4: accounting-boundary sensitivity | `projects/M21C_ls/output/paper_figures/fig_supp_snow_da_boundary_sensitivity.png` | `projects/M21C_ls/output/paper_figures/fig_supp_snow_da_boundary_sensitivity.pdf` | 3484 x 1594 px at 300 DPI | 11.5 x 5.2 in |
 
 Tracked review PNGs:
-- `projects/M21C_ls/docs/paper_figures/fig14_snow_da_water_budget.png`
+- `projects/M21C_ls/docs/paper_figures/fig14_snow_da_water_budget_4panel.png`
 - `projects/M21C_ls/docs/paper_figures/fig15_snow_da_monthly_pathway.png`
 - `projects/M21C_ls/docs/paper_figures/fig_supp_snow_da_octmar_attribution.png`
 - `projects/M21C_ls/docs/paper_figures/fig_supp_snow_da_boundary_sensitivity.png`

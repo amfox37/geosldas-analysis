@@ -17,14 +17,16 @@ The differential budget is evaluated over the six complete MODIS-only water year
 The snow-DA input, $I_{\mathrm{snow}}$, is the water-year sum of the native prognostic `snow_net` increments, with positive values denoting addition of snow water. The stored monthly increment product is already the sum of native submonthly increments within each month, so no temporal differencing is applied. The closing terms are the DA−OL changes in surface runoff, baseflow, evapotranspiration, and total land-water storage:
 
 $$
-I_{\mathrm{snow}} = \Delta R_{\mathrm{surf}} + \Delta R_{\mathrm{base}} + \Delta ET + \Delta S + \epsilon
+I_{\mathrm{snow}} = \Delta R_{\mathrm{surf}} + \Delta R_{\mathrm{base}} + \Delta ET + \Delta S + \Delta W_{\mathrm{peat}} + \epsilon
 $$
 
 where $\epsilon$ is the residual. Precipitation does not enter the differential budget because the two experiments use nominally identical forcing. This is verified rather than assumed: the production audit checks the maximum absolute annual tile-level and area-weighted domain-mean DA−OL precipitation difference against a 0.2 kg m⁻² annual tile guard, and the six-year integrated area-weighted domain difference is −5.5 × 10⁻⁵ kg m⁻².
 
 Two classes of quantity are excluded from the closing equation to avoid double counting. Snowmelt and infiltration redistribute water within the land column rather than removing it from the differential budget, and are retained as pathway diagnostics rather than terminal sinks. RZMC and SFMC are diagnostic states already contained in `TWLAND` and are retained as timing and impact diagnostics; the compressed monthly inputs contain no separate native prognostic soil-water storage state, so no independent soil-water storage term is available.
 
-$\Delta S$ is calculated from the September-to-September change in the DA−OL monthly-mean `TWLAND` state, not from the integrated `WCHANGELAND` tendency. The tendency diagnostic excludes the discontinuous mass introduced by the analysis update and therefore cannot equal the change in the DA−OL state anomaly; it is retained only as a process-balance diagnostic. Monthly-mean endpoints introduce a small temporal approximation that is considered when interpreting the residual.
+$\Delta S$ is calculated from the change in the DA−OL `TWLAND` state between instantaneous 00Z 1 October endpoints, not from the integrated `WCHANGELAND` tendency. The tendency diagnostic excludes the discontinuous mass introduced by the analysis update and therefore cannot equal the change in the DA−OL state anomaly; it is retained only as a process-balance diagnostic. The endpoints are reconstructed from `catch_internal_rst` restart files as the 24-member ensemble mean of the prognostic storage components. The earlier September monthly-mean proxy is retained as a comparison diagnostic: it agrees to about 2% in six-year aggregate but differs by up to about 20% in individual water years and inverts sign where the true change is small.
+
+$\Delta W_{\mathrm{peat}}$ is the DA−OL change in PEATCLSM free-standing surface water. `TWLAND` is assembled from the soil, canopy-interception, and snow stores and by construction excludes this store, so on peat tiles (defined by a porosity of at least 0.90) water moving into or out of free-standing water leaves the `TWLAND`-based budget entirely and would otherwise be absorbed into the residual. The term is identically zero on non-peat tiles, matching the model's own initialization. Both closing terms are verified against an independently constructed absolute budget for each experiment: the production run asserts that the differential budget equals DA minus OL of the per-run balances, term by term, to within 5 × 10⁻³ kg m⁻².
 
 ### Partition estimator
 
@@ -78,8 +80,9 @@ The accepted production estimates are:
 |---|---:|---:|
 | Total runoff | 64.3% | 0.749 [0.711, 0.783] |
 | Evapotranspiration | 35.9% | 0.182 [0.155, 0.213] |
-| Storage | 3.9% | 0.085 [0.075, 0.097] |
-| Residual | −4.1% | −0.016 [−0.022, −0.011] |
+| Storage | 4.2% | 0.085 [0.074, 0.097] |
+| Peatland free-standing water | −2.7% | −0.017 [−0.022, −0.012] |
+| Residual | −1.7% | 0.0007 [0.0002, 0.0012] |
 
 Direct fractions use the snow-addition sample (247,545 tile-years); regression coefficients use the production run with the OL MAM snow-mass control and 5° spatial blocks over all 288,402 signed tile-years. Both columns sum to unity once the residual is included.
 
@@ -87,7 +90,7 @@ Both approaches identify runoff as the dominant response.
 
 ## S1.5 Additional robustness tests
 
-- **10° spatial blocks.** Coarser resampling widens all intervals but does not change any sign or ordering; the positive-input runoff fraction interval widens from 61.1–67.2% to 58.3–69.7%.
+- **10° spatial blocks.** Coarser resampling widens all intervals but does not change any sign or ordering; the positive-input runoff fraction interval widens from 61.1–67.4% to 58.3–69.7%.
 - **1st–99th percentile predictor-anomaly trimming.** Applied to the seasonal regression to confirm that the fitted slopes are not driven by extreme input anomalies. All four classified downstream responses retain intervals excluding zero.
 - **Non-overlapping October–March analysis.** The predictor is restricted to October–March snow input and responses begin in April or May, giving exactly zero shared months. All four classified downstream responses survive; standardized effects range from 24% (runoff) to 67% (ET) of the corresponding signed-MAM values but remain positive.
 - **Water-year accounting-boundary sensitivity.** Repeating the partition on a September–August boundary changes the runoff fraction from 64.3% to 64.5% and ET from 35.9% to 36.0%, both far below the pre-set 5 percentage-point reporting threshold. Storage changes by +0.3 and the residual by −0.6 percentage points. Annual residuals are negative in 6 of 6 years under both boundaries.

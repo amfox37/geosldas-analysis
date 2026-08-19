@@ -134,7 +134,8 @@ The common-window differential water budget shows that for snow-addition tile-ye
 - 43.1% becomes surface runoff;
 - 21.2% becomes baseflow;
 - 35.9% becomes ET;
-- 3.9% remains as end-of-year storage;
+- 4.2% remains as end-of-year storage;
+- −2.7% is a net reduction in peatland free-standing water;
 - total runoff is approximately **64.3%**.
 
 The monthly pathway analysis additionally shows a coherent RZMC response.

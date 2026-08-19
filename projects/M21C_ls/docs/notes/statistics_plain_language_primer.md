@@ -163,8 +163,9 @@ The first answer is nonsense — it claims 282% of the added water became runoff
 
 - runoff **64.3%** (surface runoff 43.1%, baseflow 21.2%)
 - ET **35.9%**
-- storage **3.9%**
-- residual **−4.1%**
+- storage **4.2%**
+- peatland free-standing water **−2.7%**
+- residual **−1.7%**
 
 **Why do these sum to 100% only after the residual is included?** Because the residual is defined as whatever is left over: $\epsilon = I_{\mathrm{snow}} - \Delta R - \Delta ET - \Delta S$. Once you include it, closure is arithmetic, not evidence. The informative part is that the residual is *small* — about 4% of the input — which tells you the accounting is nearly complete.
 
@@ -698,7 +699,7 @@ The convergence with the independent budget result is what makes this credible, 
 
 ### 6.5 Snow-water partition
 
-**The result.** Direct accounting: 64.3% runoff, 35.9% ET, 3.9% storage, −4.1% residual. Controlled regression: 0.749, 0.182, 0.085, −0.016.
+**The result.** Direct accounting: 64.3% runoff, 35.9% ET, 4.2% storage, −2.7% peatland free-standing water, −1.7% residual. Controlled regression: 0.749, 0.182, 0.085, −0.017, 0.0007.
 
 **What is the corroboration?** That two methods — with different samples (247,545 positive-input tile-years versus 288,402 signed tile-years), different weighting, different identifying variation, and different confounders — independently agree that runoff dominates, ET is second, and storage is small.
 
@@ -741,7 +742,7 @@ A checklist. Each of these is a mistake it would be easy to make in this specifi
 | Method | Question | Why we use it | Main caution | Example in paper |
 |---|---|---|---|---|
 | Direct mass accounting | Where did added water go? | Mass is conserved, so the budget can be checked for closure | Ratio of sums, not mean of ratios; residual must be reported | 64.3% of snow-DA water becomes runoff |
-| Spatial-block bootstrap | How much would this move with different regions sampled? | Neighbouring tiles are not independent | Covers spatial sampling only, not model bias | 61.1–67.2% interval on the runoff fraction |
+| Spatial-block bootstrap | How much would this move with different regions sampled? | Neighbouring tiles are not independent | Covers spatial sampling only, not model bias | 61.1–67.4% interval on the runoff fraction |
 | Within-tile regression | Does anomalous input predict anomalous response at one place? | Removes permanent geographic contrasts | Corroboration, not causal proof | β_runoff = 0.749 |
 | Theil–Sen | How big is the trend? | Robust to outliers and non-Gaussian noise | Estimator only — no significance, no autocorrelation fix | SCF declines 0.000554 yr⁻¹ in OL |
 | Modified Mann–Kendall | Is the trend distinguishable from noise? | Rank-based, no distributional assumption; Hamed–Rao handles memory | Deliberately conservative; can only reduce significance | 12% → 0% false positives under AR(1)=0.8 |
