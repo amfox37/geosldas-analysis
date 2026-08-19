@@ -115,9 +115,8 @@ long name elsewhere in that file is `free_surface_water_on_peat_flux`.
    Reuse that code path so the output is byte-compatible with the existing
    products.
 
-3. **Deliver** in the same form and naming convention as the existing
-   `*_water_budget_2000_2024_compressed.nc` files, ideally appended to those
-   files as an extra variable, with tile ordering and time axis identical.
+3. **Deliver** as a standalone pair of files, one per experiment, matching the
+   existing products exactly. Full specification in Section 2a below.
 
 4. **Verify before delivering**: on peat tiles (POROS >= 0.90), confirm
 
@@ -127,6 +126,89 @@ long name elsewhere in that file is `free_surface_water_on_peat_flux`.
    to within rounding, and that it is ~0 on non-peat tiles. Report the residual
    of that identity. This is the decisive test of the whole diagnosis: if it
    holds, the budget can be closed exactly with a fifth term.
+
+---
+
+## 2a. Packaging specification for local analysis
+
+The local analysis validates every input file against a machine-readable
+contract (`config/trend_breakpoint_inputs.json`) before any variable is read.
+A file that does not match is rejected outright, so please follow this exactly.
+
+### File naming and placement
+
+Two new files, one per experiment, alongside the existing products:
+
+    OLv8_peat_fsw_2000_2024_compressed.nc
+    DAv8_peat_fsw_2000_2024_compressed.nc
+
+**Do not append to the existing `*_water_budget_*.nc` files.** Those are audited
+and checksummed in place and are the input to accepted, committed results; a new
+family is cleaner and avoids invalidating them.
+
+### Structure — must match the existing files exactly
+
+| property | required value |
+|---|---|
+| dimensions | `time` = 288, `tile` = 112573, in that order |
+| variable dims | `(time, tile)` |
+| coordinates | `time` (datetime64), `lat` (tile, float32), `lon` (tile, float32) |
+| time axis | monthly, `2000-06-01` through `2024-05-01`, first of month |
+| tile ordering | identical to `LS_OLv8_M36.ldas_tilecoord.bin`; do not re-sort |
+| dtype | float32 |
+| compression | zlib, complevel 4, chunksizes `(12, 100000)` |
+| fill value | NaN |
+
+### Variable
+
+Short name `PEATCLSM_FSWCHANGE`, with attributes in the same style as the
+existing water-budget variables:
+
+    long_name    : free_surface_water_on_peat_flux
+    units        : kg m-2 s-1          # confirm against the daily files
+    cell_methods : time: mean
+
+Keep the native flux units (`kg m-2 s-1`) rather than pre-converting to monthly
+totals — the local loader performs that conversion itself and requires the rate
+units to trigger it. For reference, `WCHANGELAND` in the existing file carries
+exactly `units = 'kg m-2 s-1'`, `cell_methods = 'time: mean'`.
+
+Non-peat tiles should be **0.0**, not NaN, since the model sets `FSW_CHANGE = 0`
+there. If they are written as NaN instead, say so explicitly — it changes the
+masking on our side.
+
+### Global attributes
+
+Mirror the existing convention so provenance is traceable:
+
+    source_root : <full Discover path to the cat/ens_avg directory used>
+    file_prefix : LS_OLv8_M36   (or LS_DAv8_M36)
+    note        : Monthly means from tavg24_1d_lnd_Nt.*; lat/lon attached on tile.
+    Date        : <creation date>
+
+### Transfer and verification
+
+Provide the files plus a **SHA-256 checksum for each**. They will be placed in
+
+    /Users/amfox/Desktop/GEOSldas_diagnostics/test_data/M21C_land_sweeper_v2/
+
+alongside the existing compressed products.
+
+Please also report, so we can validate on arrival without guesswork:
+
+1. total number of tiles with any non-zero `PEATCLSM_FSWCHANGE` over the record
+   (we expect ~4,189, matching POROS >= 0.90);
+2. the area-weighted 24-year mean, in kg m-2 yr-1, over all valid land and over
+   peat tiles only;
+3. the residual of the peat identity check from Task 1 step 4.
+
+### What we will do with it
+
+Add a `peat_fsw` dataset entry to `config/trend_breakpoint_inputs.json` and a
+`PEATCLSM_FSWCHANGE` row to the variable-selection registry, then re-run the
+water-year budget with a fifth closing term. If the identity holds, Figure 14's
+residual should collapse from −2.67 to the storage-endpoint term alone,
+with peatlands retained in the domain.
 
 ---
 
