@@ -8,6 +8,7 @@ contributing sample cannot change through the record.
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -36,7 +37,7 @@ def region_tile_mask(lat, lon, bounds):
     )
 
 
-def main() -> int:
+def main(var: str = "RZMC") -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     registry = json.loads(REGIONS.read_text())
     _, fine, _, _ = load_period_frames()
@@ -44,14 +45,14 @@ def main() -> int:
     with MonthlySeriesLoader() as loader:
         lat = np.asarray(loader.lat.values, dtype="float64")
         lon = np.asarray(loader.lon.values, dtype="float64")
-        fields = loader.load_tile_series("RZMC", mask="valid_land")
+        fields = loader.load_tile_series(var, mask="valid_land")
         time = pd.DatetimeIndex(fields.time.values)
         area = np.asarray(fields["tile_area"].fillna(0.0).values, dtype="float64")
         ol = fields["ol"].transpose("tile", "time").values.astype("float64")
         da = fields["da"].transpose("tile", "time").values.astype("float64")
 
     n_tile, n_month = ol.shape
-    print(f"loaded RZMC: {n_tile} tiles x {n_month} months", flush=True)
+    print(f"loaded {var}: {n_tile} tiles x {n_month} months", flush=True)
 
     # tiles finite in BOTH runs in EVERY month -> support cannot change in time
     always_finite = np.all(np.isfinite(ol) & np.isfinite(da), axis=1)
@@ -81,10 +82,10 @@ def main() -> int:
         })
         series[rid] = {"delta": d_series, "ol": o_series}
         print(f"  {rid:9s} n={n:6d}  support_constant={constant}  "
-              f"mean dRZMC={d_series.mean():+.5f}", flush=True)
+              f"mean d{var}={d_series.mean():+.5f}", flush=True)
 
     support = pd.DataFrame(rows)
-    support.to_csv(OUT / "regional_support_audit.csv", index=False)
+    support.to_csv(OUT / f"regional_{var.lower()}_support_audit.csv", index=False)
     assert support["support_constant"].all(), "non-static support detected"
 
     ds = xr.Dataset(
@@ -94,12 +95,13 @@ def main() -> int:
         },
         coords={"region": list(series), "time": time},
     )
-    ds["delta"].attrs = {"units": "m3 m-3", "long_name": "area-weighted RZMC DA-OL"}
-    ds["ol"].attrs = {"units": "m3 m-3", "long_name": "area-weighted OL RZMC"}
-    ds.to_netcdf(OUT / "regional_rzmc_monthly.nc")
-    print(f"\nwrote {OUT/'regional_rzmc_monthly.nc'}")
+    ds["delta"].attrs = {"units": "m3 m-3", "long_name": f"area-weighted {var} DA-OL"}
+    ds["ol"].attrs = {"units": "m3 m-3", "long_name": f"area-weighted OL {var}"}
+    ds.to_netcdf(OUT / f"regional_{var.lower()}_monthly.nc")
+    print(f"\nwrote {OUT}/regional_{var.lower()}_monthly.nc")
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    _ap = argparse.ArgumentParser(); _ap.add_argument("--variable", default="RZMC")
+    raise SystemExit(main(_ap.parse_args().variable))

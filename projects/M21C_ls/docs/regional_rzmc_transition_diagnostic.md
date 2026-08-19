@@ -1,4 +1,4 @@
-# Diagnostic: regional RZMC DA−OL by observing-system period
+# Diagnostic: regional soil-moisture DA−OL by observing-system period
 
 Exploratory diagnostic for the Figure 17 redesign. **Not yet a manuscript
 figure.** Produced 2026-08-18 from the audited monthly OL v2 / DA v3 products.
@@ -192,7 +192,84 @@ the least interpretable of the six.
   leaving rather than arriving — and it is the last period in the record. Not
   interpreted here.
 
-## 7. Status
+## 7. Surface soil moisture (SFMC) comparison
+
+The analysis was repeated for surface soil moisture using **identical** regions,
+preprocessing, period definitions, uncertainty calculation and FDR structure.
+Only the variable changed; both are computed by the same code path
+(`regional_rzmc_common.period_statistics` and `adjacent_differences`). Regional
+tile counts and static support are unchanged, since the masks are the same.
+
+![SFMC regional series](regional_rzmc_diagnostic_figures/regional_sfmc_period_means.png)
+
+![RZMC and SFMC transition comparison](regional_rzmc_diagnostic_figures/sfmc_rzmc_transition_comparison.png)
+
+### SFMC adjacent-period differences
+
+×10⁻³ m³ m⁻³. **Bold** = survives boundary-wise FDR at 0.05.
+
+| Region | P2−P1 | P3−P2 | P4−P3 | P5−P4 | P6−P5 | P7−P6 | P8−P7 | P9−P8 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Global valid land | **+3.81** | -0.31 | **-1.07** | -1.15 | +1.01 | +0.07 | +0.29 | **+1.96** |
+| Australia | +0.11 | -0.66 | -0.90 | +1.06 | +1.96 | +1.06 | +0.03 | +0.73 |
+| Southern Africa | +0.04 | -0.39 | -0.91 | -2.51 | +2.46 | +0.41 | +2.55 | +2.66 |
+| North Africa / Middle East | +0.26 | -0.17 | **-0.59** | +0.09 | +0.14 | -0.37 | **+0.95** | **+0.64** |
+| Western North America | **+8.70** | -0.65 | -2.59 | +1.37 | -2.72 | -0.04 | -3.30 | +2.80 |
+| Northern Eurasia | **+9.65** | -1.03 | -0.48 | -1.86 | -0.03 | -1.15 | +0.55 | -0.42 |
+
+### P2 and P6 have different signatures in the two layers
+
+**P2−P1 is the same in both layers.** The same three regions resolve — global,
+western North America, northern Eurasia — and the three dry/warm regions are
+null in both. SFMC differences are consistently *larger*, by factors of
+1.14–1.23 in the resolved regions.
+
+**P6−P5 is a root-zone result only.** Four regions resolve in RZMC and **none**
+in SFMC:
+
+| Region | RZMC | SFMC | SFMC/RZMC |
+|---|---:|---:|---:|
+| Global valid land | **+1.52** | +1.01 | 0.67 |
+| Australia | **+3.46** | +1.96 | 0.57 |
+| Southern Africa | **+3.57** | +2.46 | 0.69 |
+| North Africa / Middle East | **+1.62** | +0.14 | 0.09 |
+
+**This is effect size, not lost power.** SFMC residual standard deviation is
+1.22–1.59× that of RZMC, and SFMC standard errors on the P6−P5 difference are
+only 1.05–1.31× larger. The effects themselves fall by 31–91%. Signal-to-noise
+on P6−P5 drops from 3.5–8.5 in RZMC to 0.6–2.2 in SFMC, driven predominantly by
+the numerator. North Africa / Middle East is the extreme case: |d|/SE falls
+from 8.47 to 0.57 almost entirely because the difference collapses from +1.62
+to +0.14.
+
+### Are SFMC transitions larger or more widespread?
+
+Neither uniformly — it depends on the boundary. SFMC resolves **8** of 48
+comparisons against RZMC's 9, so it is marginally *less* widespread overall.
+SFMC differences are larger at P2 and smaller at P6. SFMC also resolves three
+comparisons RZMC does not: a *negative* P4−P3 in global valid land (−1.07) and
+North Africa / Middle East (−0.59), and a positive P8−P7 in North Africa /
+Middle East (+0.95). These are not interpreted here.
+
+### Reading
+
+The two boundaries behave differently with depth. At P2 the change is at least
+as large at the surface as in the root zone, whereas the P6 change is resolved
+only in the root zone despite SMAP sensing the surface layer directly.
+
+One hypothesis consistent with this, though not established by the analysis, is
+that the surface layer relaxes toward forcing-driven equilibrium on a timescale
+of days, so persistent analysis increments do not accumulate into a sustained
+mean offset there, whereas the root zone integrates them over months. That
+would also be consistent with the whole-record trend result, where significant
+paired DA−OL trends cover 7.01% of valid-land tiles for RZMC but only 1.25% for
+SFMC.
+
+The practical implication for the manuscript is that adding SFMC would not
+strengthen the regional transition story. It reproduces the P2 result, adds
+nothing at P6, and introduces three uninterpreted comparisons.
+
+## 8. Status
 
 This design would replace both the PELT changepoint analysis and the
 interrupted-series model in the main text. The earlier PELT work is retained as
