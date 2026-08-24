@@ -190,14 +190,19 @@ differences at any boundary; this applies equally to the P2 and P6 comparisons.
 
 ## S2.7 Period means and adjacent-period differences
 
-Calendar-month effects are removed from each regional monthly series by a
-single least-squares fit containing an intercept, a global linear trend, and 11
-calendar-month indicators; only the fitted month effects are subtracted, so the
-long-term trend is retained. **This is not the four-step trend-preserving
-Theil–Sen adjustment of S2.3**, which is used for the tile-scale trend fields.
-The two procedures share the aim of removing seasonality without absorbing the
-trend but are estimated differently, and the regional results below use the
-adjustment described here.
+The paired DA−OL series at every tile is seasonally adjusted using the same
+four-step Theil–Sen procedure described in S2.3 for the tile-scale trend fields.
+The adjusted tile series $D_i^*(t)$ are then area-weighted within region $R$:
+
+$$
+D_R^*(t) = \frac{\sum_{i \in R} A_i D_i^*(t)}{\sum_{i \in R} A_i},
+$$
+
+where $A_i$ is M36 tile area. Seasonal adjustment therefore precedes spatial
+aggregation, allowing each tile to retain its own calendar-month climatology.
+Figures 16 and 17 use the same adjusted paired tile series; only the subsequent
+summary differs. Figure 16 estimates a whole-record slope at each tile, whereas
+Fig. 17 calculates regional period means.
 
 For region $i$ and period $P_j$, the period mean is the arithmetic mean of the
 adjusted monthly series over that period, and the reported quantity at each
@@ -286,7 +291,7 @@ than by inflated uncertainty. SFMC resolves 8 of 48 comparisons overall.
 | Where does assimilation-added snow water go? | Area-weighted fraction of $I_{\mathrm{snow}}$ appearing in each terminal budget term | Ratio of area-weighted aggregate response to area-weighted aggregate input over the snow-addition sample | 5° spatial-block bootstrap, 1,000 replicates (10° sensitivity) | None; a small predeclared set of partition terms | Average mass fate of added water over WY2001–WY2006 |
 | Does anomalous snow input predict an anomalous response at the same location? | Controlled marginal response per unit input, $\beta$ | OLS on within-tile anomalies with year fixed effects and OL MAM snow-mass control | 5° spatial-block bootstrap on the full design (10° sensitivity) | None; four closing responses on a common design | Marginal within-location partition; corroboration, not causal proof |
 | Does a field drift systematically over 24 years? | Theil–Sen slope of the paired DA−OL monthly series, per year | Exact Theil–Sen median pairwise slope after trend-preserving seasonal adjustment | Hamed–Rao modified Mann–Kendall variance inflation, lags 1–24, factor floored at 1 | BH FDR at 0.05 within each complete field; OL, DA, DA−OL separate families | Presence and sign of a monotonic long-term tendency at each tile |
-| When do the regional RZMC differences identified in Fig. 16 emerge? | Difference between adjacent P1–P9 regional mean DA−OL RZMC | Area-weighted period means after removal of calendar-month effects | AR(1) effective sample size; fitted-AR(1) bootstrap sensitivity | BH FDR separately at each boundary across six regions | A change in average assimilation influence between observing-system periods; not an instantaneous discontinuity |
+| When do the regional RZMC differences identified in Fig. 16 emerge? | Difference between adjacent P1–P9 regional mean DA−OL RZMC | The same tile-adjusted paired series used by the trend analysis, area-weighted before calculating period means | AR(1) effective sample size; fitted-AR(1) bootstrap sensitivity | BH FDR separately at each boundary across six regions | A change in average assimilation influence between observing-system periods; not an instantaneous discontinuity |
 
 These quantities carry different units and interpretations and are not compared directly to one another.
 

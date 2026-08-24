@@ -5,7 +5,6 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-import xarray as xr
 
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
@@ -27,17 +26,6 @@ def test_segmented_diverging_scale_is_symmetric_with_white_zero_bin():
     assert np.allclose(cmap.colors[cmap.N // 2], (1, 1, 1, 1))
     assert norm(-2.0) == 0
     assert norm(2.0) == cmap.N
-
-
-def test_standardized_monthly_uses_full_record_sample_standard_deviation():
-    values = np.array([1.0, 2.0, 4.0, 8.0])
-    dataset = xr.Dataset(
-        {"seasonal_adjusted": (("series", "time"), values[None, :])},
-        coords={"series": ["test"], "time": np.arange(values.size)},
-    )
-    result = figures.standardized_monthly(dataset, "test")
-    assert np.isclose(result.mean(), 0.0)
-    assert np.isclose(result.std(ddof=1), 1.0)
 
 
 def test_main_figure_uses_variable_specific_delta_scales():

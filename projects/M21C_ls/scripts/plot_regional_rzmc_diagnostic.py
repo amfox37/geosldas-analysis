@@ -87,7 +87,8 @@ def fig_series():
         olsub = tab[(tab.region_id == rid) & (tab.series == "ol") & tab.detected.notna()]
         for _, r in olsub.iterrows():
             ax.axvline(pd.Timestamp(r.detected), color="#6b6b6b", lw=1.4, ls=":", zorder=4)
-        n = int(pd.read_csv(OUT/"regional_support_audit.csv").set_index("region_id").loc[rid,"n_tiles"])
+        n = int(pd.read_csv(OUT/"regional_rzmc_support_audit.csv")
+                .set_index("region_id").loc[rid, "n_tiles"])
         ax.set_title(f"({chr(97+k)}) {label_of[rid]}  (n = {n:,} tiles)", fontsize=10)
         ax.grid(axis="y", color="0.88", lw=0.6); ax.set_axisbelow(True)
         if k % 3 == 0: ax.set_ylabel(r"RZMC DA $-$ OL (m$^3$ m$^{-3}$)")

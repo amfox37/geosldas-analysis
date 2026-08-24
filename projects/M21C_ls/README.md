@@ -93,6 +93,13 @@ segment.
 - `scripts/summarize_phase1_state_trends.py` - tile, OL/DA-overlap, and area-weighted domain summaries for the state controls.
 - `scripts/audit_phase1_trend_outputs.py` - structural, provenance, support, CI, and global-FDR audit for production outputs.
 - `scripts/validate_trend_statistics.py` - fixed-seed white-noise and AR(1) false-positive/power validation.
+- `scripts/build_regional_rzmc_transitions.py` - applies the production
+  Theil-Sen seasonal adjustment to paired DA-minus-OL at each tile, then builds
+  raw and adjusted area-weighted regional RZMC/SFMC monthly series.
+- `scripts/plot_regional_rzmc_periods.py` - Figure 17 period means and
+  boundary-wise regional FDR calculations from the tile-adjusted series.
+- `scripts/regional_rzmc_uncertainty_sensitivity.py` - effective-sample-size,
+  moving-block, and fitted-AR(1) uncertainty comparison for Figure 17.
 - `scripts/interrupted_time_series.py` - P1-P9 segmented Prais-Winsten model with fitted-AR(1) bootstrap inference.
 - `scripts/build_phase1_interrupted_series.py` - production runner for all 43 area-weighted Phase 1 domain series.
 - `scripts/audit_phase1_interrupted_series.py` - structural, provenance, pairing, P7, and transition-FDR audit.
@@ -103,6 +110,8 @@ segment.
 - `scripts/audit_phase1_changepoints.py` - stability, consensus, P7, boundary, and provenance audit.
 - `tests/test_trend_breakpoint_series.py` - focused tests for pairing, units, masks, weights, signs, dates, and missing data.
 - `tests/test_trend_statistics.py` - synthetic trend, autocorrelation, support, FDR, and parallel-consistency tests.
+- `tests/test_regional_rzmc_workflow.py` - exact reuse of the production
+  tile-seasonal adjustment and no-double-adjustment checks.
 - `tests/test_phase1_trend_workflow.py` - production-matrix and output-audit contract tests.
 - `tests/test_interrupted_time_series.py` - exact recovery, AR(1), missing-support, P7, and false-discovery tests.
 - `tests/test_phase1_interrupted_workflow.py` - 43-series expansion and transition-family FDR tests.

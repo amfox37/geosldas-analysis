@@ -12,7 +12,6 @@ import numpy as np, pandas as pd, xarray as xr
 from scipy.stats import norm
 
 HERE = Path(__file__).resolve().parent; sys.path.insert(0, str(HERE))
-from regional_rzmc_common import seasonal_adjustment  # noqa: E402
 from m21c_periods import load_period_frames  # noqa: E402
 
 ROOT = HERE.parent
@@ -45,8 +44,7 @@ def main():
     rows = []
 
     for rid in order:
-        v = ds["delta"].sel(region=rid).values.astype("float64")
-        adj, _, _ = seasonal_adjustment(v, t)
+        adj = ds["delta_adjusted"].sel(region=rid).values.astype("float64")
         pm = {p: adj[ix].mean() for p, ix in pidx.items()}
         fitted = np.empty_like(adj)
         for p, ix in pidx.items():

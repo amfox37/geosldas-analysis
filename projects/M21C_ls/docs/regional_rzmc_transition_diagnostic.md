@@ -73,9 +73,11 @@ period-mean level, **not** an instantaneous discontinuity at the boundary — it
 includes any within-period trend. That is intended: Australia's progressive
 divergence appears naturally rather than requiring a hinge term.
 
-Period means are computed on the seasonally adjusted series (calendar-month
-effects removed, long-term trend retained) so that unequal seasonal composition
-across periods of unequal length cannot bias the comparison.
+The paired DA−OL series is seasonally adjusted separately at each tile with the
+same trend-preserving Theil–Sen procedure used for Fig. 16. Those adjusted tile
+series are then area-weighted regionally before period means are calculated.
+Thus Figs. 16 and 17 share one tile-level preprocessing path, and unequal
+seasonal composition across periods cannot bias the comparison.
 
 **Uncertainty.** 95% intervals from an AR(1) effective sample size,
 n_eff = n(1−ρ)/(1+ρ), with ρ and σ estimated from residuals about the period
@@ -103,6 +105,19 @@ Every headline result is significant under all three methods. Effective-*n* is
 retained: it is the most conservative, the simplest to state, and it agrees
 exactly with the more rigorous parametric bootstrap.
 
+### Seasonal-adjustment unification audit
+
+The regional analysis was recomputed by applying the production Fig. 16
+Theil–Sen seasonal adjustment at each tile before regional area weighting. The
+superseded workflow instead area-weighted first and fitted a separate regional
+least-squares seasonal model. The largest change among the 48 RZMC
+adjacent-period estimates was $8.1\times10^{-6}$ m³ m⁻³ and the largest SFMC
+change was $5.3\times10^{-6}$ m³ m⁻³. No RZMC or SFMC FDR decision changed.
+For RZMC, the effective-$n$, moving-block, and fitted-AR(1) methods retained
+9, 12, and 9 resolved comparisons, respectively, with no decision changes.
+Thus the unified method simplifies provenance without changing the scientific
+result.
+
 ## 3. Figure
 
 ![Regional RZMC DA−OL by observing-system period](regional_rzmc_diagnostic_figures/regional_rzmc_period_means.png)
@@ -119,12 +134,12 @@ that the change occurred abruptly at that date.
 
 | Region | P2−P1 | P3−P2 | P4−P3 | P5−P4 | P6−P5 | P7−P6 | P8−P7 | P9−P8 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Global valid land | **+3.26** | -0.28 | -0.59 | -0.90 | **+1.52** | -0.31 | +0.06 | **+1.53** |
-| Australia | +0.09 | -0.52 | +0.65 | +0.90 | **+3.46** | -0.20 | +0.91 | -0.16 |
-| Southern Africa | +0.06 | -0.54 | +0.19 | -1.64 | **+3.57** | -0.86 | +1.48 | +1.50 |
+| Global valid land | **+3.26** | -0.28 | -0.59 | -0.90 | **+1.52** | -0.31 | +0.06 | **+1.52** |
+| Australia | +0.09 | -0.52 | +0.65 | +0.90 | **+3.46** | -0.20 | +0.91 | -0.17 |
+| Southern Africa | +0.05 | -0.54 | +0.19 | -1.64 | **+3.57** | -0.86 | +1.48 | +1.50 |
 | North Africa / Middle East | +0.24 | -0.22 | -0.28 | -0.03 | **+1.62** | +0.13 | -0.11 | **+0.56** |
 | Western North America | **+7.05** | -0.78 | -0.97 | +1.15 | -0.78 | -0.27 | -2.46 | +2.07 |
-| Northern Eurasia | **+8.46** | -0.37 | -1.07 | -1.65 | -0.31 | -0.81 | +0.18 | +0.02 |
+| Northern Eurasia | **+8.46** | -0.38 | -1.07 | -1.65 | -0.31 | -0.82 | +0.18 | +0.02 |
 
 With 95% intervals and q-values:
 
@@ -132,13 +147,13 @@ With 95% intervals and q-values:
 |---|---|---:|---|---:|
 | P2−P1 | Global valid land | +3.26 | +2.55 to +3.97 | <0.0001 |
 | P2−P1 | Western North America | +7.05 | +4.86 to +9.25 | <0.0001 |
-| P2−P1 | Northern Eurasia | +8.46 | +6.23 to +10.68 | <0.0001 |
-| P6−P5 | Global valid land | +1.52 | +0.75 to +2.29 | 0.0003 |
+| P2−P1 | Northern Eurasia | +8.46 | +6.23 to +10.69 | <0.0001 |
+| P6−P5 | Global valid land | +1.52 | +0.76 to +2.29 | 0.0003 |
 | P6−P5 | Australia | +3.46 | +1.51 to +5.41 | 0.0008 |
 | P6−P5 | Southern Africa | +3.57 | +1.59 to +5.55 | 0.0008 |
 | P6−P5 | North Africa / Middle East | +1.62 | +1.25 to +2.00 | <0.0001 |
-| P9−P8 | Global valid land | +1.53 | +0.72 to +2.33 | 0.0012 |
-| P9−P8 | North Africa / Middle East | +0.56 | +0.17 to +0.96 | 0.0151 |
+| P9−P8 | Global valid land | +1.52 | +0.72 to +2.33 | 0.0012 |
+| P9−P8 | North Africa / Middle East | +0.56 | +0.17 to +0.95 | 0.0154 |
 
 ## 5. Findings
 
@@ -197,7 +212,8 @@ the least interpretable of the six.
 The analysis was repeated for surface soil moisture using **identical** regions,
 preprocessing, period definitions, uncertainty calculation and FDR structure.
 Only the variable changed; both are computed by the same code path
-(`regional_rzmc_common.period_statistics` and `adjacent_differences`). Regional
+(`regional_rzmc_common.period_statistics_from_adjusted` and
+`adjacent_differences`). Regional
 tile counts and static support are unchanged, since the masks are the same.
 
 ![SFMC regional series](regional_rzmc_diagnostic_figures/regional_sfmc_period_means.png)
@@ -212,10 +228,10 @@ tile counts and static support are unchanged, since the masks are the same.
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | Global valid land | **+3.81** | -0.31 | **-1.07** | -1.15 | +1.01 | +0.07 | +0.29 | **+1.96** |
 | Australia | +0.11 | -0.66 | -0.90 | +1.06 | +1.96 | +1.06 | +0.03 | +0.73 |
-| Southern Africa | +0.04 | -0.39 | -0.91 | -2.51 | +2.46 | +0.41 | +2.55 | +2.66 |
+| Southern Africa | +0.04 | -0.38 | -0.91 | -2.51 | +2.46 | +0.42 | +2.55 | +2.66 |
 | North Africa / Middle East | +0.26 | -0.17 | **-0.59** | +0.09 | +0.14 | -0.37 | **+0.95** | **+0.64** |
 | Western North America | **+8.70** | -0.65 | -2.59 | +1.37 | -2.72 | -0.04 | -3.30 | +2.80 |
-| Northern Eurasia | **+9.65** | -1.03 | -0.48 | -1.86 | -0.03 | -1.15 | +0.55 | -0.42 |
+| Northern Eurasia | **+9.65** | -1.03 | -0.48 | -1.86 | -0.03 | -1.16 | +0.55 | -0.42 |
 
 ### P2 and P6 have different signatures in the two layers
 
@@ -302,14 +318,13 @@ help. It would not — but the reason is itself informative.
 
 ## 8. Status
 
-This design would replace both the PELT changepoint analysis and the
-interrupted-series model in the main text. The earlier PELT work is retained as
-an internal robustness check and could be reported in the Supplement in one
-sentence: an independent changepoint analysis identified April 2015 as the
-dominant global transition.
+This design replaces both the PELT changepoint analysis and the
+interrupted-series model in the main text. The earlier PELT and segmented-model
+outputs remain archived internal diagnostics and are not part of current
+manuscript inference.
 
 Derived outputs under `output/regional_rzmc_transitions/` (not versioned):
-`regional_rzmc_monthly.nc`, `regional_support_audit.csv`,
-`regional_period_means.csv`, `regional_period_diffs_fdr.csv`,
+`regional_rzmc_monthly.nc`, `regional_rzmc_support_audit.csv`,
+`regional_rzmc_period_diffs_fdr.csv`,
 `regional_uncertainty_sensitivity.csv`, `adjacent_period_table.md`, plus the
 superseded PELT tables.

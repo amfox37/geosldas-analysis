@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt, matplotlib.dates as mdates
 
 HERE = Path(__file__).resolve().parent; sys.path.insert(0, str(HERE))
 from regional_rzmc_common import (  # noqa: E402
-    adjacent_differences, period_statistics)
+    adjacent_differences, period_statistics_from_adjusted)
 from m21c_periods import load_period_frames  # noqa: E402
 
 ROOT = HERE.parent
@@ -27,7 +27,11 @@ def main(var: str = "RZMC", series_key: str = "delta", paper: bool = False):
     order = [r["region_id"] for r in REG]
     ids = [r.period_id for r in fine.itertuples()]
 
-    stats = {rid: period_statistics(ds[series_key].sel(region=rid).values, t, fine)
+    adjusted_key = f"{series_key}_adjusted"
+    if adjusted_key not in ds:
+        raise KeyError(f"{adjusted_key} missing; rebuild regional monthly series")
+    stats = {rid: period_statistics_from_adjusted(
+                 ds[adjusted_key].sel(region=rid).values, t, fine)
              for rid in order}
     diffs = adjacent_differences(stats, order, ids, label_of)
     diffs.to_csv(OUT/f"regional_{var.lower()}_period_diffs_fdr.csv", index=False)
@@ -50,7 +54,7 @@ def main(var: str = "RZMC", series_key: str = "delta", paper: bool = False):
                     transform=ax.get_xaxis_transform(), ha="center", va="top",
                     fontsize=6.4, fontweight="bold", color="0.25", zorder=7)
         ax.axhline(0, color="0.4", lw=0.7, zorder=1)
-        ax.plot(t, stats[rid]["raw"].values, color="#c07a72", lw=0.75, alpha=0.6, zorder=2)
+        ax.plot(t, stats[rid]["monthly"].values, color="#c07a72", lw=0.75, alpha=0.6, zorder=2)
         for r in fine.itertuples():
             m = stats[rid]["means"][r.period_id][0]
             ax.plot([r.start, r.end], [m, m], color="#8c1d16", lw=1.6,
@@ -66,7 +70,7 @@ def main(var: str = "RZMC", series_key: str = "delta", paper: bool = False):
          plt.Line2D([],[],color="#8c1d16",lw=1.6),
          plt.Line2D([],[],color="black",lw=1.6,ls="--"),
          plt.Line2D([],[],color="0.45",lw=0.8,ls="--")]
-    fig.legend(h, ["monthly DA $-$ OL", "observing-system period mean",
+    fig.legend(h, ["seasonally adjusted monthly DA $-$ OL", "observing-system period mean",
                    "adjacent period means differ (FDR $q<0.05$)", "period boundary"],
                loc="lower center", ncols=4, frameon=False, fontsize=9.5,
                bbox_to_anchor=(0.5, -0.005))

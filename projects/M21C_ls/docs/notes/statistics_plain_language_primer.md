@@ -56,7 +56,7 @@ There are two kinds of dependence in this analysis, and both inflate the *appare
 
 **How would I explain this to a coauthor?** "Asking the same person the same question 288 times does not give you 288 opinions." Autocorrelated data is closer to that than to 288 separate surveys.
 
-Every uncertainty method in this paper exists to handle one of these two dependences: the spatial-block bootstrap handles the first, and the Hamed–Rao correction, Prais–Winsten fitting, and innovation bootstrap handle the second.
+Every uncertainty method in the current paper exists to handle one of these two dependences: the spatial-block bootstrap handles the first, while the Hamed–Rao correction and regional AR(1) effective sample size handle the second.
 
 ### 1.4 Pointwise significance versus multiple testing
 
@@ -71,17 +71,15 @@ So there are two different notions of "significant":
 
 We use q-values for anything mapped. §3.6 goes into what q actually means, because it is very commonly misdescribed.
 
-### 1.5 Known-date testing versus blind changepoint detection
+### 1.5 Period differences versus boundary jumps
 
-**What question are we asking?** Two different ones, deliberately.
+**What question are we asking?** Did average assimilation influence differ between two predefined observing-system periods?
 
-**Known-date testing** says: *we know SMAP entered the system in April 2015; is there evidence that the statistical behaviour of this series changes at that date?* We supply the date and ask about the size of the change.
+Figure 17 compares the mean of the adjusted regional series in adjacent periods, such as P6 minus P5. The observing-system dates define which months belong to each group, but the estimator is a difference between two averages.
 
-**Blind changepoint detection (PELT)** says: *if I do not tell the algorithm anything about April 2015, does it independently decide the record breaks near there?* We supply no dates and ask where the data themselves say something happened.
+That is different from estimating an instantaneous jump at the boundary. If the series changes gradually through P6, its P6 mean can differ from P5 even though nothing discontinuous happened on 1 April 2015.
 
-**Why is running both better than running either?** Because they fail in different ways. The known-date test can only ever find what you asked about — it cannot tell you that the real break was eight months later, and if you test enough dates something will eventually clear the bar. The blind detector cannot tell you *why* it found a break and will happily find breaks that correspond to nothing. When the blind detector independently lands on a date you specified in advance for physical reasons, the coincidence is genuinely informative.
-
-**What does it NOT mean?** Agreement between the two is still not causal proof. Both tests see the same series. If something else happened in the land-surface system in April 2015, both methods would flag it identically, and neither could tell the difference. The correct phrasing throughout the paper is that a change *coincides with* SMAP entry, not that SMAP *caused* it.
+**What does it NOT mean?** A resolved P6−P5 difference is not causal proof about SMAP. The correct phrasing is that the difference coincides with SMAP entry and the broader multi-sensor reorganization, not that SMAP uniquely caused it.
 
 ---
 
@@ -352,6 +350,8 @@ The trend is removed at step 2 solely so the climatology is not contaminated by 
 
 **What does this NOT do?** It does not remove the trend before testing. This is the point people get wrong. After step 4 the series still has its full long-term tendency; only the seasonal cycle has been taken out.
 
+The same adjusted paired tile series feed both main temporal summaries. Figure 16 estimates a whole-record slope at each tile. Figure 17 first area-weights those adjusted tile series within each region and then calculates P1–P9 means. Seasonality is therefore removed once, at the tile level, rather than being estimated again from the regional aggregate.
+
 ### 3.3 What Theil–Sen does
 
 **What question are we asking?** How big is the trend?
@@ -464,9 +464,54 @@ Notice the pattern: the paired physical state fields agree almost perfectly, and
 
 ---
 
-## 4. Section 2.7 — known observing-system transitions
+## 4. Section 2.7 — regional observing-system periods
 
-### 4.1 Trend versus level change versus slope change
+### 4.1 How Figure 17 reuses the Figure 16 data
+
+**What question are we asking?** When do the regional DA−OL differences seen in the whole-record trend map emerge?
+
+At every tile we already have the paired, trend-retaining, seasonally adjusted DA−OL series used by Figure 16. For Figure 17 we area-weight those same adjusted tile series within six fixed regions, producing one monthly regional series per region. We then calculate its mean separately in P1–P9.
+
+This is simpler than fitting another seasonal model after aggregation. It also lets every tile retain its own calendar-month climatology. The only difference between the figures is the final summary:
+
+| Figure | Shared input | Final summary |
+|---|---|---|
+| Figure 16 | Seasonally adjusted paired tile DA−OL | Whole-record Theil–Sen slope at each tile |
+| Figure 17 | Seasonally adjusted paired tile DA−OL | Area-weighted regional P1–P9 means |
+
+### 4.2 What an adjacent-period difference means
+
+For P6, for example, the estimate is simply
+
+$$
+\overline{D}_{P6}-\overline{D}_{P5}.
+$$
+
+It says that average assimilation influence differs between the two observing-system periods. It does **not** say the series jumped instantaneously on the boundary date. A gradual change within either period can produce the same difference.
+
+The six regions are tested together at each boundary with BH FDR. This gives eight separate six-test families, one for each P2−P1 through P9−P8 comparison. The regional boxes were motivated by Figure 16, so Figure 17 is an exploratory timing decomposition of an existing spatial result, not an independent discovery that those regions are special.
+
+### 4.3 Why the effective sample size is small
+
+The regional monthly series retain substantial memory. We estimate one lag-1 autocorrelation from residuals about the period means and use
+
+$$
+n_{\mathrm{eff}}=n\frac{1-\rho}{1+\rho}.
+$$
+
+With regional $\rho$ between 0.63 and 0.80, a period containing many calendar months contains far fewer independent pieces of information. The effective-sample-size intervals are conservative: they produce the same nine RZMC FDR decisions as a fitted-AR(1) parametric bootstrap, while a moving-block bootstrap adds only three marginal cases.
+
+### 4.4 What changed when we unified the seasonal adjustment
+
+Previously the regional aggregate received a separate least-squares seasonal adjustment. Recomputing Figure 17 from the tile-adjusted series changed no RZMC or SFMC FDR decision. The largest adjacent-period estimate changed by only $8.1\times10^{-6}$ m³ m⁻³. The value of the change is therefore conceptual clarity and reproducibility, not a different scientific result.
+
+---
+
+## Appendix A — superseded segmented-transition workflow
+
+The material below documents an earlier analysis that is no longer used in the manuscript. It is retained only to explain archived outputs; it must not be used to describe the current Figure 17 analysis.
+
+### A.1 Trend versus level change versus slope change
 
 Three different shapes, three different coefficients, constantly confused.
 
@@ -482,7 +527,7 @@ Three different shapes, three different coefficients, constantly confused.
 
 This is exactly why the paper runs the transition analysis separately from the trend analysis rather than treating one as a summary of the other.
 
-### 4.2 What segmented regression is doing
+### A.2 What segmented regression is doing
 
 **What question are we asking?** At each known observing-system boundary, does the series step or bend?
 
@@ -502,7 +547,7 @@ In plain English: *we fit one continuous description of the entire record that c
 
 **What assumptions remain?** That the boundaries are the right dates (they come from the observing-system registry, fixed in advance); that the underlying form really is piecewise-linear-plus-seasonal; and that a single AR(1) adequately describes the residual dependence.
 
-### 4.3 Why P7 gets no slope hinge
+### A.3 Why P7 gets no slope hinge
 
 **What question are we asking?** Can a 15-month period support an independent slope estimate?
 
@@ -516,7 +561,7 @@ So P7 receives a **level change** — we do ask whether the series steps at Augu
 
 **What does it NOT mean?** It does not mean nothing happened during P7. It means our design deliberately declines to make a slope claim it cannot support.
 
-### 4.4 Prais–Winsten in plain language
+### A.4 Prais–Winsten in plain language
 
 **What question are we asking?** How do we fit a regression whose residuals remember the previous month?
 
@@ -534,9 +579,9 @@ Production settings: at most 25 iterations, convergence tolerance 10⁻⁷, AR(1
 
 **What does Prais–Winsten NOT do here?** It does not produce our final uncertainty estimates. This is worth stating clearly because it is the natural assumption. We tried using its standard errors — both OLS-with-Newey–West and Prais–Winsten-with-Newey–West — and *both were anti-conservative* in the fixed-seed 288-month AR(1) no-transition test. They declared too many transitions significant when none existed.
 
-So Prais–Winsten's actual job is narrower: it supplies the fitted serial-dependence model that the bootstrap in §4.5 then uses. The Newey–West standard errors remain in the output as diagnostics and play no role in determining significance.
+So Prais–Winsten's historical job was narrower: it supplied the fitted serial-dependence model that the bootstrap in Appendix A.5 then used. The Newey–West standard errors remain in archived output as diagnostics and play no role in current manuscript inference.
 
-### 4.5 Innovation-resampling bootstrap
+### A.5 Innovation-resampling bootstrap
 
 **What question are we asking?** How much would our transition coefficients move if the noise had come out differently?
 
@@ -563,7 +608,7 @@ Simulating at the upper 95% confidence bound instead (capped at 0.98) means we a
 
 Inference uses centered two-sided empirical bootstrap p-values and basic bootstrap intervals.
 
-### 4.6 Why bootstrap CI and FDR can produce the P6 ET result
+### A.6 Why bootstrap CI and FDR can produce the P6 ET result
 
 This is the best worked example in the paper of pointwise versus family-level inference, and it is worth understanding thoroughly because it is the one result most likely to be challenged.
 
@@ -595,9 +640,11 @@ Same boundary, same family, same method. Storage clears the family bar; ET does 
 
 ---
 
-## 5. Independent PELT changepoints
+## Appendix B — superseded independent PELT analysis
 
-### 5.1 What PELT is asking
+This blind-changepoint analysis is likewise historical and is not part of the current manuscript inference.
+
+### B.1 What PELT is asking
 
 **What question are we asking?** Ignoring everything we know about satellites, where does this record appear to break?
 
@@ -605,7 +652,7 @@ No observing-system date is supplied to the algorithm. PELT searches for points 
 
 **Why is this worth doing when we already have the known-date test?** Because it can fail in ways the known-date test cannot, and succeed in ways it cannot. It can find breaks we did not anticipate. It can decline to find a break at a date we were confident about. And when we specify April 2015 in advance for physical reasons and an algorithm that has never heard of SMAP independently picks April 2015 out of 288 months, that agreement carries real evidential weight.
 
-### 5.2 Why a penalty is necessary
+### B.2 Why a penalty is necessary
 
 **What question are we asking?** How do we stop the algorithm calling every wiggle a changepoint?
 
@@ -615,7 +662,7 @@ The penalty basis is BIC — the Bayesian Information Criterion — which charge
 
 Higher penalty → fewer, stronger breaks. Lower penalty → more, weaker breaks. Our primary penalty is **1.25 × BIC**, slightly stricter than standard.
 
-### 5.3 Why we require consensus
+### B.3 Why we require consensus
 
 **What question are we asking?** Is this break real, or an artifact of one convenient tuning choice?
 
@@ -631,7 +678,7 @@ This is intentionally demanding, and the numbers show it: across 43 series only 
 
 **Why do we keep the unmatched ones?** Because discarding them would be cheating. Reporting only the breaks that landed near a satellite date, while quietly dropping fifteen that did not, would badly overstate the correspondence between the record and the observing-system chronology. The unmatched breaks are retained and explicitly not attributed.
 
-### 5.4 What the synthetic tests tell us
+### B.4 What the synthetic tests tell us
 
 We planted known effects in synthetic AR(1) series and asked how often the pipeline recovered them.
 
@@ -669,35 +716,13 @@ A PELT *absence* near a known date is nearly uninformative about gradual changes
 
 ### 6.2 April 2015 RZMC transition
 
-**The result.** Four independent lines converge on April 2015:
+**The result.** The P6−P5 RZMC DA−OL difference is resolved globally and in Australia, southern Africa, and North Africa/Middle East. The estimates are +1.52, +3.46, +3.57, and +1.62 ×10⁻³ m³ m⁻³, respectively. Western North America and northern Eurasia are not resolved at P6.
 
-1. the known-date test gives an FDR-significant RZMC DA−OL level change of +0.00102 m³ m⁻³ (interval 0.00049–0.00156);
-2. it replicates under the warm, snow-free mask (+0.00127 m³ m⁻³);
-3. PELT independently breaks **exactly** at April 2015 in ten primary series, nine of which also had significant known-date level changes;
-4. no paired OL or DA *control* series has an accepted break at that date.
+The P2−P1 pattern is different: it is resolved globally and in western North America and northern Eurasia, but not in the three warm, dry regions. Thus the timing of regional change differs geographically rather than following one global sequence.
 
-That fourth point is the one to emphasize. If April 2015 were a climate event, or a forcing artifact, OL would show it too. OL does not. Whatever changed, changed in the assimilation.
+**The lesson.** Say that P6−P5 coincides with the introduction of SMAP brightness-temperature assimilation and a broader multi-sensor reorganization. Do not call it an instantaneous April 2015 jump, and do not claim that SMAP is the unique cause.
 
-**The lesson.** This is about as strong as observational attribution gets in this setting. And the language must still be "coincides with the introduction of SMAP," not "SMAP caused." We cannot rule out another coincident change in the analysis system.
-
-### 6.3 April 2015 storage and ET
-
-Covered in detail in §4.6. The compressed lesson: **storage q = 0.009 survives family correction; ET q = 0.072 does not**, despite ET's own interval excluding zero. Report storage as significant, ET as convergent but not formally significant, and do not blur them into a single sentence that implies both cleared the same bar.
-
-### 6.4 P2 runoff
-
-**The result.** At P2 (July 2002, when MODIS Aqua snow-cover assimilation begins), DA−OL total runoff increases by 0.790 kg m⁻² month⁻¹ (interval 0.379–1.176, q = 0.0045), followed by a positive P2 period slope of 0.108 kg m⁻² month⁻¹ yr⁻¹ (0.021–0.194, q = 0.0349). PELT independently places an accepted runoff break in June 2002 — one month early.
-
-**Why is this physically satisfying?** Because the early record contains *only* snow-cover assimilation. And the entirely separate MODIS-only water-budget analysis in §3.6 of the manuscript found that assimilation-added snow water is predominantly partitioned into runoff (64.3%). So a snow-assimilation expansion producing a runoff step is precisely what the mass accounting predicts.
-
-**What does it NOT establish?** That Aqua uniquely caused it. Two specific cautions worth remembering:
-
-- P1 is only 25 months long, one month above our own 24-month reliability floor. A level *and* slope change estimated against a 25-month baseline at the very start of the record is the most fragile transition estimate in the analysis. The period registry flags this explicitly.
-- Early-record spin-up and drift are classic confounders at exactly this position in a reanalysis.
-
-The convergence with the independent budget result is what makes this credible, not the transition statistics alone.
-
-### 6.5 Snow-water partition
+### 6.3 Snow-water partition
 
 **The result.** Direct accounting: 64.3% runoff, 35.9% ET, 4.2% storage, −2.7% peatland free-standing water, −1.7% residual. Controlled regression: 0.749, 0.182, 0.085, −0.017, 0.0007.
 
@@ -713,23 +738,19 @@ A checklist. Each of these is a mistake it would be easy to make in this specifi
 
 **Correlation ≠ causation.** Every transition result is temporal coincidence with a known date. Write "coincides with," not "caused by."
 
-**Significance ≠ importance.** The RZMC P6 level change is +0.00102 m³ m⁻³ — highly significant and physically tiny. Report both the significance and the magnitude.
+**Significance ≠ importance.** The global RZMC P6−P5 difference is +0.00152 m³ m⁻³ — resolved but physically small. Report both the significance and the magnitude.
 
-**Non-significance ≠ zero effect.** With ~25% FDR power for level shifts and ~8% for slope shifts, we fail to detect real effects routinely by design. Write "not resolved," not "no change." P4, P5, P7, P8, and P9 have no surviving primary transitions — that is a statement about our power, not about the satellites.
+**Non-significance ≠ zero effect.** Write "not resolved," not "no change." Short periods and strong monthly persistence make regional period differences difficult to resolve.
 
 **Global mean ≠ regional behaviour.** RZMC: 7% of tiles significant, domain mean not significant. Both true.
 
-**Level change ≠ long-term trend.** Storage steps up 2.144 kg m⁻² at P6 and has no significant 24-year trend. A staircase is not a ramp.
+**Period-mean difference ≠ instantaneous level change.** A P6−P5 contrast can arise from gradual evolution within either period; it is not evidence of a jump on 1 April 2015.
 
 **Trend of difference ≠ difference of trends.** We fit the trend of DA−OL. Do not describe it as the difference between the DA trend and the OL trend.
 
-**Pointwise p ≠ FDR q.** ET at P6: interval excludes zero, q = 0.072. Different questions.
+**Pointwise p ≠ FDR q.** Regional tests are corrected in six-test families at each boundary. A small unadjusted p-value does not by itself define a resolved transition.
 
-**CI excludes zero ≠ automatically FDR significant.** Same example. Also the reverse: for the zero-heavy activity diagnostics, FDR significance with a zero-containing interval occurs at up to 22% of significant tiles.
-
-**PELT break near a mission date ≠ unique attribution.** Ten series break at April 2015. That establishes an abrupt change, not its cause.
-
-**Lack of a PELT break ≠ no gradual change.** 4.2% recovery for slope hinges. Silence is uninformative.
+**CI excludes zero ≠ automatically FDR significant.** Also the reverse: for the zero-heavy activity diagnostics, FDR significance with a zero-containing interval occurs at up to 22% of significant tiles.
 
 **Thousands of neighbouring tiles ≠ thousands of independent experiments.** This is why we block-bootstrap and why we use FDR rather than pointwise stippling.
 
@@ -747,18 +768,16 @@ A checklist. Each of these is a mistake it would be easy to make in this specifi
 | Theil–Sen | How big is the trend? | Robust to outliers and non-Gaussian noise | Estimator only — no significance, no autocorrelation fix | SCF declines 0.000554 yr⁻¹ in OL |
 | Modified Mann–Kendall | Is the trend distinguishable from noise? | Rank-based, no distributional assumption; Hamed–Rao handles memory | Deliberately conservative; can only reduce significance | 12% → 0% false positives under AR(1)=0.8 |
 | BH FDR | How many of my flagged tiles are false? | Thousands of tests need multiplicity control | Controls the batch, not the individual tile | 7,892 significant RZMC DA−OL tiles |
-| Segmented regression | Does the series step or bend at a known date? | Estimates each transition accounting for all the others | Level, slope change, and period slope are three different things | P6 storage +2.144 kg m⁻² |
-| Prais–Winsten | How do we fit with autocorrelated residuals? | Residuals remember the previous month | Not our uncertainty estimator — its SEs were anti-conservative | Supplies the AR(1) model for the bootstrap |
-| Innovation bootstrap | How uncertain is the transition coefficient? | Refits the full model under resampled noise histories | Simulation AR(1) at upper 95% bound, deliberately pessimistic | ET P6 interval 0.094–0.883 |
-| PELT | Where does the record break without being told? | Independent corroboration of known dates | Excellent for steps, nearly blind to gradual hinges | Ten series break exactly at April 2015 |
+| Regional period means | When do mapped RZMC differences emerge? | Reuses the same adjusted tile series as the trend map | Difference between period averages, not a boundary jump | P6−P5 is resolved in four warm/dry regions plus global land |
+| AR(1) effective sample size | How much independent monthly information is present? | Regional soil moisture has strong memory | Conservative approximation, checked against two bootstraps | 9 of 48 RZMC comparisons resolved |
 
 ### The 30-second explanation of our statistical strategy
 
-For the snow-water analysis, the primary result is direct mass accounting, with uncertainty estimated by resampling spatial blocks; a within-tile controlled regression provides an independent corroboration that removes persistent geographic differences, common year effects, and variations in the background snowpack. For temporal consistency, we estimate robust paired DA-minus-OL trends with autocorrelation-corrected Mann–Kendall inference and spatial FDR control. We test pre-specified observing-system transitions with an AR(1)-aware segmented regression and bootstrap, then use independently dated PELT changepoints as corroboration. Synthetic tests show that the procedures are conservative and effective for the abrupt effects emphasized in the manuscript, while independent changepoint detection has low sensitivity to gradual slope changes.
+For the snow-water analysis, the primary result is direct mass accounting, with uncertainty estimated by resampling spatial blocks; a within-tile controlled regression independently corroborates the partition pattern after removing persistent geographic differences, common year effects, and variations in background snowpack. For temporal consistency, we form paired DA-minus-OL tile series, remove seasonality once with a trend-preserving Theil–Sen adjustment, and use those same adjusted tile series in both figures. Figure 16 estimates tile trends with autocorrelation-corrected Mann–Kendall inference and spatial FDR control; Figure 17 area-weights the tile series regionally, compares adjacent P1–P9 means with AR(1)-aware uncertainty, and controls FDR across six regions at each boundary.
 
 ### If you only remember one thing per section
 
 - **§2.6:** We followed conserved mass, so the budget closes and the closure is checkable.
 - **§2.7 trends:** We fit the trend of the *difference*, and we corrected for both memory and multiplicity, in both cases in the conservative direction.
-- **§2.7 transitions:** We tested dates we specified in advance, then checked whether an algorithm that had never heard of those dates agreed.
+- **§2.7 periods:** Figure 17 reuses the adjusted Figure 16 tile series and asks when their regional averages differ between observing-system periods; it does not estimate instantaneous jumps.
 - **Everywhere:** Where we found nothing, that means *not resolved*, not *no effect*.
