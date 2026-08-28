@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "phase": 2,
+  "matrix_kind": "state_context",
+  "description": "Matched OL and DA trends for the focused Phase 2 ET, total-runoff, and storage analysis.",
+  "expected_run_count": 6,
+  "runs": [
+    {"run_id": "EVLAND_ol_valid_land", "variable": "EVLAND", "series": "ol", "mask": "valid_land", "role": "context", "rationale": "Global OL evapotranspiration trend on paired OL/DA support."},
+    {"run_id": "EVLAND_da_valid_land", "variable": "EVLAND", "series": "da", "mask": "valid_land", "role": "context", "rationale": "Global DA evapotranspiration trend on the same paired support."},
+    {"run_id": "TOTAL_RUNOFF_ol_valid_land", "variable": "TOTAL_RUNOFF", "series": "ol", "mask": "valid_land", "role": "context", "rationale": "Global OL total-runoff trend on paired OL/DA support."},
+    {"run_id": "TOTAL_RUNOFF_da_valid_land", "variable": "TOTAL_RUNOFF", "series": "da", "mask": "valid_land", "role": "context", "rationale": "Global DA total-runoff trend on the same paired support."},
+    {"run_id": "TWLAND_ol_valid_land", "variable": "TWLAND", "series": "ol", "mask": "valid_land", "role": "context", "rationale": "Global OL total land-water storage trend on paired OL/DA support."},
+    {"run_id": "TWLAND_da_valid_land", "variable": "TWLAND", "series": "da", "mask": "valid_land", "role": "context", "rationale": "Global DA total land-water storage trend on the same paired support."}
+  ]
+}

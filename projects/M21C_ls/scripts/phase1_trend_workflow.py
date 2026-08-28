@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shared contracts and audits for M21C Phase 1 trend production."""
+"""Shared contracts and audits for M21C trend production."""
 
 from __future__ import annotations
 
@@ -58,25 +58,29 @@ REQUIRED_OUTPUT_VARIABLES = {
 }
 
 
-def load_phase1_runs(
+def load_trend_runs(
     path: str | Path = DEFAULT_RUN_MATRIX,
     *,
     variable_selection: str | Path = DEFAULT_VARIABLE_SELECTION,
+    expected_phase: int | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, str]]]:
     """Load and validate the production run matrix against the variable registry."""
 
     payload = json.loads(Path(path).read_text())
-    if int(payload.get("phase", -1)) != 1:
-        raise ValueError("Phase 1 run matrix must declare phase=1")
+    phase = int(payload.get("phase", -1))
+    if phase < 1:
+        raise ValueError("Trend run matrix must declare a positive phase")
+    if expected_phase is not None and phase != int(expected_phase):
+        raise ValueError(f"Trend run matrix must declare phase={expected_phase}")
     matrix_kind = str(payload.get("matrix_kind", "primary"))
     if matrix_kind not in {"primary", "state_context"}:
-        raise ValueError(f"Unknown Phase 1 matrix_kind: {matrix_kind}")
+        raise ValueError(f"Unknown trend matrix_kind: {matrix_kind}")
     runs = [dict(run) for run in payload.get("runs", [])]
     if len(runs) != int(payload.get("expected_run_count", -1)):
-        raise ValueError("Phase 1 run count does not match expected_run_count")
+        raise ValueError("Trend run count does not match expected_run_count")
 
     selection = load_variable_selection(variable_selection)
-    phase1 = selection.loc[selection["phase"] == 1]
+    phase_selection = selection.loc[selection["phase"] == phase]
     run_ids: set[str] = set()
     signatures: set[tuple[str, str, str]] = set()
     primary_variables: list[str] = []
@@ -87,22 +91,22 @@ def load_phase1_runs(
             if not str(run.get(key, "")).strip()
         }
         if missing:
-            raise ValueError(f"Phase 1 run is missing fields: {sorted(missing)}")
+            raise ValueError(f"Trend run is missing fields: {sorted(missing)}")
         run_id = str(run["run_id"])
         variable = str(run["variable"])
         series = str(run["series"])
         mask = str(run["mask"])
         role = str(run["role"])
         if run_id in run_ids:
-            raise ValueError(f"Duplicate Phase 1 run_id: {run_id}")
+            raise ValueError(f"Duplicate trend run_id: {run_id}")
         run_ids.add(run_id)
         signature = (variable, series, mask)
         if signature in signatures:
-            raise ValueError(f"Duplicate Phase 1 run signature: {signature}")
+            raise ValueError(f"Duplicate trend run signature: {signature}")
         signatures.add(signature)
-        if variable not in phase1.index:
-            raise ValueError(f"Run {run_id} references a non-Phase-1 variable: {variable}")
-        row = phase1.loc[variable]
+        if variable not in phase_selection.index:
+            raise ValueError(f"Run {run_id} references a non-Phase-{phase} variable: {variable}")
+        row = phase_selection.loc[variable]
         if matrix_kind == "primary":
             expected_series = "delta" if str(row["ol_dataset"]) else "value"
             if series != expected_series:
@@ -129,9 +133,24 @@ def load_phase1_runs(
         if len(primary_variables) != expected_primary:
             raise ValueError("Primary run count does not match expected_primary_variable_count")
         duplicate_primary = pd.Series(primary_variables).duplicated().any()
-        if duplicate_primary or set(primary_variables) != set(phase1.index):
-            raise ValueError("Every Phase 1 variable must have exactly one primary run")
+        require_all = bool(payload.get("require_all_phase_variables", True))
+        if duplicate_primary:
+            raise ValueError("Every primary variable must have exactly one primary run")
+        if require_all and set(primary_variables) != set(phase_selection.index):
+            raise ValueError(f"Every Phase {phase} variable must have exactly one primary run")
     return payload, runs
+
+
+def load_phase1_runs(
+    path: str | Path = DEFAULT_RUN_MATRIX,
+    *,
+    variable_selection: str | Path = DEFAULT_VARIABLE_SELECTION,
+) -> tuple[dict[str, Any], list[dict[str, str]]]:
+    """Backward-compatible Phase 1 run-matrix loader."""
+
+    return load_trend_runs(
+        path, variable_selection=variable_selection, expected_phase=1
+    )
 
 
 def output_filename(run: dict[str, str]) -> str:
@@ -337,7 +356,7 @@ def audit_phase1_outputs(
 ) -> pd.DataFrame:
     """Audit every production output declared by the Phase 1 run matrix."""
 
-    _, runs = load_phase1_runs(run_matrix, variable_selection=variable_selection)
+    _, runs = load_trend_runs(run_matrix, variable_selection=variable_selection)
     contract = json.loads(Path(input_contract).read_text())
     expected_tiles = int(contract["n_tiles"])
     expected_configuration = json.dumps(

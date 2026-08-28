@@ -61,7 +61,7 @@ def audit_changepoint_outputs(
     comparison = pd.read_csv(comparison_path)
     models = pd.read_csv(models_path)
     if set(models["series_id"]) != expected_ids or models["series_id"].duplicated().any():
-        errors.append("model series IDs differ from the 43-series catalogue")
+        errors.append("model series IDs differ from the run-matrix catalogue")
     if not np.all(models["n_time"] == 288) or not np.all(models["n_valid"] == 288):
         errors.append("not every model contains 288 finite months")
     expected_configuration = json.dumps(settings, sort_keys=True)
@@ -126,7 +126,7 @@ def audit_changepoint_outputs(
         errors.append("sensitivity boundary-match flags disagree with offsets")
 
     with xr.open_dataset(input_monthly) as source, xr.open_dataset(monthly_path) as monthly:
-        if monthly.sizes.get("series") != 43 or monthly.sizes.get("time") != 288:
+        if monthly.sizes.get("series") != len(catalogue) or monthly.sizes.get("time") != 288:
             errors.append("changepoint monthly output has incorrect dimensions")
         if set(monthly["series_id"].values.astype(str)) != expected_ids:
             errors.append("changepoint monthly series IDs differ from catalogue")

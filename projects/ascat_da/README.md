@@ -52,6 +52,10 @@ For the older ASCAT/SMAP paper figure workflow, see `ASCAT_SMAP_paper_provenance
 
 ## Supporting scripts
 - `scripts/check_ascat_duplicates.py` – helper to spot duplicate ASCAT files before ingest.
+- `scripts/download_hsaf_ascat.sh` - credential-safe `lftp` wrapper for resumable
+  H121/H139/H29 NetCDF downloads. For example, test a single month with
+  `scripts/download_hsaf_ascat.sh -u USER -d /data/H121 -s metop_a -y 2020 -m 01 --dry-run`;
+  omit `--dry-run` to download it. The password is requested interactively.
 - `scripts/filename_lister_v2.py` – utility for listing/renaming raw observation files.
 - `scripts/run_ismn_ol_da_skill.py` – ISMN in-situ soil-moisture skill for OL vs the DA runs (see below).
 

@@ -1,7 +1,14 @@
 {
   "analysis_title": "Water-year differential snow-DA budget and soil-moisture response",
   "data_directory": "/Users/amfox/Desktop/GEOSldas_diagnostics/test_data/M21C_land_sweeper_v2",
-  "water_years": [2001, 2002, 2003, 2004, 2005, 2006],
+  "water_years": [
+    2001,
+    2002,
+    2003,
+    2004,
+    2005,
+    2006
+  ],
   "modis_only_start": "2000-06-01",
   "microwave_soil_moisture_da_start": "2007-06-01",
   "mask": {
@@ -9,7 +16,7 @@
     "minimum_latitude_degrees_north": 20.0,
     "snow_cover_possible_threshold": 0.05,
     "snow_mass_possible_threshold_kg_m2": 5.0,
-    "maximum_mean_jja_snow_cover_fraction": 0.20
+    "maximum_mean_jja_snow_cover_fraction": 0.2
   },
   "minimum_abs_domain_input_for_fraction_kg_m2": 0.1,
   "maximum_abs_annual_tile_precip_difference_kg_m2": 0.2,
@@ -32,9 +39,14 @@
     "seed": 21022
   },
   "storage": {
-    "primary_closing_term": "September-to-September monthly-mean DA-minus-OL TWLAND state change",
-    "state_proxy": "September monthly-mean DA-minus-OL TWLAND minus prior-September monthly-mean DA-minus-OL TWLAND",
-    "state_proxy_limitation": "Monthly means do not provide literal October 1 and September 30 endpoint states. The same-calendar-month proxy spans 12 months at a consistent seasonal phase and is the best available independent endpoint approximation.",
+    "primary_closing_term": "October-1-to-October-1 change in instantaneous DA-minus-OL TWLAND from catch_internal_rst restarts",
+    "state_proxy": "24-member ensemble mean of CDCR2/(1-WPWET) - CATDEF + RZEXC + SRFEXC + CAPAC + WESNN1 + WESNN2 + WESNN3 at 00Z October 1",
+    "state_proxy_limitation": "Restarts supply exact water-year boundary states for WY2001-WY2006 only. The prior September monthly-mean proxy is retained as dStorage_monthly_proxy: it matches in six-year aggregate to about 2% but differs by up to about 20% in single water years and can invert the sign when the true change is small.",
+    "endpoint_source_files": [
+      "OLv8_twland_wy_endpoints_2000_2006.nc",
+      "DAv8_twland_wy_endpoints_2000_2006.nc"
+    ],
+    "endpoint_provenance_note": "docs/notes/twland_endpoint_reconstruction.md",
     "wchangeland_role": "Supporting process-tendency diagnostic only; excluded from the increment-inclusive closing storage term."
   },
   "soil_water_storage": {
@@ -44,5 +56,18 @@
   "snow_sublimation": {
     "status": "not_used_as_mass_term",
     "reason": "A latent-heat component is available, but no independently verified native snow-sublimation water-mass flux is present. EVLAND remains the established total ET term to avoid double counting."
+  },
+  "peat_free_standing_water": {
+    "status": "included_as_mass_term",
+    "variable": "PEATCLSM_FSWCHANGE",
+    "budget_term": "dPeatFreeStandingWater",
+    "role": "PEATCLSM free-standing surface water change, a store catch_calc_wtotl deliberately excludes from TWLAND. Without it, water moving into or out of free-standing water on peat tiles leaves the TWLAND-based budget and appears in the residual.",
+    "peat_tile_definition": "POROS >= PEATCLSM_POROS_THRESHOLD = 0.90 (catch_constants.F90)",
+    "non_peat_value": "0.0 by construction, matching FSW_CHANGE = 0. initialization in catchment.F90",
+    "source_files": [
+      "OLv8_peat_fsw_2000_2024_compressed.nc",
+      "DAv8_peat_fsw_2000_2024_compressed.nc"
+    ],
+    "provenance_note": "docs/notes/discover_peatclsm_budget_brief.md"
   }
 }

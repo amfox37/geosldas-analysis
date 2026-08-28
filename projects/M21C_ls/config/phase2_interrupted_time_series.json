@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "model": "segmented_prais_winsten_ar1_with_innovation_bootstrap",
+  "monthly_fixed_effects": true,
+  "reference_calendar_month": 1,
+  "minimum_valid_months": 240,
+  "minimum_valid_fraction": 0.9,
+  "minimum_span_years": 20.0,
+  "confidence_level": 0.95,
+  "bootstrap": {
+    "method": "fitted_ar1_resampled_innovations",
+    "replicates": 1999,
+    "random_seed": 20260813,
+    "burn_in_months": 120,
+    "ar1_simulation": "upper_large_sample_confidence_bound",
+    "ar1_confidence_level": 0.95,
+    "inference": "two-sided centered empirical p-values and basic confidence intervals"
+  },
+  "autocorrelation": {
+    "estimator": "iterative_prais_winsten_ar1",
+    "maximum_iterations": 25,
+    "convergence_tolerance": 1e-7,
+    "maximum_absolute_ar1": 0.98,
+    "covariance": "newey_west_bartlett",
+    "maximum_lag_months": 24,
+    "finite_sample_correction": true,
+    "gap_handling": "pairs must be separated by the requested calendar-month lag"
+  },
+  "transitions": {
+    "level_change": "all P2-P9 boundaries",
+    "slope_change": "destination periods with reliable_for_slope=true",
+    "p7_constraint": "P7 has a level change but no independent slope-change term; its slope is constrained to P6 until P8"
+  },
+  "fdr": {
+    "method": "benjamini_hochberg",
+    "alpha": 0.05,
+    "families": [
+      "each level-change boundary across all domain series in the run matrix",
+      "each slope-change boundary across all domain series in the run matrix",
+      "each independently estimated period slope across all domain series in the run matrix"
+    ]
+  }
+}

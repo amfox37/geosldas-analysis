@@ -3,6 +3,16 @@
 
 SFMC and RZMC are retained as diagnostic state responses. They are never
 added to the closing equation because TWLAND already contains soil water.
+
+The closing equation carries two terms that monthly TWLAND alone cannot
+supply, both sourced from dedicated Discover deliveries:
+
+- dPeatFreeStandingWater: PEATCLSM free-standing surface water. catch_calc_wtotl
+  deliberately excludes this store from TWLAND, so on peat tiles
+  (POROS >= 0.9) water entering or leaving it leaks out of the budget.
+- dStorage: instantaneous 00Z Oct 1 TWLAND reconstructed from
+  catch_internal_rst restarts, replacing the September monthly-mean
+  endpoint proxy. The proxy is retained as dStorage_monthly_proxy.
 """
 
 from __future__ import annotations
@@ -26,8 +36,17 @@ from analysis_a_robustness import (
 
 
 MONTH_LABELS = ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]
-BUDGET_TERMS = ["I_snow", "dRunoff_total", "dET", "dStorage", "residual"]
-PARTITION_TERMS = ["dRunoff_surface", "dBaseflow", "dET", "dStorage", "residual"]
+BUDGET_TERMS = ["I_snow", "dRunoff_total", "dET", "dStorage", "dPeatFreeStandingWater", "residual"]
+PARTITION_TERMS = [
+    "dRunoff_surface",
+    "dBaseflow",
+    "dET",
+    "dStorage",
+    "dPeatFreeStandingWater",
+    "residual",
+]
+# Terms whose partition fractions must sum to one against I_snow.
+CLOSING_TERMS = ["dRunoff_total", "dET", "dStorage", "dPeatFreeStandingWater", "residual"]
 SOIL_METRICS = [
     "peak_dRZMC_positive",
     "mjj_mean_dRZMC",
@@ -183,6 +202,10 @@ def load_budget_dataset(config: dict) -> xr.Dataset:
         "ol_water": data_dir / "OLv8_water_budget_2000_2024_compressed.nc",
         "da_water": data_dir / "DAv8_water_budget_2000_2024_compressed.nc",
         "catch": data_dir / "catch_progn_raw_monthly_cumulative_200006_202405.nc",
+        "ol_fsw": data_dir / "OLv8_peat_fsw_2000_2024_compressed.nc",
+        "da_fsw": data_dir / "DAv8_peat_fsw_2000_2024_compressed.nc",
+        "ol_twland_rst": data_dir / "OLv8_twland_wy_endpoints_2000_2006.nc",
+        "da_twland_rst": data_dir / "DAv8_twland_wy_endpoints_2000_2006.nc",
     }
     opened = {name: xr.open_dataset(path, decode_times=True) for name, path in paths.items()}
     try:
@@ -198,6 +221,30 @@ def load_budget_dataset(config: dict) -> xr.Dataset:
         area = np.asarray(tilecoord["area"], dtype="float64")[tile_indices]
         if not np.isfinite(area).all() or np.any(area <= 0):
             raise AssertionError("Seasonal-snow tile areas must be finite and positive")
+
+        n_all_tiles = int(mask.size)
+        for name in ["ol_fsw", "da_fsw", "ol_twland_rst", "da_twland_rst"]:
+            if opened[name].sizes["tile"] != n_all_tiles:
+                raise AssertionError(
+                    f"{name} carries {opened[name].sizes['tile']} tiles, expected {n_all_tiles}"
+                )
+            for axis in ["lat", "lon"]:
+                if not np.allclose(
+                    opened[name][axis].values[tile_indices],
+                    opened["ol_land"][axis].values[tile_indices],
+                    atol=1.0e-4,
+                ):
+                    raise AssertionError(f"{name} {axis} does not match the land-variable tile order")
+
+        restart_time = pd.DatetimeIndex(opened["ol_twland_rst"]["time"].values)
+        if not restart_time.equals(pd.DatetimeIndex(opened["da_twland_rst"]["time"].values)):
+            raise AssertionError("OL and DA restart endpoint dates differ")
+        if not ((restart_time.month == 10) & (restart_time.day == 1)).all():
+            raise AssertionError("Restart TWLAND endpoints must all fall on October 1")
+        restart_index = {int(stamp.year): position for position, stamp in enumerate(restart_time)}
+        restart_delta = (
+            opened["da_twland_rst"]["TWLAND"].values - opened["ol_twland_rst"]["TWLAND"].values
+        )[:, tile_indices]
 
         water_years = config["water_years"]
         expected_dates = pd.DatetimeIndex(
@@ -227,6 +274,7 @@ def load_budget_dataset(config: dict) -> xr.Dataset:
             "dTWLAND",
             "dWCHANGELAND",
             "dPrecipitation",
+            "dPeatFreeStandingWater",
         ]
         monthly = {name: np.full(shape, np.nan, dtype="float32") for name in monthly_names}
         annual_names = [
@@ -239,7 +287,9 @@ def load_budget_dataset(config: dict) -> xr.Dataset:
             "dBaseflow",
             "dRunoff_total",
             "dStorage",
+            "dStorage_monthly_proxy",
             "dStorage_process_tendency",
+            "dPeatFreeStandingWater",
             "residual",
             "process_balance_diagnostic",
             "dPrecipitation",
@@ -253,7 +303,9 @@ def load_budget_dataset(config: dict) -> xr.Dataset:
         for year_index, water_year in enumerate(water_years):
             dates = water_year_dates(water_year)
             date_slice = slice(dates[0], dates[-1])
-            for dataset in opened.values():
+            for name, dataset in opened.items():
+                if name.endswith("_twland_rst"):
+                    continue
                 found = pd.DatetimeIndex(dataset.time.sel(time=date_slice).values)
                 if not found.equals(dates):
                     raise AssertionError(f"{water_year}: monthly timestamps differ across inputs")
@@ -265,6 +317,8 @@ def load_budget_dataset(config: dict) -> xr.Dataset:
             ol_water = opened["ol_water"].sel(time=date_slice).isel(tile=tile_indices)
             da_water = opened["da_water"].sel(time=date_slice).isel(tile=tile_indices)
             catch = opened["catch"].sel(time=date_slice).isel(tile=tile_indices)
+            ol_fsw = opened["ol_fsw"].sel(time=date_slice).isel(tile=tile_indices)
+            da_fsw = opened["da_fsw"].sel(time=date_slice).isel(tile=tile_indices)
 
             monthly["ol_snow_mass"][year_index] = ol_land["SNOMASLAND"].values
             monthly["dSnow_mass"][year_index] = (da_land["SNOMASLAND"] - ol_land["SNOMASLAND"]).values
@@ -281,22 +335,30 @@ def load_budget_dataset(config: dict) -> xr.Dataset:
             monthly["dTWLAND"][year_index] = (da_water["TWLAND"] - ol_water["TWLAND"]).values
             monthly["dWCHANGELAND"][year_index] = monthly_flux_total(da_water["WCHANGELAND"] - ol_water["WCHANGELAND"]).values
             monthly["dPrecipitation"][year_index] = monthly_flux_total(da_land["PRECTOTCORRLAND"] - ol_land["PRECTOTCORRLAND"]).values
+            monthly["dPeatFreeStandingWater"][year_index] = monthly_flux_total(
+                da_fsw["PEATCLSM_FSWCHANGE"] - ol_fsw["PEATCLSM_FSWCHANGE"]
+            ).values
 
             annual["I_snow"][year_index] = np.nansum(monthly["snow_net"][year_index], axis=0)
             annual["snow_abs_netpack"][year_index] = np.nansum(monthly["snow_abs_netpack"][year_index], axis=0)
-            for name in ["dSnowmelt", "dInfiltration", "dET", "dRunoff_surface", "dBaseflow", "dRunoff_total", "dWCHANGELAND", "dPrecipitation"]:
+            for name in ["dSnowmelt", "dInfiltration", "dET", "dRunoff_surface", "dBaseflow", "dRunoff_total", "dWCHANGELAND", "dPrecipitation", "dPeatFreeStandingWater"]:
                 target = "dStorage_process_tendency" if name == "dWCHANGELAND" else name
                 annual[target][year_index] = np.nansum(monthly[name][year_index], axis=0)
 
             tw_delta = opened["da_water"]["TWLAND"] - opened["ol_water"]["TWLAND"]
             prior_sep = tw_delta.sel(time=f"{water_year - 1}-09-01").values[tile_indices]
             current_sep = tw_delta.sel(time=f"{water_year}-09-01").values[tile_indices]
-            annual["dStorage"][year_index] = current_sep - prior_sep
+            annual["dStorage_monthly_proxy"][year_index] = current_sep - prior_sep
+            annual["dStorage"][year_index] = (
+                restart_delta[restart_index[water_year]]
+                - restart_delta[restart_index[water_year - 1]]
+            )
             annual["residual"][year_index] = (
                 annual["I_snow"][year_index]
                 - annual["dET"][year_index]
                 - annual["dRunoff_total"][year_index]
                 - annual["dStorage"][year_index]
+                - annual["dPeatFreeStandingWater"][year_index]
             )
             annual["process_balance_diagnostic"][year_index] = (
                 annual["dET"][year_index]
@@ -343,6 +405,9 @@ def load_budget_dataset(config: dict) -> xr.Dataset:
                 "water_year_definition": "October through September",
                 "domain": "Analysis A Northern Hemisphere seasonal-snow mask",
                 "storage_closing_term": config["storage"]["primary_closing_term"],
+                "storage_endpoint_source": opened["ol_twland_rst"].attrs.get("formula", ""),
+                "peat_free_standing_water_role": config["peat_free_standing_water"]["role"],
+                "peat_free_standing_water_source": opened["ol_fsw"].attrs.get("note", ""),
                 "storage_limitation": config["storage"]["state_proxy_limitation"],
                 "wchangeland_role": config["storage"]["wchangeland_role"],
                 "soil_moisture_role": "SFMC/RZMC are diagnostic states and are excluded from the mass-closing equation",
@@ -362,7 +427,9 @@ def load_budget_dataset(config: dict) -> xr.Dataset:
             "dBaseflow": "kg m-2",
             "dRunoff_total": "kg m-2",
             "dStorage": "kg m-2",
+            "dStorage_monthly_proxy": "kg m-2",
             "dStorage_process_tendency": "kg m-2",
+            "dPeatFreeStandingWater": "kg m-2",
             "residual": "kg m-2",
             "process_balance_diagnostic": "kg m-2",
             "dPrecipitation": "kg m-2",
@@ -389,6 +456,136 @@ def load_budget_dataset(config: dict) -> xr.Dataset:
             dataset.close()
 
 
+def absolute_domain_budgets(config: dict) -> pd.DataFrame:
+    """Area-weighted OL and DA annual water balances over the seasonal-snow mask.
+
+    The differential budget cancels precipitation and every process common to
+    both runs, which magnifies its residual: two per-run closure offsets of
+    opposite sign add, and are then divided by the much smaller snow-DA input.
+    These absolute balances supply the context that each run closes on its own.
+    """
+    data_dir = Path(config["data_directory"])
+    root = find_repo_root()
+    paths = {
+        "ol_land": data_dir / "OLv8_land_variables_2000_2024_compressed.nc",
+        "da_land": data_dir / "DAv8_land_variables_2000_2024_compressed.nc",
+        "ol_flux": data_dir / "OLv8_flux_core_2000_2024_compressed.nc",
+        "da_flux": data_dir / "DAv8_flux_core_2000_2024_compressed.nc",
+        "ol_water": data_dir / "OLv8_water_budget_2000_2024_compressed.nc",
+        "da_water": data_dir / "DAv8_water_budget_2000_2024_compressed.nc",
+        "catch": data_dir / "catch_progn_raw_monthly_cumulative_200006_202405.nc",
+        "ol_fsw": data_dir / "OLv8_peat_fsw_2000_2024_compressed.nc",
+        "da_fsw": data_dir / "DAv8_peat_fsw_2000_2024_compressed.nc",
+        "ol_twland_rst": data_dir / "OLv8_twland_wy_endpoints_2000_2006.nc",
+        "da_twland_rst": data_dir / "DAv8_twland_wy_endpoints_2000_2006.nc",
+    }
+    opened = {name: xr.open_dataset(path, decode_times=True) for name, path in paths.items()}
+    try:
+        mask = build_static_mask(opened["ol_land"], opened["da_land"], config)
+        tile_indices = np.flatnonzero(mask.values)
+        sys.path.insert(0, str(root / "common/python/io"))
+        from read_GEOSldas import read_tilecoord
+
+        tilecoord = read_tilecoord(str(data_dir / "LS_OLv8_M36.ldas_tilecoord.bin"))
+        area = np.asarray(tilecoord["area"], dtype="float64")[tile_indices]
+
+        restart_time = pd.DatetimeIndex(opened["ol_twland_rst"]["time"].values)
+        restart_index = {int(stamp.year): position for position, stamp in enumerate(restart_time)}
+
+        rows = []
+        for run in ["OL", "DA"]:
+            prefix = run.lower()
+            land = opened[f"{prefix}_land"]
+            flux = opened[f"{prefix}_flux"]
+            water = opened[f"{prefix}_water"]
+            fsw = opened[f"{prefix}_fsw"]
+            twland = opened[f"{prefix}_twland_rst"]["TWLAND"].values[:, tile_indices]
+            for water_year in config["water_years"]:
+                dates = water_year_dates(water_year)
+                date_slice = slice(dates[0], dates[-1])
+                select = dict(time=date_slice)
+                row = {"run": run, "water_year": int(water_year)}
+                row["precipitation"] = weighted_mean(
+                    sum_monthly_flux(land["PRECTOTCORRLAND"].sel(**select)).values[tile_indices], area
+                )
+                # The snow analysis increment exists only in DA; OL is unassimilated.
+                snow_net = np.nansum(
+                    opened["catch"]["snow_net"].sel(**select).values[:, tile_indices], axis=0
+                )
+                row["I_snow"] = weighted_mean(snow_net, area) if run == "DA" else 0.0
+                row["ET"] = weighted_mean(
+                    sum_monthly_flux(flux["EVLAND"].sel(**select)).values[tile_indices], area
+                )
+                row["runoff_surface"] = weighted_mean(
+                    sum_monthly_flux(water["RUNSURFLAND"].sel(**select)).values[tile_indices], area
+                )
+                row["baseflow"] = weighted_mean(
+                    sum_monthly_flux(water["BASEFLOWLAND"].sel(**select)).values[tile_indices], area
+                )
+                row["storage"] = weighted_mean(
+                    twland[restart_index[water_year]] - twland[restart_index[water_year - 1]], area
+                )
+                row["peat_free_standing_water"] = weighted_mean(
+                    sum_monthly_flux(fsw["PEATCLSM_FSWCHANGE"].sel(**select)).values[tile_indices], area
+                )
+                row["runoff_total"] = row["runoff_surface"] + row["baseflow"]
+                row["input_total"] = row["precipitation"] + row["I_snow"]
+                row["residual"] = (
+                    row["input_total"]
+                    - row["ET"]
+                    - row["runoff_total"]
+                    - row["storage"]
+                    - row["peat_free_standing_water"]
+                )
+                row["fraction_residual"] = row["residual"] / row["input_total"]
+                rows.append(row)
+        frame = pd.DataFrame(rows)
+        means = []
+        for run in ["OL", "DA"]:
+            subset = frame[frame["run"] == run]
+            mean_row = {"run": run, "water_year": "6-WY mean"}
+            for column in subset.columns.drop(["run", "water_year"]):
+                mean_row[column] = subset[column].mean()
+            mean_row["fraction_residual"] = mean_row["residual"] / mean_row["input_total"]
+            means.append(mean_row)
+        return pd.concat([frame, pd.DataFrame(means)], ignore_index=True)
+    finally:
+        for dataset in opened.values():
+            dataset.close()
+
+
+def check_absolute_matches_differential(annual: pd.DataFrame, absolute: pd.DataFrame) -> None:
+    """Assert the differential budget equals DA minus OL of the absolute budgets.
+
+    The two are built by independent routes: the differential from per-tile DA-OL
+    differences carried through the tile archive, the absolute from per-run domain
+    means. Agreement is not automatic, and a mismatch would mean the mask, the tile
+    ordering, or a term definition had diverged between them.
+    """
+    pairs = [
+        ("dET", "ET"),
+        ("dRunoff_total", "runoff_total"),
+        ("dRunoff_surface", "runoff_surface"),
+        ("dBaseflow", "baseflow"),
+        ("dStorage", "storage"),
+        ("dPeatFreeStandingWater", "peat_free_standing_water"),
+        ("residual", "residual"),
+        ("I_snow", "I_snow"),
+    ]
+    annual_only = annual[annual["water_year"].apply(lambda value: isinstance(value, (int, np.integer)))]
+    ol = absolute[absolute["run"] == "OL"].set_index("water_year")
+    da = absolute[absolute["run"] == "DA"].set_index("water_year")
+    for water_year in annual_only["water_year"]:
+        for differential_name, absolute_name in pairs:
+            expected = da.loc[water_year, absolute_name] - ol.loc[water_year, absolute_name]
+            found = float(annual_only.set_index("water_year").loc[water_year, differential_name])
+            if not np.isclose(found, expected, atol=5.0e-3):
+                raise AssertionError(
+                    f"WY{water_year} {differential_name}: differential {found:.6f} does not match "
+                    f"DA-OL absolute {expected:.6f}"
+                )
+
+
 def dataset_to_frame(dataset: xr.Dataset, variables: list[str]) -> pd.DataFrame:
     years = dataset.water_year.values
     tiles = dataset.tile.values
@@ -412,6 +609,7 @@ def domain_budget_tables(dataset: xr.Dataset, config: dict) -> tuple[pd.DataFram
         "dBaseflow",
         "dSnowmelt",
         "dInfiltration",
+        "dStorage_monthly_proxy",
         "dStorage_process_tendency",
         "process_balance_diagnostic",
         "dPrecipitation",
@@ -426,7 +624,7 @@ def domain_budget_tables(dataset: xr.Dataset, config: dict) -> tuple[pd.DataFram
         denominator = row["I_snow"]
         valid_fraction = abs(denominator) >= config["minimum_abs_domain_input_for_fraction_kg_m2"]
         row["fraction_status"] = "reported" if valid_fraction else "net input too close to zero"
-        for variable in ["dRunoff_total", "dET", "dStorage", "residual"]:
+        for variable in CLOSING_TERMS:
             row[f"fraction_{variable}"] = row[variable] / denominator if valid_fraction else np.nan
         annual_rows.append(row)
     annual = pd.DataFrame(annual_rows)
@@ -437,7 +635,7 @@ def domain_budget_tables(dataset: xr.Dataset, config: dict) -> tuple[pd.DataFram
         mean_row[f"min_{variable}"] = annual[variable].min()
         mean_row[f"max_{variable}"] = annual[variable].max()
     mean_row["fraction_status"] = "reported"
-    for variable in ["dRunoff_total", "dET", "dStorage", "residual"]:
+    for variable in CLOSING_TERMS:
         mean_row[f"fraction_{variable}"] = mean_row[variable] / mean_row["I_snow"]
     annual_with_mean = pd.concat([annual, pd.DataFrame([mean_row])], ignore_index=True)
 
@@ -458,7 +656,7 @@ def domain_budget_tables(dataset: xr.Dataset, config: dict) -> tuple[pd.DataFram
             row[variable] = weighted_mean(
                 frame[variable].to_numpy(), frame["area"].to_numpy(), keep
             )
-        for variable in ["dRunoff_total", "dRunoff_surface", "dBaseflow", "dET", "dStorage", "residual"]:
+        for variable in ["dRunoff_total"] + PARTITION_TERMS:
             row[f"fraction_{variable}"] = row[variable] / row["I_snow"]
         partition_rows.append(row)
     partition = pd.DataFrame(partition_rows)
@@ -497,7 +695,7 @@ def bootstrap_partition(
         weighted_input = frame["I_snow"].to_numpy() * frame["area"].to_numpy() * keep
         input_by_block = np.bincount(codes, weights=weighted_input, minlength=n_blocks)
         denominator = draws @ input_by_block
-        for variable in ["dRunoff_total", "dRunoff_surface", "dBaseflow", "dET", "dStorage", "residual"]:
+        for variable in ["dRunoff_total"] + PARTITION_TERMS:
             weighted_response = frame[variable].to_numpy() * frame["area"].to_numpy() * keep
             response_by_block = np.bincount(codes, weights=weighted_response, minlength=n_blocks)
             ratio = np.divide(
@@ -526,6 +724,7 @@ def m3_regressions(dataset: xr.Dataset, config: dict) -> pd.DataFrame:
         "dBaseflow",
         "dET",
         "dStorage",
+        "dPeatFreeStandingWater",
         "residual",
     ] + SOIL_METRICS
     frame = dataset_to_frame(dataset, variables).dropna().copy()
@@ -581,7 +780,7 @@ def m3_regressions(dataset: xr.Dataset, config: dict) -> pd.DataFrame:
             )
     result = pd.DataFrame(rows)
     primary = result[result["block_degrees"] == config["bootstrap"]["primary_block_degrees"]].set_index("response")
-    closure = primary.loc[["dRunoff_total", "dET", "dStorage", "residual"], "m3_beta"].sum()
+    closure = primary.loc[CLOSING_TERMS, "m3_beta"].sum()
     if not np.isclose(closure, 1.0, atol=1.0e-8):
         raise AssertionError(f"M3 budget slopes do not close to one: {closure}")
     return result
@@ -601,6 +800,7 @@ def monthly_climatologies(dataset: xr.Dataset) -> tuple[pd.DataFrame, pd.DataFra
         "dInfiltration_monthly",
         "dET_monthly",
         "dRunoff_total_monthly",
+        "dPeatFreeStandingWater_monthly",
         "dSFMC_monthly",
         "dRZMC_monthly",
     ]
@@ -760,14 +960,14 @@ def plot_monthly_climatology(data: pd.DataFrame, path: Path) -> None:
 
 
 def plot_annual_budgets(annual: pd.DataFrame, path: Path) -> None:
-    terms = ["I_snow", "dRunoff_total", "dET", "dStorage", "residual"]
-    labels = ["Snow-DA input", "Runoff", "ET", "Storage change", "Residual"]
-    colors = ["#264653", "#2a9d8f", "#e9c46a", "#457b9d", "#d1495b"]
+    terms = ["I_snow"] + CLOSING_TERMS
+    labels = ["Snow-DA input", "Runoff", "ET", "Storage change", "Peatland free-standing water", "Residual"]
+    colors = ["#264653", "#2a9d8f", "#e9c46a", "#457b9d", "#8d6bb1", "#d1495b"]
     x = np.arange(len(annual))
-    width = 0.16
+    width = 0.14
     fig, ax = plt.subplots(figsize=(11, 5.2))
     for index, (term, label, color) in enumerate(zip(terms, labels, colors)):
-        ax.bar(x + (index - 2) * width, annual[term], width, label=label, color=color)
+        ax.bar(x + (index - 2.5) * width, annual[term], width, label=label, color=color)
     ax.axhline(0, color="0.25", linewidth=0.8)
     ax.set_xticks(x, [f"WY{value}" if isinstance(value, (int, np.integer)) else value for value in annual["water_year"]])
     ax.set_ylabel("Area-weighted mean (kg m-2 water year-1)")
@@ -783,8 +983,8 @@ def plot_positive_partition(partition: pd.DataFrame, uncertainty: pd.DataFrame, 
     row = partition.set_index("sample").loc["addition"]
     uncertainty = uncertainty[uncertainty["sample"] == "addition"].set_index("variable")
     terms = PARTITION_TERMS
-    labels = ["Surface runoff", "Baseflow", "ET", "Storage", "Residual"]
-    colors = ["#2a9d8f", "#57a773", "#e9c46a", "#457b9d", "#d1495b"]
+    labels = ["Surface runoff", "Baseflow", "ET", "Storage", "Peatland free-standing water", "Residual"]
+    colors = ["#2a9d8f", "#57a773", "#e9c46a", "#457b9d", "#8d6bb1", "#d1495b"]
     values = np.array([row[f"fraction_{term}"] for term in terms])
     low = np.array([uncertainty.loc[term, "ci_low"] for term in terms])
     high = np.array([uncertainty.loc[term, "ci_high"] for term in terms])
@@ -849,6 +1049,7 @@ def plot_soil_bins(data: pd.DataFrame, path: Path) -> None:
 
 def write_report_fragment(
     annual: pd.DataFrame,
+    absolute: pd.DataFrame,
     partition: pd.DataFrame,
     uncertainty: pd.DataFrame,
     regressions: pd.DataFrame,
@@ -867,6 +1068,7 @@ def write_report_fragment(
         rzmc_peak_timing["area_weighted_fraction"].idxmax(), "month"
     ]
     residual_fraction = annual_only["residual"] / annual_only["I_snow"]
+    absolute_only = absolute[absolute["water_year"].apply(lambda value: isinstance(value, (int, np.integer)))]
     lines = [
         "## Water-year differential snow-DA budget and soil-moisture response",
         "",
@@ -874,27 +1076,52 @@ def write_report_fragment(
         "",
         "### Storage-definition audit",
         "",
-        "Integrated `DA - OL WCHANGELAND` does not equal the change in the `DA - OL TWLAND` state anomaly. Instead, `dET + dRunoff + integrated dWCHANGELAND` is near zero, showing that WCHANGELAND is a model-process tendency that omits the discontinuous analysis mass injection. The closing storage term is therefore the September-to-September change in monthly-mean `DA - OL TWLAND`, the best same-season endpoint approximation available from monthly means. This limitation remains part of the result.",
+        "Integrated `DA - OL WCHANGELAND` does not equal the change in the `DA - OL TWLAND` state anomaly. Instead, `dET + dRunoff + integrated dWCHANGELAND` is near zero, showing that WCHANGELAND is a model-process tendency that omits the discontinuous analysis mass injection. The closing storage term is therefore an endpoint difference in `DA - OL TWLAND`.",
+        "",
+        "That endpoint is now the instantaneous 00Z October 1 state reconstructed from `catch_internal_rst` restarts as the 24-member ensemble mean of `CDCR2/(1-WPWET) - CATDEF + RZEXC + SRFEXC + CAPAC + WESNN1-3`. It replaces the September monthly-mean proxy used previously, which is retained as `dStorage_monthly_proxy` for comparison. The proxy is close in six-year aggregate but differs by up to about 20% in individual water years, and gets the sign wrong where the true change is small.",
+        "",
+        "### Peat free-standing water",
+        "",
+        "`catch_calc_wtotl` builds TWLAND from soil, canopy, and snow stores only; PEATCLSM free-standing surface water is deliberately excluded. On peat tiles (`POROS >= 0.9`) water moving into or out of that store therefore leaves the TWLAND-based budget entirely and lands in the residual. `PEATCLSM_FSWCHANGE` closes that gap and enters the budget as `dPeatFreeStandingWater`. It is zero by construction on non-peat tiles, matching the model's own `FSW_CHANGE = 0.` initialization.",
         "",
         "### Annual domain budgets",
         "",
-        "| Water year | Snow-DA input | Extra runoff | Extra ET | Storage change | Residual | Residual / input |",
-        "|---|---:|---:|---:|---:|---:|---:|",
+        "| Water year | Snow-DA input | Extra runoff | Extra ET | Storage change | Free-standing water | Residual | Residual / input |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for _, row in annual.iterrows():
         label = f"WY{row['water_year']}" if isinstance(row["water_year"], (int, np.integer)) else str(row["water_year"])
         fraction = row["residual"] / row["I_snow"]
         lines.append(
-            f"| {label} | {row['I_snow']:.2f} | {row['dRunoff_total']:.2f} | {row['dET']:.2f} | {row['dStorage']:.2f} | {row['residual']:.2f} | {100 * fraction:.1f}% |"
+            f"| {label} | {row['I_snow']:.2f} | {row['dRunoff_total']:.2f} | {row['dET']:.2f} | {row['dStorage']:.2f} | {row['dPeatFreeStandingWater']:.2f} | {row['residual']:.2f} | {100 * fraction:.1f}% |"
         )
     lines.extend(
         [
             "",
-            f"The annual state-proxy residual ranges from {100 * residual_fraction.min():.1f}% to {100 * residual_fraction.max():.1f}% of domain snow input. Conceptually identical precipitation forcing differs slightly after independent float32 compression: the maximum absolute annual tile discrepancy is {maximum_abs_annual_tile_precip_difference:.3f} kg m-2 and the largest absolute annual area-weighted domain-mean discrepancy is {annual_only['dPrecipitation'].abs().max():.6f} kg m-2. Snowmelt and infiltration are retained as pathway diagnostics and are not added to the closing terms.",
+            f"The annual budget residual ranges from {100 * residual_fraction.min():.1f}% to {100 * residual_fraction.max():.1f}% of domain snow input. Conceptually identical precipitation forcing differs slightly after independent float32 compression: the maximum absolute annual tile discrepancy is {maximum_abs_annual_tile_precip_difference:.3f} kg m-2 and the largest absolute annual area-weighted domain-mean discrepancy is {annual_only['dPrecipitation'].abs().max():.6f} kg m-2. Snowmelt and infiltration are retained as pathway diagnostics and are not added to the closing terms.",
             "",
             "![Water-year monthly climatology](monthly_synthesis_report_figures/water_year_budget_monthly_climatology.png)",
             "",
             "![Annual water-year budgets](monthly_synthesis_report_figures/water_year_budget_annual.png)",
+            "",
+            "### Absolute closure of each run",
+            "",
+            "The differential budget cancels precipitation and every process common to both runs, so its residual is magnified twice over: the two per-run closure offsets carry opposite signs and therefore add, and the sum is then divided by the much smaller snow-DA input rather than by total input. Each run closes far more tightly on its own.",
+            "",
+            "| Run | Total input | ET | Runoff | Storage | Free-standing water | Residual | Residual / input |",
+            "|---|---:|---:|---:|---:|---:|---:|---:|",
+        ]
+    )
+    for _, row in absolute[absolute["water_year"] == "6-WY mean"].iterrows():
+        lines.append(
+            f"| {row['run']} | {row['input_total']:.2f} | {row['ET']:.2f} | {row['runoff_total']:.2f} | "
+            f"{row['storage']:.2f} | {row['peat_free_standing_water']:.2f} | {row['residual']:+.2f} | "
+            f"{100 * row['fraction_residual']:+.3f}% |"
+        )
+    lines.extend(
+        [
+            "",
+            "All values are six-water-year means in kg m-2 water year-1 over the seasonal-snow mask.",
             "",
             "### Positive-input partition",
             "",
@@ -906,6 +1133,7 @@ def write_report_fragment(
         ("dBaseflow", "baseflow"),
         ("dET", "ET"),
         ("dStorage", "storage"),
+        ("dPeatFreeStandingWater", "peatland free-standing water"),
         ("residual", "residual"),
     ]:
         lines.append(
@@ -917,14 +1145,14 @@ def write_report_fragment(
             "",
             "![Positive-input six-year partition](monthly_synthesis_report_figures/water_year_budget_positive_partition.png)",
             "",
-            "| Sample | Native signed input | Runoff | ET | Storage | Residual |",
-            "|---|---:|---:|---:|---:|---:|",
+            "| Sample | Native signed input | Runoff | ET | Storage | Free-standing water | Residual |",
+            "|---|---:|---:|---:|---:|---:|---:|",
         ]
     )
     for sample, label in [("all", "All-sample net"), ("addition", "Snow addition"), ("removal", "Snow removal")]:
         row = partition.set_index("sample").loc[sample]
         lines.append(
-            f"| {label} | {row['I_snow']:.2f} kg m-2 | {100 * row['fraction_dRunoff_total']:.1f}% | {100 * row['fraction_dET']:.1f}% | {100 * row['fraction_dStorage']:.1f}% | {100 * row['fraction_residual']:.1f}% |"
+            f"| {label} | {row['I_snow']:.2f} kg m-2 | {100 * row['fraction_dRunoff_total']:.1f}% | {100 * row['fraction_dET']:.1f}% | {100 * row['fraction_dStorage']:.1f}% | {100 * row['fraction_dPeatFreeStandingWater']:.1f}% | {100 * row['fraction_residual']:.1f}% |"
         )
     lines.extend(
         [
@@ -937,13 +1165,13 @@ def write_report_fragment(
             "|---|---:|---:|",
         ]
     )
-    for variable, label in [("dRunoff_total", "Runoff"), ("dET", "ET"), ("dStorage", "Storage"), ("residual", "Residual")]:
+    for variable, label in [("dRunoff_total", "Runoff"), ("dET", "ET"), ("dStorage", "Storage"), ("dPeatFreeStandingWater", "Peatland free-standing water"), ("residual", "Residual")]:
         row = primary_reg.loc[variable]
         lines.append(f"| {label} | {row['m3_beta']:.3f} | [{row['ci_low']:.3f}, {row['ci_high']:.3f}] |")
     lines.extend(
         [
             "",
-            "These dimensionless M3 slopes use within-tile signed snow input, year effects, and OL MAM snow amount. By construction, the runoff, ET, storage, and residual slopes sum to one; the direct domain accounting remains the primary budget result.",
+            "These dimensionless M3 slopes use within-tile signed snow input, year effects, and OL MAM snow amount. By construction, the runoff, ET, storage, peat free-water, and residual slopes sum to one; the direct domain accounting remains the primary budget result.",
             "",
             "### Soil-moisture consequence",
             "",
@@ -1012,6 +1240,10 @@ def main() -> None:
     uncertainty = pd.concat([uncertainty_primary, uncertainty_coarse], ignore_index=True)
     uncertainty.to_csv(output_dir / "partition_spatial_block_uncertainty.csv", index=False)
 
+    absolute = absolute_domain_budgets(config)
+    absolute.to_csv(output_dir / "annual_absolute_budgets.csv", index=False)
+    check_absolute_matches_differential(annual, absolute)
+
     regressions = m3_regressions(dataset, config)
     regressions.to_csv(output_dir / "water_year_m3_regressions.csv", index=False)
     climatology, positive_climatology = monthly_climatologies(dataset)
@@ -1045,6 +1277,7 @@ def main() -> None:
     fragment = output_dir / "water_year_report_section.md"
     write_report_fragment(
         annual,
+        absolute,
         partition,
         uncertainty_primary,
         regressions,

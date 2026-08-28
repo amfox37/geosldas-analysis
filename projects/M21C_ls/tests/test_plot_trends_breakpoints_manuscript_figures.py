@@ -5,7 +5,6 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-import xarray as xr
 
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
@@ -29,17 +28,10 @@ def test_segmented_diverging_scale_is_symmetric_with_white_zero_bin():
     assert norm(2.0) == cmap.N
 
 
-def test_standardized_monthly_uses_full_record_sample_standard_deviation():
-    values = np.array([1.0, 2.0, 4.0, 8.0])
-    dataset = xr.Dataset(
-        {"seasonal_adjusted": (("series", "time"), values[None, :])},
-        coords={"series": ["test"], "time": np.arange(values.size)},
-    )
-    result = figures.standardized_monthly(dataset, "test")
-    assert np.isclose(result.mean(), 0.0)
-    assert np.isclose(result.std(ddof=1), 1.0)
+def test_main_figure_uses_variable_specific_delta_scales():
+    assert figures.MAIN_TREND_DELTA_SCALES == {"RZMC": "separate", "FRLANDSNO": "state"}
 
 
 def test_trend_rows_rejects_unknown_delta_scale():
-    with pytest.raises(ValueError, match="delta_scale"):
-        figures.plot_trend_rows(["RZMC"], "unused", delta_scale="magnify")
+    with pytest.raises(ValueError, match="delta_scales"):
+        figures.plot_trend_rows(["RZMC"], "unused", delta_scales={"RZMC": "magnify"})

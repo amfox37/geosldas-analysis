@@ -204,44 +204,62 @@ This extension follows the native signed snow-water increments through six compl
 
 ### Storage-definition audit
 
-Integrated `DA - OL WCHANGELAND` does not equal the change in the `DA - OL TWLAND` state anomaly. Instead, `dET + dRunoff + integrated dWCHANGELAND` is near zero, showing that WCHANGELAND is a model-process tendency that omits the discontinuous analysis mass injection. The closing storage term is therefore the September-to-September change in monthly-mean `DA - OL TWLAND`, the best same-season endpoint approximation available from monthly means. This limitation remains part of the result.
+Integrated `DA - OL WCHANGELAND` does not equal the change in the `DA - OL TWLAND` state anomaly. Instead, `dET + dRunoff + integrated dWCHANGELAND` is near zero, showing that WCHANGELAND is a model-process tendency that omits the discontinuous analysis mass injection. The closing storage term is therefore an endpoint difference in `DA - OL TWLAND`.
+
+That endpoint is now the instantaneous 00Z October 1 state reconstructed from `catch_internal_rst` restarts as the 24-member ensemble mean of `CDCR2/(1-WPWET) - CATDEF + RZEXC + SRFEXC + CAPAC + WESNN1-3`. It replaces the September monthly-mean proxy used previously, which is retained as `dStorage_monthly_proxy` for comparison. The proxy is close in six-year aggregate but differs by up to about 20% in individual water years, and gets the sign wrong where the true change is small.
+
+### Peat free-standing water
+
+`catch_calc_wtotl` builds TWLAND from soil, canopy, and snow stores only; PEATCLSM free-standing surface water is deliberately excluded. On peat tiles (`POROS >= 0.9`) water moving into or out of that store therefore leaves the TWLAND-based budget entirely and lands in the residual. `PEATCLSM_FSWCHANGE` closes that gap and enters the budget as `dPeatFreeStandingWater`. It is zero by construction on non-peat tiles, matching the model's own `FSW_CHANGE = 0.` initialization.
 
 ### Annual domain budgets
 
-| Water year | Snow-DA input | Extra runoff | Extra ET | Storage change | Residual | Residual / input |
-|---|---:|---:|---:|---:|---:|---:|
-| WY2001 | 32.57 | 19.61 | 12.60 | 2.82 | -2.46 | -7.6% |
-| WY2002 | 43.46 | 24.14 | 15.31 | 4.29 | -0.28 | -0.7% |
-| WY2003 | 64.50 | 40.98 | 24.15 | 3.12 | -3.75 | -5.8% |
-| WY2004 | 67.50 | 45.44 | 23.27 | 2.35 | -3.56 | -5.3% |
-| WY2005 | 72.97 | 51.14 | 24.53 | 0.23 | -2.93 | -4.0% |
-| WY2006 | 68.43 | 47.57 | 24.13 | -0.23 | -3.05 | -4.5% |
-| **6-WY mean** | **58.24** | **38.15** | **20.67** | **2.10** | **-2.67** | **-4.6%** |
+| Water year | Snow-DA input | Extra runoff | Extra ET | Storage change | Free-standing water | Residual | Residual / input |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| WY2001 | 32.57 | 19.61 | 12.60 | 2.56 | -0.95 | -1.25 | -3.8% |
+| WY2002 | 43.46 | 24.14 | 15.31 | 6.12 | -0.84 | -1.27 | -2.9% |
+| WY2003 | 64.50 | 40.98 | 24.15 | 2.66 | -2.10 | -1.19 | -1.8% |
+| WY2004 | 67.50 | 45.44 | 23.27 | 1.89 | -1.93 | -1.17 | -1.7% |
+| WY2005 | 72.97 | 51.14 | 24.53 | 0.37 | -1.91 | -1.16 | -1.6% |
+| WY2006 | 68.43 | 47.57 | 24.13 | 0.34 | -2.41 | -1.21 | -1.8% |
+| 6-WY mean | 58.24 | 38.15 | 20.67 | 2.32 | -1.69 | -1.21 | -2.1% |
 
-Values are area-weighted means in `kg m-2 water year-1`. The annual state-proxy residual ranges from -7.6% to -0.7% of domain snow input. Conceptually identical precipitation forcing differs slightly after independent float32 compression: the maximum absolute annual tile discrepancy is `0.102 kg m-2` and the largest absolute annual area-weighted domain-mean discrepancy is `0.000127 kg m-2`. Snowmelt and infiltration are retained as pathway diagnostics and are not added to the closing terms.
+The annual budget residual ranges from -3.8% to -1.6% of domain snow input. Conceptually identical precipitation forcing differs slightly after independent float32 compression: the maximum absolute annual tile discrepancy is 0.102 kg m-2 and the largest absolute annual area-weighted domain-mean discrepancy is 0.000127 kg m-2. Snowmelt and infiltration are retained as pathway diagnostics and are not added to the closing terms.
 
 ![Water-year monthly climatology](monthly_synthesis_report_figures/water_year_budget_monthly_climatology.png)
 
 ![Annual water-year budgets](monthly_synthesis_report_figures/water_year_budget_annual.png)
 
+### Absolute closure of each run
+
+The differential budget cancels precipitation and every process common to both runs, so its residual is magnified twice over: the two per-run closure offsets carry opposite signs and therefore add, and the sum is then divided by the much smaller snow-DA input rather than by total input. Each run closes far more tightly on its own.
+
+| Run | Total input | ET | Runoff | Storage | Free-standing water | Residual | Residual / input |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| OL | 605.03 | 427.46 | 184.64 | -0.76 | -6.70 | +0.38 | +0.063% |
+| DA | 663.26 | 448.13 | 222.79 | 1.57 | -8.39 | -0.82 | -0.124% |
+
+All values are six-water-year means in kg m-2 water year-1 over the seasonal-snow mask.
+
 ### Positive-input partition
 
-- Total runoff: 64.3% [5-degree spatial-block 95% interval 61.1%, 67.4%].
-- Surface runoff: 43.1% [41.1%, 45.1%].
-- Baseflow: 21.2% [19.1%, 23.3%].
-- ET: 35.9% [32.8%, 39.1%].
-- September storage change: 3.9% [3.6%, 4.3%].
-- Residual: -4.1% [-4.9%, -3.5%].
+- total runoff: 64.3% [5-degree spatial-block 95% interval 61.1%, 67.4%]
+- surface runoff: 43.1% [5-degree spatial-block 95% interval 41.1%, 45.1%]
+- baseflow: 21.2% [5-degree spatial-block 95% interval 19.1%, 23.3%]
+- ET: 35.9% [5-degree spatial-block 95% interval 32.8%, 39.1%]
+- storage: 4.2% [5-degree spatial-block 95% interval 3.9%, 4.6%]
+- peatland free-standing water: -2.7% [5-degree spatial-block 95% interval -3.4%, -2.1%]
+- residual: -1.7% [5-degree spatial-block 95% interval -2.0%, -1.5%]
 
 ![Positive-input six-year partition](monthly_synthesis_report_figures/water_year_budget_positive_partition.png)
 
-| Sample | Native signed input | Runoff | ET | Storage | Residual |
-|---|---:|---:|---:|---:|---:|
-| All-sample net | 58.24 kg m-2 | 65.5% | 35.5% | 3.6% | -4.6% |
-| Snow addition | 71.32 kg m-2 | 64.3% | 35.9% | 3.9% | -4.1% |
-| Snow removal | -18.93 kg m-2 | 38.3% | 46.1% | 10.5% | 5.2% |
+| Sample | Native signed input | Runoff | ET | Storage | Free-standing water | Residual |
+|---|---:|---:|---:|---:|---:|---:|
+| All-sample net | 58.24 kg m-2 | 65.5% | 35.5% | 4.0% | -2.9% | -2.1% |
+| Snow addition | 71.32 kg m-2 | 64.3% | 35.9% | 4.2% | -2.7% | -1.7% |
+| Snow removal | -18.93 kg m-2 | 38.3% | 46.1% | 9.9% | 0.7% | 5.1% |
 
-Fractions use native signed mass and are never based on absolute snow activity. The snow-removal row therefore reports signed response divided by signed input; its positive percentages describe same-direction water removal. Across the six individual years, runoff accounts for 55.6–70.1% of the net domain input, so the pooled runoff result is not produced by one exceptional year.
+Fractions use native signed mass and are never based on absolute snow activity. The snow-removal row therefore reports signed response divided by signed input; its positive percentages describe same-direction water removal.
 
 ### Controlled water-year response
 
@@ -249,22 +267,23 @@ Fractions use native signed mass and are never based on absolute snow activity. 
 |---|---:|---:|
 | Runoff | 0.749 | [0.711, 0.783] |
 | ET | 0.182 | [0.155, 0.213] |
-| Storage | 0.085 | [0.075, 0.097] |
-| Residual | -0.016 | [-0.022, -0.011] |
+| Storage | 0.085 | [0.074, 0.097] |
+| Peatland free-standing water | -0.017 | [-0.022, -0.012] |
+| Residual | 0.001 | [0.000, 0.001] |
 
-These dimensionless M3 slopes use within-tile signed snow input, year effects, and OL MAM snow amount. By construction, the runoff, ET, storage, and residual slopes sum to one. The direct domain accounting remains the primary budget result; the controlled regression independently supports runoff as the dominant response to an incremental within-tile snow correction.
+These dimensionless M3 slopes use within-tile signed snow input, year effects, and OL MAM snow amount. By construction, the runoff, ET, storage, peat free-water, and residual slopes sum to one; the direct domain accounting remains the primary budget result.
 
 ### Soil-moisture consequence
 
-For snow-addition tile-years, the area-weighted mean peak RZMC response is `0.0189 m3 m-3`, and May is the most common peak month although peak timing is broad. The MJJ mean response is `0.0108 m3 m-3`, RZMC is positive for 11.7 of 12 months on average, and the mean September response remains `0.0082 m3 m-3`.
+For snow-addition tile-years, the area-weighted mean peak RZMC response is 0.0189 m3 m-3 and May is the most common peak month, although peak timing is broad. The MJJ mean response is 0.0108 m3 m-3, RZMC is positive for 11.7 of 12 months on average, and the mean September response remains 0.0082 m3 m-3.
 
-Persistence is strongly right-censored: 67.2% of snow-addition tile-years never fall below `0.001 m3 m-3` after their within-year peak by September. Among uncensored cases, the area-weighted mean time to the threshold is 4.5 months. Because the mean `DA - OL RZMC` anomaly is already positive in October, these counts include inherited state differences from prior assimilation and should not be read as the residence time of only the current water-year increment.
+Persistence is strongly right-censored: 67.2% of snow-addition tile-years never fall below 0.001 m3 m-3 after their within-year peak by September. Among the uncensored cases, the area-weighted mean time to the threshold is 4.5 months. Because the mean DA-minus-OL RZMC anomaly is already positive in October, these counts include inherited state differences from prior assimilation and should not be read as the residence time of only the current water-year increment. They are state diagnostics, not additional mass terms.
 
 ![Snow-to-soil-moisture pathway](monthly_synthesis_report_figures/water_year_soil_moisture_pathway.png)
 
 ![Soil-moisture binned diagnostics](monthly_synthesis_report_figures/water_year_soil_moisture_binned.png)
 
-The interpretation is deliberately model-internal: snow DA modifies snow water, the root zone becomes wetter, and the model redistributes that perturbation through ET, runoff, and changing storage. RZMC and SFMC describe how strongly and for how long the soil state changes; they are not independent validation and do not enter the mass balance twice.
+The interpretation is deliberately model-internal: snow DA modifies snow water, the root zone becomes wetter during melt, and the model redistributes that perturbation through ET, runoff, and changing storage. RZMC and SFMC describe how strongly and for how long the soil state changes; they are not independent validation and do not enter the mass balance twice.
 
 ## Highlight 2: Later SM DA Response Splits Into Two Claims
 
@@ -528,6 +547,14 @@ Replacing the old MAM control with the full-year peak changes the marginal runof
 ### Accounting-boundary and September sensitivity
 
 Mean September signed input is 9.01 kg m-2, or 15.5% of the mean Oct-Sep annual input. In snow-addition tile-years the corresponding percentage is 14.5%. September DA-OL changes are 0.24 kg m-2 snow mass, 9.16 kg m-2 snowmelt, 4.09 kg m-2 runoff, 1.31 kg m-2 ET, and 1.70 kg m-2 August-to-September total-land-water change. The small remaining snow-mass change alongside substantial melt and runoff indicates that much of the September correction is melted and redistributed within September rather than retained as snow at the boundary. These monthly-mean quantities are a timing diagnostic, not an exact monthly closure.
+
+> **Note.** The boundary-sensitivity numbers in this section predate the addition of the
+> peatland free-standing water term and the restart-based storage endpoints to the main
+> budget, and are retained as originally computed. They cannot be regenerated on the
+> revised definitions: the restart endpoints exist only at 1 October, so the Sep-Aug
+> boundary arm has no instantaneous storage state available. The comparison remains valid
+> on its own terms, since both arms use identical definitions. Compare the Oct-Sep row
+> against the revised partition above rather than treating the two as interchangeable.
 
 The all-tile six-year mean signed input is 58.24 kg m-2 yr-1 for Oct-Sep and 57.37 kg m-2 yr-1 for Sep-Aug. The table below reports the positive-input tile-year partition; brackets are 5-degree spatial-block 95% intervals.
 

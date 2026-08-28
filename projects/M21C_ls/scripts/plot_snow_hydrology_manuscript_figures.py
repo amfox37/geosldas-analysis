@@ -765,7 +765,7 @@ def main() -> None:
             "Retains the old pathway concept but removes infiltration and persistence/residence-time claims, emphasizes RZMC, and aligns snow input, snowmelt, soil moisture, runoff, and ET on one Oct-Sep axis.",
         ),
         FigureProduct(
-            "Supplemental Figure Sx: non-overlapping attribution",
+            "Supplemental Figure S3: non-overlapping attribution",
             output_dir / "fig_supp_snow_da_octmar_attribution.png",
             output_dir / "fig_supp_snow_da_octmar_attribution.pdf",
             (13.5, 7.4),
@@ -773,7 +773,7 @@ def main() -> None:
             "Expands the preliminary four-panel control sequence to all six responses, retains native units in separate panels, and makes the infiltration interval crossing zero explicit.",
         ),
         FigureProduct(
-            "Supplemental Figure Sy: accounting-boundary sensitivity",
+            "Supplemental Figure S4: accounting-boundary sensitivity",
             output_dir / "fig_supp_snow_da_boundary_sensitivity.png",
             output_dir / "fig_supp_snow_da_boundary_sensitivity.pdf",
             (11.5, 5.2),

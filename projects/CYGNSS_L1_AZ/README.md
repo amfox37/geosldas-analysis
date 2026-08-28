@@ -63,10 +63,41 @@ ASCAT is left unmatched because its observations are percent and its forecast is
 soil moisture. CYGNSS L1 and CYGNSS L3 are kept separate in the grouped OmF
 figures because their native units differ.
 
+## CYGNSS L1 R-Sweep Figures
+
+A separate four-experiment set assimilating CYGNSS L1 with full, half and
+quarter observation-error variance against a scaled open-loop baseline, over
+calendar 2020. Stats products live in `output/stats_output/`. Plot with:
+
+```bash
+python projects/CYGNSS_L1_AZ/scripts/plot_cygl1_R_sweep.py
+```
+
+Outputs to `projects/CYGNSS_L1_AZ/output/R_sweep_figures/`:
+
+- `R_sweep_fig01_omf_stdv_maps.png` (O-F stdv, open loop and each DA run minus OL)
+- `R_sweep_fig02_omf_stdv_monthly.png`
+- `R_sweep_fig03_observation_counts.png`
+- `R_sweep_fig04_mean_obs_and_forecast.png`
+- `R_sweep_fig05_oma_vs_omf.png` (analysis-impact check)
+
+The same grouping and weighting conventions as `plot_az_omf_summary.py` apply.
+Maps use `pcolormesh` on the native EASEv2 M36 grid rather than scatter, so
+panels show true tile footprints and the unsampled mask.
+
+Headline result and its caveats are in `runs/cygl1_assim_R_sweep.md`:
+assimilating CYGNSS L1 degrades the fit to every independent observing system,
+increasingly so as R is reduced, while the analysis itself behaves correctly.
+The observation is well scaled but correlates with the forecast at only r ~ 0.35
+against 0.64-0.93 for the other sensors, so its increments are correctly-sized
+noise. The runs are otherwise undocumented — that note lists the provenance gaps.
+
 ## Runs
 
 - `runs/OLv8_M36_all_sensors_AZ.md`: current long-run validation/monitoring
   experiment notes.
+- `runs/cygl1_assim_R_sweep.md`: CYGNSS L1 assimilation observation-error
+  sweep, 2020, with findings and open provenance questions.
 
 ## Notes
 

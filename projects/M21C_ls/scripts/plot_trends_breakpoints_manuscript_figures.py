@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Render final M21C trend and observing-system-transition figures.
+"""Render final M21C trend figures (Fig. 16 and the supplementary trend maps).
 
 This is a plotting-only workflow. It reads the accepted Phase 1 trend,
-interrupted-series, and changepoint products and does not refit any analysis.
+products and does not refit any analysis. Figure 17 is generated separately by
+`plot_regional_rzmc_periods.py`.
 """
 
 from __future__ import annotations
@@ -39,6 +40,8 @@ ROBUST_PERCENTILE = 98.0
 ZERO_HALF_WIDTH_FRACTION_OF_FULL_RANGE = 0.02
 SERIES_ORDER = ("ol", "da", "delta")
 SERIES_LABELS = {"ol": "OL", "da": "DA", "delta": "DA - OL"}
+MAIN_TREND_DELTA_SCALES = {"RZMC": "separate", "FRLANDSNO": "state"}
+SNOW_TREND_DELTA_SCALES = {"SNOMASLAND": "state", "SNODPLAND": "state"}
 
 PERIOD_COLORS = {
     "P1": "#f2efe6",
@@ -313,10 +316,12 @@ def save_figure(fig: plt.Figure, basename: str) -> tuple[Path, Path]:
 def plot_trend_rows(
     row_variables: list[str],
     basename: str,
-    delta_scale: str = "separate",
+    delta_scales: dict[str, str] | None = None,
 ) -> tuple[Path, Path]:
-    if delta_scale not in {"separate", "state"}:
-        raise ValueError("delta_scale must be 'separate' or 'state'")
+    delta_scales = {} if delta_scales is None else dict(delta_scales)
+    invalid = {variable: mode for variable, mode in delta_scales.items() if mode not in {"separate", "state"}}
+    if invalid:
+        raise ValueError(f"delta_scales values must be 'separate' or 'state': {invalid}")
     n_rows = len(row_variables)
     fig = plt.figure(figsize=(13.6, 3.45 * n_rows + 0.55))
     height_ratios: list[float] = []
@@ -347,7 +352,8 @@ def plot_trend_rows(
         )
         delta_values = fields["delta"]["slope"][visible] * multiplier
         state_vmax = nice_limit(state_values)
-        delta_vmax = state_vmax if delta_scale == "state" else nice_limit(delta_values)
+        row_delta_scale = delta_scales.get(variable, "separate")
+        delta_vmax = state_vmax if row_delta_scale == "state" else nice_limit(delta_values)
         state_cmap, state_norm, _ = segmented_diverging_scale(state_vmax)
         delta_cmap, delta_norm, _ = segmented_diverging_scale(delta_vmax)
         axes: list[plt.Axes] = []
@@ -469,89 +475,15 @@ def validate_trend_products() -> dict[str, object]:
     return {"tile_summary": tile, "domain_summary": domain, "pair_summary": pairs}
 
 
-def validate_transition_products(periods: pd.DataFrame) -> dict[str, object]:
-    coefficients = pd.read_csv(RESULT_DIR / "phase1_interrupted_series_coefficients.csv")
-    selected = coefficients[
-        (coefficients["coefficient"] == "level_change_P6")
-        & coefficients["series_id"].isin(P6_SERIES)
-    ].copy()
-    if set(selected["series_id"]) != set(P6_SERIES) or len(selected) != len(P6_SERIES):
-        raise AssertionError("P6 coefficient selection is incomplete or duplicated")
-    selected = selected.set_index("series_id")
-    for series_id, cfg in P6_SERIES.items():
-        row = selected.loc[series_id]
-        actual = row[["estimate", "ci_low_bootstrap", "ci_high_bootstrap"]].to_numpy(dtype=float)
-        tolerance = 5.0e-4 if row["estimate_units"] == "kg m-2" else 5.0e-7
-        if not np.allclose(actual, cfg["expected"], atol=tolerance):
-            raise AssertionError(f"P6 coefficient changed for {series_id}: {actual}")
-        if not bool(row["significant_fdr"]):
-            raise AssertionError(f"P6 coefficient no longer survives boundary-family FDR: {series_id}")
-
-    with xr.open_dataset(RESULT_DIR / "phase1_changepoint_monthly.nc") as source:
-        monthly = source.load()
-    if pd.DatetimeIndex(monthly["time"].values)[0] != periods.iloc[0]["start"]:
-        raise AssertionError("Monthly transition series does not begin at P1")
-    if pd.DatetimeIndex(monthly["time"].values)[-1] != periods.iloc[-1]["end"].replace(day=1):
-        raise AssertionError("Monthly transition series does not end in the final P9 month")
-    if not set(TIMESERIES).issubset(set(map(str, monthly["series_id"].values))):
-        raise AssertionError("One or more Figure Y production monthly series are missing")
-    return {"coefficients": coefficients, "selected": selected, "monthly": monthly}
-
-
-def validate_breakpoint_products(coefficients: pd.DataFrame) -> dict[str, object]:
-    detections = pd.read_csv(RESULT_DIR / "phase1_changepoint_detections.csv", parse_dates=["break_date"])
-    comparison = pd.read_csv(
-        RESULT_DIR / "phase1_changepoint_boundary_comparison.csv",
-        parse_dates=["boundary_date", "detected_date"],
-    )
-    accepted = detections[detections["accepted_detection"].astype(bool)].copy()
-    if len(accepted) != 37:
-        raise AssertionError(f"Expected 37 accepted breaks, found {len(accepted)}")
-    role_counts = accepted["series_role"].value_counts().to_dict()
-    if role_counts.get("primary_estimand", 0) != 37 or (accepted["source_series"].isin(["ol", "da"])).any():
-        raise AssertionError(f"Accepted changepoint roles changed: {role_counts}")
-    family_counts = accepted["source_series"].value_counts().to_dict()
-    if family_counts.get("delta", 0) != 20 or family_counts.get("value", 0) != 17:
-        raise AssertionError(f"Accepted changepoint source families changed: {family_counts}")
-
-    april = accepted[accepted["break_date"] == pd.Timestamp("2015-04-01")]
-    if april["series_id"].nunique() != 10:
-        raise AssertionError(f"Expected ten primary April 2015 breaks, found {april['series_id'].nunique()}")
-    significant_p6 = coefficients[
-        (coefficients["coefficient"] == "level_change_P6")
-        & coefficients["series_id"].isin(april["series_id"])
-        & coefficients["significant_fdr"].astype(bool)
-    ]
-    if significant_p6["series_id"].nunique() != 9:
-        raise AssertionError("April 2015 accepted-break/P6 known-date agreement is no longer 9 of 10")
-
-    primary = comparison[comparison["series_role"] == "primary_estimand"]
-    if int(primary["matched_within_primary_tolerance"].sum()) != 20:
-        raise AssertionError("Expected 20 accepted matches within three months")
-    if int(primary["matched_within_sensitivity_tolerance"].sum()) != 22:
-        raise AssertionError("Expected 22 accepted matches within six months")
-    if len(accepted) - int(primary["matched_within_sensitivity_tolerance"].sum()) != 15:
-        raise AssertionError("Expected 15 accepted unmatched breaks")
-    return {"detections": detections, "comparison": comparison, "accepted": accepted}
-
-
-def standardized_monthly(monthly: xr.Dataset, series_id: str) -> np.ndarray:
-    values = monthly["seasonal_adjusted"].sel(series=series_id).values.astype(float)
-    mean = np.nanmean(values)
-    std = np.nanstd(values, ddof=1)
-    if not np.isfinite(std) or std <= 0:
-        raise AssertionError(f"Cannot standardize production series {series_id}")
-    return (values - mean) / std
-
-
 def shade_periods(ax: plt.Axes, periods: pd.DataFrame) -> None:
     for row in periods.itertuples():
         ax.axvspan(row.start, row.end + pd.Timedelta(days=1), color=PERIOD_COLORS[row.period_id], zorder=0)
         center = row.start + (row.end - row.start) / 2
+        period_label = "P6 (SMAP Tb)" if row.period_id == "P6" else row.period_id
         ax.text(
             center,
             0.975,
-            row.period_id,
+            period_label,
             transform=ax.get_xaxis_transform(),
             ha="center",
             va="top",
@@ -570,229 +502,37 @@ def shade_periods(ax: plt.Axes, periods: pd.DataFrame) -> None:
         )
 
 
-def forest_panel(
-    ax: plt.Axes,
-    frame: pd.DataFrame,
-    series_ids: list[str],
-    title: str,
-    xlabel: str,
-    multiplier: float,
-    label: str,
-) -> None:
-    rows = frame.loc[series_ids]
-    y = np.arange(len(rows))[::-1]
-    estimates = rows["estimate"].to_numpy(dtype=float) * multiplier
-    low = rows["ci_low_bootstrap"].to_numpy(dtype=float) * multiplier
-    high = rows["ci_high_bootstrap"].to_numpy(dtype=float) * multiplier
-    significant = rows["significant_fdr"].astype(bool).to_numpy()
-    colors = np.where(significant, "#b73a35", "0.65")
-    for index in range(len(rows)):
-        ax.hlines(y[index], low[index], high[index], color=colors[index], linewidth=2.0, zorder=2)
-        ax.scatter(
-            estimates[index],
-            y[index],
-            s=42,
-            facecolor=colors[index] if significant[index] else "white",
-            edgecolor=colors[index],
-            linewidth=1.2,
-            zorder=3,
-        )
-    ax.axvline(0, color="0.25", linewidth=0.8, zorder=1)
-    ax.set_yticks(y, [P6_SERIES[series_id]["label"] for series_id in series_ids])
-    ax.set_ylim(-0.65, len(rows) - 0.35)
-    xmax = max(float(np.nanmax(high)), 0.0)
-    xmin = min(float(np.nanmin(low)), 0.0)
-    span = xmax - xmin
-    ax.set_xlim(xmin - 0.06 * span, xmax + 0.10 * span)
-    ax.grid(axis="x", color="0.88", linewidth=0.7)
-    ax.set_axisbelow(True)
-    ax.set_title(title, pad=7, fontweight="bold")
-    ax.set_xlabel(xlabel)
-    panel_label(ax, label, x=0.012, y=0.98)
-
-
-def plot_observing_system_transitions(
-    periods: pd.DataFrame,
-    monthly: xr.Dataset,
-    selected: pd.DataFrame,
-) -> tuple[Path, Path]:
-    fig = plt.figure(figsize=(13.5, 7.6))
-    grid = fig.add_gridspec(
-        2,
-        3,
-        height_ratios=[1.65, 1.0],
-        left=0.07,
-        right=0.985,
-        bottom=0.085,
-        top=0.975,
-        hspace=0.30,
-        wspace=0.38,
-    )
-    ax = fig.add_subplot(grid[0, :])
-    shade_periods(ax, periods)
-    time = pd.DatetimeIndex(monthly["time"].values)
-    for series_id, (display, color) in TIMESERIES.items():
-        ax.plot(time, standardized_monthly(monthly, series_id), color=color, linewidth=1.05, label=display, zorder=3)
-    ax.axhline(0, color="0.35", linewidth=0.7, zorder=2)
-    ax.set_xlim(periods.iloc[0]["start"], periods.iloc[-1]["end"] + pd.Timedelta(days=1))
-    ax.set_ylabel("Standardized monthly value")
-    ax.xaxis.set_major_locator(mdates.YearLocator(3))
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-    ax.grid(axis="y", color="0.86", linewidth=0.7)
-    ax.set_axisbelow(True)
-    ax.legend(loc="lower left", ncols=2, frameon=False, bbox_to_anchor=(0.01, 0.01))
-    p6_start = periods.loc[periods["period_id"] == "P6", "start"].item()
-    ax.text(
-        p6_start + pd.Timedelta(days=50),
-        0.06,
-        "P6: SMAP Tb begins",
-        transform=ax.get_xaxis_transform(),
-        ha="left",
-        va="bottom",
-        fontsize=8.2,
-        color="#7a1c1c",
-        bbox={"boxstyle": "square,pad=0.12", "facecolor": "white", "edgecolor": "none", "alpha": 0.78},
-        zorder=5,
-    )
-    panel_label(ax, "(a)")
-
-    forest_panel(
-        fig.add_subplot(grid[1, 0]),
-        selected,
-        ["RZMC_delta_valid_land__delta", "RZMC_delta_warm_snowfree_monthly__delta"],
-        "RZMC state response",
-        r"P6 level change ($\times 10^{-3}$ m$^3$ m$^{-3}$)",
-        1000.0,
-        "(b)",
-    )
-    forest_panel(
-        fig.add_subplot(grid[1, 1]),
-        selected,
-        ["SFMC_INC_RMS_value_valid_land__value", "RZMC_INC_RMS_value_valid_land__value"],
-        "Soil-moisture corrections",
-        r"P6 level change ($\times 10^{-3}$ m$^3$ m$^{-3}$)",
-        1000.0,
-        "(c)",
-    )
-    forest_panel(
-        fig.add_subplot(grid[1, 2]),
-        selected,
-        ["soil_water_abs_activity_value_valid_land__value", "soil_water_net_approx_value_valid_land__value"],
-        "Soil-water activity",
-        r"P6 level change (kg m$^{-2}$)",
-        1.0,
-        "(d)",
-    )
-    return save_figure(fig, "figYY_observing_system_transitions")
-
-
-def breakpoint_display_label(variable: str, mask: str) -> str:
-    variable_labels = {
-        "PRECTOTCORRLAND": "Precipitation",
-        "SNOMASLAND": "Snow mass",
-        "SNODPLAND": "Snow depth",
-        "FRLANDSNO": "SCF",
-        "soil_water_net_approx": "Soil-water net",
-        "soil_water_abs_activity": "Soil-water activity",
-        "SFMC_INC_MEAN": "SFMC increment mean",
-        "SFMC_INC_ABS_MEAN": "SFMC increment absolute mean",
-        "SFMC_INC_RMS": "SFMC increment RMS",
-        "RZMC_INC_MEAN": "RZMC increment mean",
-        "RZMC_INC_ABS_MEAN": "RZMC increment absolute mean",
-        "RZMC_INC_RMS": "RZMC increment RMS",
-    }
-    mask_labels = {
-        "valid_land": "valid land",
-        "seasonal_snow": "seasonal snow",
-        "warm_snowfree_monthly": "warm snow-free",
-        "locally_snowy_monthly": "locally snowy",
-    }
-    return f"{variable_labels.get(variable, variable)} | {mask_labels.get(mask, mask)}"
-
-
-def plot_breakpoint_agreement(comparison: pd.DataFrame) -> tuple[Path, Path]:
-    primary = comparison[comparison["series_role"] == "primary_estimand"].copy()
-    series_meta = primary[["series_id", "variable", "mask"]].drop_duplicates()
-    series_order = series_meta["series_id"].tolist()
-    period_order = [f"P{i}" for i in range(2, 10)]
-    matrix = np.full((len(series_order), len(period_order)), np.nan)
-    for i, series_id in enumerate(series_order):
-        for j, period_id in enumerate(period_order):
-            row = primary[(primary["series_id"] == series_id) & (primary["period_id"] == period_id)].iloc[0]
-            if bool(row["matched_within_sensitivity_tolerance"]):
-                matrix[i, j] = row["signed_offset_months"]
-
-    labels = [
-        breakpoint_display_label(row.variable, row.mask)
-        for row in series_meta.itertuples(index=False)
-    ]
-    colors = ["#31688e", "#86bdd0", "#ffffff", "#ee9b79", "#b73a35"]
-    cmap = ListedColormap(colors)
-    cmap.set_bad("#d9d9d9")
-    norm = BoundaryNorm([-6.5, -3.5, -0.5, 0.5, 3.5, 6.5], cmap.N)
-    fig, ax = plt.subplots(figsize=(8.4, 8.8), constrained_layout=True)
-    mesh = ax.pcolormesh(
-        np.ma.masked_invalid(matrix),
-        cmap=cmap,
-        norm=norm,
-        edgecolors="white",
-        linewidth=0.65,
-    )
-    xticklabels = ["P7\nexempt" if value == "P7" else value for value in period_order]
-    ax.set_xticks(np.arange(len(period_order)) + 0.5, xticklabels)
-    ax.set_yticks(np.arange(len(series_order)) + 0.5, labels)
-    ax.invert_yaxis()
-    for i in range(matrix.shape[0]):
-        for j in range(matrix.shape[1]):
-            if np.isfinite(matrix[i, j]):
-                ax.text(j + 0.5, i + 0.5, f"{int(matrix[i, j]):+d}", ha="center", va="center", fontsize=7.4)
-    p7_index = period_order.index("P7")
-    ax.add_patch(
-        Rectangle(
-            (p7_index, 0),
-            1,
-            len(series_order),
-            fill=False,
-            hatch="////",
-            edgecolor="#555555",
-            linewidth=1.0,
-        )
-    )
-    colorbar = fig.colorbar(mesh, ax=ax, orientation="horizontal", pad=0.035, fraction=0.042, ticks=[-5, -2, 0, 2, 5])
-    colorbar.set_label("Accepted break minus known boundary (months)")
-    ax.set_xlabel("Observing-system boundary")
-    return save_figure(fig, "figSXX_breakpoint_boundary_agreement")
-
-
 def build_assets() -> list[FigureAsset]:
     periods = load_periods()
     validate_trend_products()
-    transition = validate_transition_products(periods)
-    breakpoints = validate_breakpoint_products(transition["coefficients"])
 
-    fig_x = plot_trend_rows(["RZMC", "FRLANDSNO"], "figXX_longterm_rzmc_scf_trends")
-    fig_y = plot_observing_system_transitions(periods, transition["monthly"], transition["selected"])
-    precip = plot_trend_rows(["PRECTOTCORRLAND"], "figSXX_precipitation_trends")
-    sfmc = plot_trend_rows(["SFMC"], "figSXX_sfmc_trends")
+    fig_x = plot_trend_rows(
+        ["RZMC", "FRLANDSNO"],
+        "fig16_longterm_rzmc_scf_trends",
+        delta_scales=MAIN_TREND_DELTA_SCALES,
+    )
+    precip = plot_trend_rows(["PRECTOTCORRLAND"], "figS05_precipitation_trends")
+    sfmc = plot_trend_rows(["SFMC"], "figS06_sfmc_trends")
     snow = plot_trend_rows(
         ["SNOMASLAND", "SNODPLAND"],
-        "figSXX_snow_mass_depth_trends",
-        delta_scale="state",
+        "figS07_snow_mass_depth_trends",
+        delta_scales=SNOW_TREND_DELTA_SCALES,
     )
-    breaks = plot_breakpoint_agreement(breakpoints["comparison"])
 
     assets = [
         FigureAsset(
-            "Main Figure X: long-term state trends",
+            "Figure 16: long-term state trends",
             *fig_x,
             caption=(
-                "Long-term June 2000-May 2024 trends in (a-c) root-zone soil moisture (RZMC) and "
+                "Figure 16. Long-term June 2000-May 2024 trends in (a-c) root-zone soil moisture (RZMC) and "
                 "(d-f) snow-cover fraction (SCF) for the open-loop (OL), data-assimilation (DA), "
                 "and paired DA-OL series. Trends are exact Theil-Sen slopes after trend-preserving "
                 "removal of the calendar-month climatology. Black stippling denotes trends significant "
                 "after Benjamini-Hochberg false-discovery-rate control at 0.05. RZMC uses the valid-land "
                 "domain and SCF the Northern Hemisphere seasonal-snow domain. The DA-OL panels show the trend of the paired "
-                "DA-OL series rather than the difference between independently estimated OL and DA trends."
+                "DA-OL series rather than the difference between independently estimated OL and DA trends. "
+                "Regional RZMC trends are modified substantially by DA, whereas OL and DA exhibit nearly "
+                "identical long-term SCF trends."
             ),
             sources=(
                 "RZMC_{ol,da,delta}_valid_land_trend_statistics.nc",
@@ -801,32 +541,10 @@ def build_assets() -> list[FigureAsset]:
             provenance="Exact production slope; mapped significance is significant_fdr; Robinson projection; 60 S cutoff.",
         ),
         FigureAsset(
-            "Main Figure Y: observing-system transitions",
-            *fig_y,
-            caption=(
-                "Changes in soil-water data-assimilation behavior across the P1-P9 observing-system "
-                "periods. (a) Standardized area-weighted monthly RZMC DA-OL and soil-water analysis-"
-                "correction diagnostics during June 2000-May 2024. Background shading denotes the P1-P9 "
-                "periods defined in Fig. 1; the P5-P6 boundary in April 2015 marks the introduction of "
-                "SMAP brightness-temperature assimilation. Each seasonally adjusted series is standardized "
-                "by its full-record mean and sample standard deviation for visual comparison only. "
-                "(b-d) Estimated P5-P6 level changes from the interrupted time-series analysis for RZMC "
-                "DA-OL, soil-moisture analysis-correction RMS, and prognostic soil-water correction activity. "
-                "Symbols show the estimate and horizontal bars the 95% fitted-AR(1) bootstrap interval. "
-                "Statistical significance uses boundary-family false-discovery-rate control at 0.05."
-            ),
-            sources=(
-                "phase1_changepoint_monthly.nc",
-                "phase1_interrupted_series_coefficients.csv",
-                "observing_system_registry.json",
-            ),
-            provenance="Monthly production seasonal_adjusted fields; display-only full-record z scores; native-unit P6 inference.",
-        ),
-        FigureAsset(
-            "Supporting Figure: precipitation trends",
+            "Supplemental Figure S5: precipitation trends",
             *precip,
             caption=(
-                "Long-term precipitation trends for OL, DA, and the paired DA-OL series on valid land. "
+                "Figure S5. Long-term precipitation trends for OL, DA, and the paired DA-OL series on valid land. "
                 "Black stippling denotes production FDR significance. The common OL/DA pattern and null "
                 "DA-OL result provide a forcing-control check."
             ),
@@ -834,20 +552,20 @@ def build_assets() -> list[FigureAsset]:
             provenance="Exact production slope and significant_fdr on valid land.",
         ),
         FigureAsset(
-            "Supporting Figure: SFMC trends",
+            "Supplemental Figure S6: SFMC trends",
             *sfmc,
             caption=(
-                "Long-term surface soil-moisture trends for OL, DA, and the paired DA-OL series on valid land. "
+                "Figure S6. Long-term surface soil-moisture trends for OL, DA, and the paired DA-OL series on valid land. "
                 "Black stippling denotes production FDR significance."
             ),
             sources=("SFMC_{ol,da,delta}_valid_land_trend_statistics.nc",),
             provenance="Exact production slope and significant_fdr on valid land.",
         ),
         FigureAsset(
-            "Supporting Figure: snow mass and depth trends",
+            "Supplemental Figure S7: snow mass and depth trends",
             *snow,
             caption=(
-                "Long-term (a-c) snow-mass and (d-f) snow-depth trends for OL, DA, and the paired DA-OL "
+                "Figure S7. Long-term (a-c) snow-mass and (d-f) snow-depth trends for OL, DA, and the paired DA-OL "
                 "series on the production Northern Hemisphere seasonal-snow mask. Black stippling denotes production FDR significance."
             ),
             sources=(
@@ -855,21 +573,6 @@ def build_assets() -> list[FigureAsset]:
                 "SNODPLAND_{ol,da,delta}_seasonal_snow_trend_statistics.nc",
             ),
             provenance="Exact production slope and significant_fdr on the Northern Hemisphere seasonal-snow mask.",
-        ),
-        FigureAsset(
-            "Supporting Figure: breakpoint-boundary agreement",
-            *breaks,
-            caption=(
-                "Accepted independent changepoints relative to known P2-P9 dates for the primary Phase 1 "
-                "estimands. Values are detected-minus-known months; blue is early, red late, white exact, "
-                "and grey indicates no accepted match within six months. P7 is hatched because its 15-month "
-                "duration is detection-exempt under the predeclared minimum-segment rule."
-            ),
-            sources=(
-                "phase1_changepoint_boundary_comparison.csv",
-                "phase1_changepoint_detections.csv",
-            ),
-            provenance="Accepted consensus breaks only; +/-3-month primary and +/-6-month sensitivity definitions retained.",
         ),
     ]
     write_report(assets, periods)
@@ -880,7 +583,7 @@ def write_report(assets: list[FigureAsset], periods: pd.DataFrame) -> None:
     lines = [
         "# Trends And Observing-System Manuscript Figure Report",
         "",
-        "These figures are plotting-only products generated from the accepted Phase 1 trend, interrupted-series, and changepoint outputs. No scientific analysis was refitted.",
+        "These figures are plotting-only products generated from the accepted Phase 1 trend outputs. No analysis was recomputed.",
         "",
         "## Outputs And Captions",
         "",
@@ -910,17 +613,12 @@ def write_report(assets: list[FigureAsset], periods: pd.DataFrame) -> None:
             "- Precipitation reproduces 3,719 OL and 3,726 DA significant tiles, 3,603 same-sign overlaps, slope correlation 0.9998, and zero DA-OL FDR tiles.",
             "- SFMC reproduces 6,992 OL, 8,966 DA, and 1,412 DA-OL FDR-significant tiles.",
             "- Snow mass reproduces 12 OL, 5 DA, and zero DA-OL FDR tiles; snow depth reproduces 7 OL, 6 DA, and zero DA-OL FDR tiles.",
-            "- P6 begins 2015-04-01. All six plotted native-unit estimates, fitted-AR(1) bootstrap intervals, and boundary-family FDR flags reproduce the production coefficient table.",
-            "- Ten primary series have accepted breaks exactly in April 2015; nine also have significant known-date P6 level changes; no accepted break occurs in paired OL or DA state controls.",
-            "- The accepted-break inventory remains 37 total: 20 paired DA-OL and 17 correction diagnostics; 20 match within +/-3 months, two additional within +/-6 months, and 15 remain unmatched.",
             "- All maps use exact production Theil-Sen slopes and `significant_fdr`; pointwise confidence-interval exclusion is not used for mapped inference.",
             "",
             "## Plotting Choices",
             "",
             "- Maps follow the existing report convention: Robinson projection, 60 S cutoff, grey land, thin coastlines, segmented RdBu_r scales centered on a white zero bin, and black stippling.",
-            "- OL and DA share a symmetric color scale within each row. DA-OL uses a separately labeled symmetric scale where needed; snow mass/depth retain the OL/DA scale so negligible differences are not visually exaggerated.",
-            "- Figure Y panel (a) shows unsmoothed monthly production series. Full-record z scoring is display-only; interrupted-series inference remains in native units.",
-            "- The requested optional all-boundary decorative summary was not produced; the accepted breakpoint-agreement matrix already provides the auditable all-boundary view.",
+            "- OL and DA share a symmetric color scale within each row. Figure 16 retains a separate RZMC DA-OL scale but places SCF DA-OL on the OL/DA scale; snow mass/depth likewise retain the OL/DA scale so negligible differences are not visually exaggerated.",
             "",
             "## Discrepancies",
             "",
@@ -941,12 +639,9 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    periods = load_periods()
     validate_trend_products()
-    transition = validate_transition_products(periods)
-    validate_breakpoint_products(transition["coefficients"])
     if args.validate_only:
-        print("Trend and transition manuscript figure contracts: PASS")
+        print("Trend manuscript figure contracts: PASS")
         return
     assets = build_assets()
     print(f"Generated {len(assets)} manuscript figures")

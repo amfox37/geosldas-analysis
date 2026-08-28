@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the restartable M21C Phase 1 production trend matrix."""
+"""Run a restartable M21C production trend matrix."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from phase1_trend_workflow import (
     DEFAULT_RUN_MATRIX,
     audit_phase1_outputs,
     audit_trend_output,
-    load_phase1_runs,
+    load_trend_runs,
     output_filename,
 )
 from trend_breakpoint_series import (
@@ -75,7 +75,7 @@ def _write_manifest(rows: list[dict[str, Any]], path: Path) -> None:
 
 def main() -> int:
     args = parse_args()
-    _, runs = load_phase1_runs(
+    matrix, runs = load_trend_runs(
         args.run_matrix, variable_selection=args.variable_selection
     )
     if args.only:
@@ -86,7 +86,7 @@ def main() -> int:
     if args.role:
         runs = [run for run in runs if run["role"] == args.role]
     if not runs:
-        raise ValueError("No Phase 1 runs selected")
+        raise ValueError("No trend runs selected")
     if args.n_jobs == 0:
         raise ValueError("--n-jobs cannot be zero")
 
@@ -111,7 +111,7 @@ def main() -> int:
     failures = 0
 
     print(
-        f"Phase 1 trend batch: {len(runs)} runs, {expected_tiles} tiles each, "
+        f"Phase {matrix['phase']} trend batch: {len(runs)} runs, {expected_tiles} tiles each, "
         f"n_jobs={args.n_jobs}, parallel_prefer={args.parallel_prefer}, "
         f"diagnostic={diagnostic}",
         flush=True,

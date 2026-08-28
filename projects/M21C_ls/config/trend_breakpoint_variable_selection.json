@@ -1,5 +1,12 @@
 {
   "schema_version": 1,
+  "derived_variables": {
+    "TOTAL_RUNOFF": {
+      "operation": "sum",
+      "source_variables": ["RUNSURFLAND", "BASEFLOWLAND"],
+      "long_name": "Total runoff (surface runoff plus baseflow)"
+    }
+  },
   "columns": [
     "analysis_variable",
     "ol_dataset",
@@ -30,6 +37,7 @@
     ["RZMC_INC_RMS", "", "inst3_raw_diagnostic", "RZMC_INC_RMS", "diagnostic_state_correction", 1, "activity_trend", "Never cumulatively sum"],
     ["TWLAND", "ol_water_budget", "da_water_budget", "TWLAND", "paired_state", 2, "trend_of_DA_minus_OL", "Total land-water storage"],
     ["EVLAND", "ol_flux_core", "da_flux_core", "EVLAND", "paired_flux", 2, "trend_of_DA_minus_OL", "Evapotranspiration"],
+    ["TOTAL_RUNOFF", "ol_water_budget", "da_water_budget", "TOTAL_RUNOFF", "paired_flux", 2, "trend_of_DA_minus_OL", "Sum of surface runoff and baseflow, assembled before paired masking"],
     ["RUNSURFLAND", "ol_water_budget", "da_water_budget", "RUNSURFLAND", "paired_flux", 2, "trend_of_DA_minus_OL", "Surface runoff"],
     ["BASEFLOWLAND", "ol_water_budget", "da_water_budget", "BASEFLOWLAND", "paired_flux", 2, "trend_of_DA_minus_OL", "Baseflow"],
     ["QINFILLAND", "ol_water_budget", "da_water_budget", "QINFILLAND", "paired_flux", 2, "trend_of_DA_minus_OL", "Infiltration"],
