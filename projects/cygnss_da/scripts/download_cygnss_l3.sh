@@ -86,7 +86,7 @@ fi
 
 for mm in "${MONTHS[@]}"; do
     start="${YEAR}-${mm}-01T00:00:00Z"
-    end=$(date -u -d "${YEAR}-${mm}-01 +1 month" +%Y-%m-01T00:00:00Z)
+    end=$(date -u -d "${YEAR}-${mm}-01 +1 month -1 second" +%Y-%m-%dT%H:%M:%SZ)
     out_dir="$DEST/Y$YEAR/M$mm"
     mkdir -p "$out_dir"
 
