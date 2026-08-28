@@ -4,18 +4,25 @@ Investigated 2026-08-28 while extending `scripts/download_hsaf_ascat.sh` to
 support H139. Server: `ftphsaf.meteoam.it` (credentials in `~/.netrc`,
 `machine ftphsaf.meteoam.it`).
 
+**Correction (same day):** the first pass at this only checked the 2021
+year directory for each satellite and wrongly concluded Metop-B/C stopped
+in Dec 2021. A full listing of every year directory shows they continue
+through Dec 2024. Table below and the gap section have been corrected.
+
 ## H121 (CDR)
 
 Full reprocessed archive, organized `/h121/netcdf/<sat>/<year>/<month>/`.
-Confirmed end of record per satellite (directory listing, not documentation):
+Confirmed start and end of record per satellite by listing every year
+directory and the first/last file in the boundary months (directory
+listing, not documentation):
 
-| Satellite | Last available month |
-|---|---|
-| Metop-A | 2021-11 (matches its real decommissioning) |
-| Metop-B | 2021-12 |
-| Metop-C | 2021-12 |
+| Satellite | First observation | Last observation |
+|---|---|---|
+| Metop-A | 2007-01-01 | 2021-11-15 (matches its real decommissioning) |
+| Metop-B | 2013-06-01 | 2024-12-31 |
+| Metop-C | 2019-04-01 | 2024-12-31 |
 
-No H121 data exists past these dates on this server.
+No H121 data exists outside these ranges on this server.
 
 ## H139 (near-real-time counterpart)
 
@@ -28,9 +35,13 @@ only (no Metop-A, consistent with H121's Metop-A cutoff).
 
 ## The gap
 
-**Dec 2021 → Jun 2026 is not reachable through this FTP path on either
-product.** H121 stops at the CDR cutoff; H139 only keeps ~2 months back from
-today. Checked and ruled out before concluding this:
+**Metop-A:** nothing reachable past 2021-11-15 on either product - H121
+stops there (decommissioned) and H139 has never carried Metop-A.
+
+**Metop-B/C:** H121 runs through 2024-12-31; H139's rolling window only
+reaches back to 2026-06-22. So **Jan 2025 → Jun 2026 (~18 months) is not
+reachable through this FTP path on either product** for these two
+satellites. Checked and ruled out before concluding this:
 
 - Server's own `README_H-SAF_Product_List.txt` and `Product User Manuals/` -
   stale, doesn't list H121 or H139 at all
