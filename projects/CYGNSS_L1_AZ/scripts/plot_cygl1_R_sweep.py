@@ -282,54 +282,75 @@ def main():
     print("wrote", p4.relative_to(PROJECT))
 
 
-    # ---------------- Figure 5: O-A, is the analysis doing anything? ----------------
-    fig = plt.figure(figsize=(4.1 * len(GROUPS), 8.4))
-    gs = fig.add_gridspec(2, len(GROUPS), height_ratios=[1.0, 1.15], hspace=0.34, wspace=0.30)
-    for gi, (gname, idx, units) in enumerate(GROUPS):
-        ax = fig.add_subplot(gs[0, gi])
-        xb = np.arange(len(EXPERIMENTS)); w = 0.38
-        f = [np.nanmean(group_mean(temporal[t]["OmF_stdv"], temporal[t]["N_data"], idx, args.nmin))
-             for _, t, _, _ in EXPERIMENTS]
-        a = [np.nanmean(group_mean(temporal[t]["OmA_stdv"], temporal[t]["N_data"], idx, args.nmin))
-             for _, t, _, _ in EXPERIMENTS]
-        ax.bar(xb - w/2, f, w, color="0.72", edgecolor="0.3", lw=0.5, label="O$-$F (background)")
-        ax.bar(xb + w/2, a, w, color=[c for _, _, c, _ in EXPERIMENTS], edgecolor="0.3", lw=0.5,
-               label="O$-$A (analysis)")
-        for k in range(len(EXPERIMENTS)):
-            d = 100 * (a[k] / f[k] - 1)
-            ax.annotate(f"{d:+.1f}%", (xb[k] + w/2, a[k]), textcoords="offset points",
-                        xytext=(0, 3), ha="center", fontsize=7.6,
-                        color="#1a7f37" if d < 0 else "#c0392b", fontweight="bold")
-        ax.set_xticks(xb); ax.set_xticklabels([e for e, _, _, _ in EXPERIMENTS], fontsize=8, rotation=20)
-        ax.set_ylabel(f"stdv ({units})", fontsize=9)
-        lo, hi = min(min(f), min(a)), max(max(f), max(a))
-        ax.set_ylim(lo - 0.18 * (hi - lo), hi + 0.22 * (hi - lo))
-        ax.grid(axis="y", color="0.92"); ax.set_axisbelow(True)
-        ax.set_title(f"({chr(97+gi)}) {gname}", loc="left", fontweight="bold", fontsize=10.5)
-        if gi == 0:
-            ax.legend(frameon=False, fontsize=7.6, loc="upper left")
-
-        axm = fig.add_subplot(gs[1, gi], projection=ccrs.PlateCarree())
-        base_map(axm)
-        tag = EXPERIMENTS[-1][1]
-        eff = (group_mean(temporal[tag]["OmA_stdv"], temporal[tag]["N_data"], idx, args.nmin)
-               - group_mean(temporal[tag]["OmF_stdv"], temporal[tag]["N_data"], idx, args.nmin))
-        lim = max(np.nanpercentile(np.abs(eff), 98), 1e-12)
-        mm = axm.pcolormesh(LON[c0:c1 + 1], LAT[r0:r1 + 1], to_grid(eff), cmap="RdBu_r",
-                            norm=TwoSlopeNorm(vcenter=0, vmin=-lim, vmax=lim),
-                            transform=ccrs.PlateCarree(), shading="flat", zorder=1)
-        axm.set_title(f"({chr(97+len(GROUPS)+gi)}) {gname}", loc="left", fontweight="bold", fontsize=10)
-        axm.text(0.02, 0.03, f"mean {np.nanmean(eff):+.3g}", transform=axm.transAxes, fontsize=8,
-                 bbox=dict(fc="white", ec="0.7", alpha=0.85, pad=1.5))
-        cb = fig.colorbar(mm, ax=axm, fraction=0.038, pad=0.02)
-        cb.ax.tick_params(labelsize=7); cb.set_label(f"O$-$A $-$ O$-$F ({units})", fontsize=7.5)
-    fig.suptitle("Is the analysis doing anything?  O$-$A versus O$-$F standard deviation, 2020\n"
-                 "top: domain means, percentage is O$-$A relative to O$-$F (green = analysis fits better).  "
-                 "bottom: O$-$A minus O$-$F at quarter R, blue = analysis pulled toward that sensor",
-                 fontsize=12.5, y=1.005)
+    # ---------------- Figure 5: O-A vs O-F, spread AND bias ----------------
+    fig = plt.figure(figsize=(4.1 * len(GROUPS), 8.0))
+    gs = fig.add_gridspec(2, len(GROUPS), hspace=0.42, wspace=0.34)
+    for si, (stat, slab, note) in enumerate([
+            ("stdv", "standard deviation", "lower is better; analysis should tighten the spread"),
+            ("mean", "mean (bias)", "closer to zero is better; analysis should not push it further out")]):
+        for gi, (gname, idx, units) in enumerate(GROUPS):
+            ax = fig.add_subplot(gs[si, gi])
+            xb = np.arange(len(EXPERIMENTS)); w = 0.38
+            f = [np.nanmean(group_mean(temporal[t][f"OmF_{stat}"], temporal[t]["N_data"], idx, args.nmin))
+                 for _, t, _, _ in EXPERIMENTS]
+            a = [np.nanmean(group_mean(temporal[t][f"OmA_{stat}"], temporal[t]["N_data"], idx, args.nmin))
+                 for _, t, _, _ in EXPERIMENTS]
+            ax.bar(xb - w/2, f, w, color="0.72", edgecolor="0.3", lw=0.5, label="O$-$F (background)")
+            ax.bar(xb + w/2, a, w, color=[c for _, _, c, _ in EXPERIMENTS], edgecolor="0.3", lw=0.5,
+                   label="O$-$A (analysis)")
+            for k in range(len(EXPERIMENTS)):
+                better = (abs(a[k]) < abs(f[k])) if stat == "mean" else (a[k] < f[k])
+                if abs(a[k] - f[k]) < 1e-12:
+                    txt, col = "0.0%", "0.45"
+                else:
+                    txt = f"{100*(abs(a[k])/max(abs(f[k]),1e-12)-1):+.1f}%"
+                    col = "#1a7f37" if better else "#c0392b"
+                ax.annotate(txt, (xb[k] + w/2, a[k]), textcoords="offset points",
+                            xytext=(0, 3 if a[k] >= 0 else -11), ha="center",
+                            fontsize=7.4, color=col, fontweight="bold")
+            ax.set_xticks(xb); ax.set_xticklabels([e for e, _, _, _ in EXPERIMENTS], fontsize=8, rotation=20)
+            ax.axhline(0, color="0.35", lw=0.8)
+            ax.grid(axis="y", color="0.92"); ax.set_axisbelow(True)
+            lo, hi = min(min(f), min(a), 0), max(max(f), max(a), 0)
+            pad = 0.30 * (hi - lo) if hi > lo else 1
+            ax.set_ylim(lo - pad, hi + pad)
+            if gi == 0:
+                ax.set_ylabel(f"O$-$F / O$-$A {slab}\n({units})", fontsize=9)
+                ax.legend(frameon=False, fontsize=7.4, loc="best")
+            else:
+                ax.set_ylabel(f"({units})", fontsize=8.5)
+            ax.set_title(f"({chr(97 + si*len(GROUPS) + gi)}) {gname}", loc="left",
+                         fontweight="bold", fontsize=10.5)
+        fig.text(0.5, 0.945 - si*0.487, note, ha="center", fontsize=9.5, style="italic", color="0.35")
+    fig.suptitle("Does the analysis improve the fit?  Spread versus bias, 2020\n"
+                 "CYGNSS L1 is the only assimilated species; percentages are O$-$A relative to O$-$F",
+                 fontsize=13, y=1.005)
     p5 = OUT / "R_sweep_fig05_oma_vs_omf.png"
     fig.savefig(p5, dpi=170, bbox_inches="tight"); plt.close(fig)
     print("wrote", p5.relative_to(PROJECT))
+
+    # ---------------- Figure 6: where the analysis pulls ----------------
+    fig, axes = plt.subplots(1, len(GROUPS), figsize=(4.1 * len(GROUPS), 3.5),
+                             subplot_kw=dict(projection=ccrs.PlateCarree()))
+    tag = EXPERIMENTS[-1][1]
+    for gi, ((gname, idx, units), ax) in enumerate(zip(GROUPS, axes)):
+        base_map(ax)
+        eff = (group_mean(temporal[tag]["OmA_stdv"], temporal[tag]["N_data"], idx, args.nmin)
+               - group_mean(temporal[tag]["OmF_stdv"], temporal[tag]["N_data"], idx, args.nmin))
+        lim = max(np.nanpercentile(np.abs(eff), 98), 1e-12)
+        mm = ax.pcolormesh(LON[c0:c1 + 1], LAT[r0:r1 + 1], to_grid(eff), cmap="RdBu_r",
+                           norm=TwoSlopeNorm(vcenter=0, vmin=-lim, vmax=lim),
+                           transform=ccrs.PlateCarree(), shading="flat", zorder=1)
+        ax.set_title(f"({chr(97+gi)}) {gname}", loc="left", fontweight="bold", fontsize=10.5)
+        ax.text(0.02, 0.03, f"mean {np.nanmean(eff):+.3g}", transform=ax.transAxes, fontsize=8,
+                bbox=dict(fc="white", ec="0.7", alpha=0.85, pad=1.5))
+        cb = fig.colorbar(mm, ax=ax, fraction=0.038, pad=0.02)
+        cb.ax.tick_params(labelsize=7); cb.set_label(f"O$-$A $-$ O$-$F ({units})", fontsize=7.5)
+    fig.suptitle("Where the analysis pulls, at 1.1 dB:  blue = toward that sensor, red = away",
+                 fontsize=12.5, y=1.04)
+    p6 = OUT / "R_sweep_fig06_analysis_pull_maps.png"
+    fig.savefig(p6, dpi=170, bbox_inches="tight"); plt.close(fig)
+    print("wrote", p6.relative_to(PROJECT))
 
 
 if __name__ == "__main__":
