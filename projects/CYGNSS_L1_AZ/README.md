@@ -98,6 +98,21 @@ noise. The runs are otherwise undocumented — that note lists the provenance ga
   experiment notes.
 - `runs/cygl1_assim_R_sweep.md`: CYGNSS L1 assimilation observation-error
   sweep, 2020, with findings and open provenance questions.
+- `runs/cygl1_operator_diagnosis.md`: CYGNSS L1-vs-L3 operator diagnosis,
+  extraction scripts, scaled-run obsparam config.
+- `runs/cygl1_thinning_and_localization_summary.md`: paired thinning-density
+  experiment — an unresolved thinning-guarantee discrepancy, and why
+  localization-radius tightening can't substitute for obs thinning.
+- `runs/cygl1_coherency_stratification.md`: obs-fcst coherency stratification
+  scripts and notes (precursor to the coherency-screening experiment below).
+- `runs/weekly_update_2026-08-27.md`: paired thinning-density 22-month result,
+  the hard-gate fix for dense-density harm, and the (then single-seed)
+  coherency-screening result.
+- `runs/cygl1_coh05_density_spectrum_and_24mo_result.md`: coherency-screening
+  multi-seed close-out, the coherency-filtered density-spectrum experiment
+  (intermediate/dense075/dense_coh05), and the 24-month dense075_coh05
+  result — this project's strongest CYGNSS L1 skill result to date. Picks up
+  where the weekly update above left off.
 
 ## Notes
 
