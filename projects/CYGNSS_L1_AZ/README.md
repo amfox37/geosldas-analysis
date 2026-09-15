@@ -92,6 +92,17 @@ The observation is well scaled but correlates with the forecast at only r ~ 0.35
 against 0.64-0.93 for the other sensors, so its increments are correctly-sized
 noise. The runs are otherwise undocumented — that note lists the provenance gaps.
 
+## Provenance and methods
+
+`dense075_coh05_provenance_and_methods.md` traces the final
+`dense075_coh05` result end to end: the CYGNSS L1 preprocessing pipeline in
+`../CYGNSS_operator` (QC screen, 3x5 DDM crop scalar, tile-coefficient
+operator, daily M36 staging), the experiment setup with the full thinning
+ladder and coherency filter, the OL cross-mask comparison method, and the
+figure-by-figure inventory behind
+`notebooks/final_dense075_coh05_omf_figures.ipynb`. Start here before reading
+the individual run notes below.
+
 ## Runs
 
 - `runs/OLv8_M36_all_sensors_AZ.md`: current long-run validation/monitoring
