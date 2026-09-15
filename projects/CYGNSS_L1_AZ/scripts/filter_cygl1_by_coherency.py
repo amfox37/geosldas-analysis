@@ -26,7 +26,15 @@ Consolidates six prior near-duplicate scripts that differed only in tier
 filter_cygl1_{dense075,intermediate}_by_coherency_{jul_dec,2021}.py) --
 merged 2026-09-08, now driven by CLI args instead of hardcoded values.
 
-Usage: filter_cygl1_by_coherency.py --tier {intermediate,dense075,dense} \\
+Generalized further 2026-09-09 (per [[feedback_avoid_per_run_script_copies]]):
+--tier now accepts ANY name whose pre-filter obs already live at
+CYGNSS_L1_thinned_<tier>_6mo (e.g. a new dense050 tier from
+build_cygl1_dense075_thinning.py --tier-name dense050), not just the 3
+originally hardcoded names -- no script edit needed for a new density tier.
+"dense" (the raw/unthinned full stream) stays a special case since its source
+isn't a "_6mo"-suffixed thinned tier.
+
+Usage: filter_cygl1_by_coherency.py --tier {intermediate,dense075,dense050,dense,...} \\
            --beg-date 20200101 --end-date 20200630 [--threshold 0.5]
 """
 import argparse
@@ -51,18 +59,25 @@ TIERS = {
         label="nested-superset-of-sparse, min_sep_deg=2.4, xcompact=ycompact=1.25deg, "
               "THEN coherency_ratio>={thresh} filter",
     ),
-    "dense075": dict(
-        src=BASE + "CYGNSS_L1_thinned_dense075_6mo",
-        dst=BASE + "CYGNSS_L1_thinned_dense075_coh05",
-        label="nested-superset-of-intermediate, min_sep_deg=0.75, xcompact=ycompact=1.25deg, "
-              "THEN coherency_ratio>={thresh} filter",
-    ),
     "dense": dict(
         src=BASE + "CYGNSS_L1",
         dst=BASE + "CYGNSS_L1_thinned_dense_coh05",
         label="full/unthinned stream, THEN coherency_ratio>={thresh} filter",
     ),
 }
+
+
+def tier_config(tier):
+    """Any tier not explicitly in TIERS is assumed to be a nested density tier
+    already built at CYGNSS_L1_thinned_<tier>_6mo (e.g. by
+    build_cygl1_dense075_thinning.py --tier-name <tier>)."""
+    if tier in TIERS:
+        return TIERS[tier]
+    return dict(
+        src=BASE + f"CYGNSS_L1_thinned_{tier}_6mo",
+        dst=BASE + f"CYGNSS_L1_thinned_{tier}_coh05",
+        label=f"nested density tier '{tier}', xcompact=ycompact=1.25deg, THEN coherency_ratio>={{thresh}} filter",
+    )
 
 
 def qc_csv_path(date_str, sc_num):
@@ -80,7 +95,14 @@ def load_day_qc(date_str, sc_nums_needed):
         path = qc_csv_path(date_str, int(sc))
         if not os.path.exists(path):
             continue
-        df = pd.read_csv(path, usecols=["sample_id", "ch_id", "coherency_ratio"])
+        try:
+            df = pd.read_csv(path, usecols=["sample_id", "ch_id", "coherency_ratio"])
+        except pd.errors.EmptyDataError:
+            # Some per-day-per-satellite QC-pass CSVs are literally 2 bytes ("\r\n",
+            # no header) when zero obs passed QC that day -- not corruption, a real
+            # data pattern (confirmed 43x across 2020 alone). Treat as zero rows,
+            # consistent with the "missing file = excluded" convention above.
+            continue
         df["sc_num"] = int(sc)
         frames.append(df)
     if not frames:
@@ -90,13 +112,13 @@ def load_day_qc(date_str, sc_nums_needed):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--tier", required=True, choices=list(TIERS))
+    ap.add_argument("--tier", required=True)
     ap.add_argument("--beg-date", required=True, help="YYYYMMDD")
     ap.add_argument("--end-date", required=True, help="YYYYMMDD, inclusive")
     ap.add_argument("--threshold", type=float, default=0.5)
     args = ap.parse_args()
 
-    tier = TIERS[args.tier]
+    tier = tier_config(args.tier)
     src_root, dst_root = tier["src"], tier["dst"]
     label = tier["label"].format(thresh=args.threshold)
 

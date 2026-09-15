@@ -103,6 +103,22 @@ figure-by-figure inventory behind
 `notebooks/final_dense075_coh05_omf_figures.ipynb`. Start here before reading
 the individual run notes below.
 
+## ISMN In-Situ Validation
+
+Independent check of the `dense075_coh05` result (see below) against ISMN in-situ soil
+moisture rather than only other GEOSldas observing systems' O-F statistics. Reuses
+`projects/ascat_da/scripts/run_ismn_ol_da_skill.py` unmodified, pointed at this project's
+AZ-domain OL and DA runs and the `tavg24_1d_lnd_Nt`/`SFMC`/`RZMC` daily collection:
+
+```bash
+sbatch projects/CYGNSS_L1_AZ/jobs/run_ismn_ol_da_skill_az.sbatch
+```
+
+189 ISMN stations fall in the AZ domain box over the 2020-2021 window (SNOTEL, SCAN, USCRN,
+iRON, COSMOS); no SOILSCAPE stations were live in that window. See
+`runs/cygl1_dense075_coh05_ismn_validation.md` for station-coverage detail, provenance, and
+results.
+
 ## Runs
 
 - `runs/OLv8_M36_all_sensors_AZ.md`: current long-run validation/monitoring
@@ -124,6 +140,9 @@ the individual run notes below.
   (intermediate/dense075/dense_coh05), and the 24-month dense075_coh05
   result — this project's strongest CYGNSS L1 skill result to date. Picks up
   where the weekly update above left off.
+- `runs/cygl1_dense075_coh05_ismn_validation.md`: ISMN in-situ validation of the
+  dense075_coh05 result over the AZ domain, 2020-2021 — station coverage,
+  provenance, and results.
 
 ## Notes
 
