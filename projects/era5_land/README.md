@@ -26,6 +26,26 @@ This project compares GEOS-LDAS OL/DA monthly outputs against ERA5 and ERA5-Land
      - `ERA5_Land_periodized_metrics_summary.csv`
      - map/time-series comparison figures
 
+4. Build the manuscript figures (Figures 11, 12 and 13):
+   - `projects/M21C_ls/notebooks/paper_figures_unified.ipynb`, cells 33-39
+     (cell 33 = ERA5-Land helpers, 35 = Fig. 11, 37 = Fig. 12, 39 = Fig. 13).
+     That notebook is the single generator for all manuscript figures; it writes
+     PNG + PDF + a per-figure stats CSV into `projects/M21C_ls/output/paper_figures/`
+     and records provenance in `paper_figures_manifest.csv`. The copies under
+     `projects/M21C_ls/docs/paper_figures/` (PNG only) are what the manuscript
+     references, so sync them after regenerating.
+   - It reads the cached periodized metrics written by
+     `notebooks/plot_ERA5L_comparison_bars.ipynb` (`cache/era5l_periodized_metrics_bars/`),
+     so run that notebook first if the cache is absent.
+
+   **Common support.** Figures 11 and 13 average OL and DA over the cells at which
+   *both* experiments yield a finite metric (`mean_se_shared` in cell 33), applied per
+   period, per layer and per metric. This is necessary because `mask_both` in the strict
+   summaries is built from each experiment's own soil temperature and snow-cover fraction,
+   so DA and OL do not share a comparison mask; averaging each run over its own finite set
+   mixes the assimilation signal with a difference in support. No land-fraction or area
+   weighting is applied anywhere in this pathway.
+
 ## Inputs used by strict workflow
 
 - GEOS-LDAS monthly model files for OL and DA (configured in notebook).
