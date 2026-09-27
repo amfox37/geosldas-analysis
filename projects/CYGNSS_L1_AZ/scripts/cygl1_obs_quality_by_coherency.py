@@ -165,6 +165,46 @@ def summarize(d, col, bins, label):
     return t
 
 
+def extra_checks(d, lo, hi):
+    """Tail clustering by tile, land cover, SNR x coherency, keep-band summary."""
+    out = {}
+    d = d.copy()
+    d['cls'] = np.where(d.coherency_ratio < lo, 'low', np.where(d.coherency_ratio > hi, 'high', 'mid'))
+    print(f'\ncorr(coherency_ratio, ddm_snr) = {d[["coherency_ratio", "ddm_snr"]].corr().iloc[0, 1]:.3f}')
+    rows = []
+    ntile = d.tilenum.nunique()
+    for c in ['low', 'high']:
+        share = d.groupby('tilenum').cls.apply(lambda x: (x == c).mean())
+        maj = share[share > 0.5].index
+        rows.append(dict(tail=c, n_obs=int((d.cls == c).sum()), n_tiles=ntile,
+                         tiles_majority_tail=len(maj),
+                         share_of_tail_on_majority_tiles=(d[d.tilenum.isin(maj)].cls == c).sum() / (d.cls == c).sum(),
+                         share_of_tail_on_top10pct_tiles=d[d.cls == c].tilenum.value_counts().head(ntile // 10).sum()
+                         / (d.cls == c).sum()))
+    out['tail_tile_clustering'] = pd.DataFrame(rows)
+    print(out['tail_tile_clustering'].to_string(index=False))
+    lc = pd.crosstab(d.modis_land_cover, d.cls, normalize='columns')
+    out['landcover_share_by_class'] = lc.reset_index()
+    print(lc[lc.max(axis=1) > 0.02].round(3).to_string())
+
+    def st(g):
+        s = g.dropna(subset=['inn_SMAPh'])
+        omf, oma = g.obs - g.fcst, g.obs - g.ana
+        return pd.Series(dict(N=len(g), inn_mean=g.inn.mean(), inn_std=g.inn.std(),
+                              R_desroz=(omf * oma).mean(), R_assumed=g.obsvar.mean(),
+                              r_SMAPh=np.corrcoef(s.inn, s.inn_SMAPh)[0, 1],
+                              r_L3=g[['inn', 'inn_L3']].dropna().corr().iloc[0, 1]))
+    d['snr_tercile'] = pd.qcut(d.ddm_snr, 3, labels=['low', 'mid', 'high'])
+    out['snr_tercile_edges'] = pd.DataFrame({'edge': d.ddm_snr.quantile([0, 1 / 3, 2 / 3, 1]).values})
+    t = d.groupby(['cls', 'snr_tercile'], observed=True).apply(st).reset_index()
+    out['coherency_class_x_snr_tercile'] = t
+    print(t.to_string(index=False, float_format=lambda x: f'{x:8.3f}'))
+    kb = pd.DataFrame([dict(subset='all', **st(d)), dict(subset=f'keep {lo}-{hi}', **st(d[d.cls == 'mid']))])
+    out['keep_band_summary'] = kb
+    print(kb.to_string(index=False, float_format=lambda x: f'{x:8.3f}'))
+    return out
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('--da-expid', required=True)
@@ -172,6 +212,8 @@ def main():
     p.add_argument('--start', required=True, help='yyyymm')
     p.add_argument('--end', required=True, help='yyyymm (inclusive)')
     p.add_argument('--rebuild', action='store_true')
+    p.add_argument('--keep-lo', type=float, default=0.40)
+    p.add_argument('--keep-hi', type=float, default=2.16)
     a = p.parse_args()
 
     os.makedirs(OUT_DIR, exist_ok=True)
@@ -184,15 +226,21 @@ def main():
         print('wrote', pq)
 
     pd.set_option('display.width', 250)
+    tabs = {}
     qs = np.unique(np.nanquantile(d.coherency_ratio, np.linspace(0, 1, 11)))
-    summarize(d, 'coherency_ratio', qs, 'coherency_ratio deciles, all months')
-    summarize(d[d.month <= 3], 'coherency_ratio', qs, 'coherency_ratio deciles, Jan-Mar')
-    summarize(d[d.month >= 4], 'coherency_ratio', qs, 'coherency_ratio deciles, Apr-Jun')
-    summarize(d, 'coherency_state', [-0.5, 0.5, 1.5, 2.5, 3.5, 4.5], 'coherency_state')
-    for c in ['ddm_snr', 'srtm_slope', 'pekel_sp_water_percentage_5km', 'sp_inc_angle']:
+    tabs['coherency_deciles_all'] = summarize(d, 'coherency_ratio', qs, 'coherency_ratio deciles, all months')
+    tabs['coherency_deciles_JFM'] = summarize(d[d.month <= 3], 'coherency_ratio', qs, 'coherency_ratio deciles, Jan-Mar')
+    tabs['coherency_deciles_AMJ'] = summarize(d[d.month >= 4], 'coherency_ratio', qs, 'coherency_ratio deciles, Apr-Jun')
+    tabs['coherency_state'] = summarize(d, 'coherency_state', [-0.5, 0.5, 1.5, 2.5, 3.5, 4.5], 'coherency_state')
+    for c in ['ddm_snr', 'srtm_slope', 'sp_inc_angle']:
         qc = np.unique(np.nanquantile(d[c], np.linspace(0, 1, 6)))
-        summarize(d, c, qc, f'{c} quintiles, all months')
-
+        tabs[f'{c}_quintiles'] = summarize(d, c, qc, f'{c} quintiles, all months')
+    print('\npekel_sp_water_percentage_5km: fraction nonzero', f'{(d.pekel_sp_water_percentage_5km > 0).mean():.4f}')
+    tabs.update(extra_checks(d, a.keep_lo, a.keep_hi))
+    tag = f'{a.da_expid}_{a.start}_{a.end}'
+    for k, t in tabs.items():
+        t.to_csv(f'{OUT_DIR}{tag}_{k}.csv', index=False)
+    print(f'\nwrote {len(tabs)} tables to {OUT_DIR}{tag}_*.csv')
 
 if __name__ == '__main__':
     main()
