@@ -1,0 +1,55 @@
+# CYGNSS L1 AZ: ISMN in-situ validation of the fixed-operator arms, 2020–2022
+
+*2026-09-28.* This is the post-fix follow-up to `cygl1_dense075_coh05_ismn_validation.md`. That run was pre-fix, so its DA result is
+invalid. Same driver and settings (`projects/ascat_da/scripts/run_ismn_ol_da_skill.py`, daily `tavg24_1d_lnd_Nt` SFMC/RZMC, `--nmin 90`,
+`--max-distance-deg2 0.1`). Job `jobs/run_ismn_ol_da_skill_az.sbatch`, whose runs are now passed in the `RUNS` variable (job 58621216,
+22 min, all 1096 days found for every run). Output: `output/ismn_fixedop_20200101_20221231/` (gitignored).
+
+Runs: OL = `OLv8_M36_AZ_fixedop` (reference); L1coh = `DA_L1_full_xc015_coh040216_fixedop`; L1coh_err39 = `…_err39_fixedop`;
+L3 = `DA_L3_fixedop`; SMAP = `DA_SMAP_fixedop`. Sites: 195 surface and 167 root zone, from SNOTEL 116/114, SCAN 36/34, SOILSCAPE 20/4,
+USCRN 13/7 and iRON 6/6. SOILSCAPE enters because its 2022 deployment is inside the window.
+
+## Mean skill
+
+| domain | run | R | anomR | ubRMSE |
+|---|---|---:|---:|---:|
+| surface | OL | 0.5383 | 0.4599 | 0.0636 |
+| | L1coh | 0.5401 | 0.4617 | 0.0636 |
+| | L1coh_err39 | 0.5403 | 0.4615 | 0.0636 |
+| | L3 | 0.5380 | 0.4556 | 0.0636 |
+| | SMAP | **0.5809** | **0.5386** | **0.0616** |
+| rz | OL | 0.5841 | 0.5289 | 0.0440 |
+| | L1coh | 0.5933 | 0.5343 | 0.0439 |
+| | L1coh_err39 | 0.5905 | 0.5330 | 0.0439 |
+| | L3 | 0.5873 | 0.5299 | 0.0440 |
+| | SMAP | 0.5880 | **0.5737** | 0.0437 |
+
+## Paired per-station change vs OL (mean Δ, 95% bootstrap CI over stations, % of stations improved)
+
+| domain | metric | L1coh | L1coh_err39 | L3 | SMAP |
+|---|---|---|---|---|---|
+| surface | ΔR | +.0018 [−.0007, +.0043] 58% | **+.0020 [+.0004, +.0036] 60%** | −.0003 [−.0022, +.0017] 56% | **+.043 [+.036, +.049] 85%** |
+| surface | ΔanomR | +.0017 [−.0009, +.0044] 56% | +.0016 [−.0003, +.0037] 59% | **−.0043 [−.0066, −.0022] 46%** | **+.079 [+.071, +.086] 92%** |
+| rz | ΔR | **+.0091 [+.0051, +.0139] 70%** | **+.0063 [+.0035, +.0094] 72%** | +.0031 [−.0003, +.0068] 63% | +.004 [−.008, +.018] 45% |
+| rz | ΔanomR | **+.0054 [+.0010, +.0114] 60%** | **+.0041 [+.0013, +.0078] 62%** | +.0010 [−.0028, +.0048] 56% | **+.045 [+.030, +.060] 72%** |
+
+Excluding SNOTEL (mountain snow sites, 60% of the sample), n = 78 surface / 53 rz:
+- The L1 root-zone gain roughly doubles: ΔR L1coh +.020 [+.009, +.034], L1coh_err39 +.013 [+.006, +.021].
+- Surface ΔR for L1coh_err39 is +.004 [+.001, +.008].
+- L3 surface ΔanomR stays negative: −.005 [−.009, −.001].
+
+## Reading
+
+- **In situ, SMAP-only is the only arm with a large gain.** Surface anomR is +0.08, and it improves at 92% of stations. This matches its
+  −10 to −14% Tb O-F. The ASCAT (+12.7%) and L3 (+3.9%) O-F degradations seen in the O-F comparison do not show up as in-situ harm.
+- **The L1 arms give a small but statistically robust in-situ gain, mostly in the root zone.** rz R is +0.006 to +0.009 (CI excludes 0,
+  improves at 70% of stations), and larger away from SNOTEL. The medians are ≈ 0, so the gain comes from a minority of stations with
+  real changes, while most stations barely move. That is consistent with the ~1% Tb O-F gains.
+- **L3-only, the best non-SMAP arm in O-F space (L3 O-F −5 to −6%, ASCAT −2.6 to −3.6%), is neutral to slightly negative in situ.** Its
+  surface anomR is −0.004 (CI excludes 0). The L3-vs-L1 ranking from O-F statistics does not hold up against in-situ data; if anything,
+  L1 ≥ L3 in situ.
+- The effect sizes for L1/L3 (±0.002–0.009 in R) are small compared with the station-to-station spread. Treat them as "not harmful,
+  slightly positive for L1", not as a strong skill result.
+
+Possible follow-ups: seasonal split (does the spring O-F degradation show in situ?), and per-station maps of ΔR against CYGNSS
+L1 obs density.
