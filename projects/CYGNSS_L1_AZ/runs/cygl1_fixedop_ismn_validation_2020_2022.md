@@ -1,88 +1,115 @@
 # CYGNSS L1 AZ: ISMN in-situ validation of the fixed-operator arms, 2020–2022
 
-*2026-09-28.* This is the post-fix follow-up to `cygl1_dense075_coh05_ismn_validation.md`. That run was pre-fix, so its DA result is
-invalid. Same driver and settings (`projects/ascat_da/scripts/run_ismn_ol_da_skill.py`, daily `tavg24_1d_lnd_Nt` SFMC/RZMC, `--nmin 90`,
-`--max-distance-deg2 0.1`). Job `jobs/run_ismn_ol_da_skill_az.sbatch`, whose runs are now passed in the `RUNS` variable (job 58621216,
-22 min, all 1096 days found for every run). Output: `output/ismn_fixedop_20200101_20221231/` (gitignored).
+*2026-09-28, rewritten the same day.* The first version averaged over every ISMN station in the GEOSldas box. Most of those stations
+sit where the CYGNSS L1 stream never reaches, so it understated L1 and was not a fair L1-vs-L3 comparison. This version scores only the
+**area where L1 obs exist**. The all-station numbers are kept in the appendix for reference. This is the post-fix follow-up to
+`cygl1_dense075_coh05_ismn_validation.md`, which was pre-fix and is invalid.
 
-Runs: OL = `OLv8_M36_AZ_fixedop` (reference); L1coh = `DA_L1_full_xc015_coh040216_fixedop`; L1coh_err39 = `…_err39_fixedop`;
-L3 = `DA_L3_fixedop`; SMAP = `DA_SMAP_fixedop`. Sites: 195 surface and 167 root zone, from SNOTEL 116/114, SCAN 36/34, SOILSCAPE 20/4,
-USCRN 13/7 and iRON 6/6. SOILSCAPE enters because its 2022 deployment is inside the window.
+## Setup
 
-## Mean skill
+- **Driver and job:** `projects/ascat_da/scripts/run_ismn_ol_da_skill.py`, run by `jobs/run_ismn_ol_da_skill_az.sbatch` (job 58621216,
+  22 min).
+  - Model data: daily `tavg24_1d_lnd_Nt` SFMC/RZMC, all 1096 days found for every run.
+  - Settings: `--nmin 90`, `--max-distance-deg2 0.1`.
+  - Station pool: every ISMN station in the GEOSldas box (118–106° W, 29–40° N) matched to a model tile. That gives 195 surface and
+    167 rz stations, with station-to-tile-center offsets of 0.15° median and 0.31° max.
+  - Skill is computed per station, so restricting to a subset of stations needs no rerun.
+  - Output: `output/ismn_fixedop_20200101_20221231/` (gitignored).
+- **Runs:**
+
+  | label | experiment |
+  |---|---|
+  | OL (reference) | `OLv8_M36_AZ_fixedop` |
+  | L1coh | `DA_L1_full_xc015_coh040216_fixedop` |
+  | L1coh_err39 | `DA_L1_full_xc015_coh040216_err39_fixedop` |
+  | L3 | `DA_L3_fixedop` |
+  | SMAP | `DA_SMAP_fixedop` |
+
+- **L1 area = tiles with ≥ 100 CYGNSS L1 obs over 2020–2022 in the unfiltered L1 stream.** The counts are the `N_data` of species 12
+  in the L3-only arm's 2020–2022 temporal stats, where L1 is monitor-only and unfiltered. The same mask is applied to every run.
+  - 574 of the 909 domain tiles have any L1 obs, with a median of 785 per tile.
+  - The L1 stream is limited to specular points within 200 km of Arizona (the CYGNSS_operator preprocessing region) and south of about
+    37.9° N (the CYGNSS orbit). It also runs thin above about 37.4° N.
+- **Why this matters:** only 43 of the 195 surface stations are on a tile with any L1 obs. The median station latitude is 37.8° N; half
+  of the stations are Utah/Colorado mountain sites (mostly SNOTEL) beyond CYGNSS coverage. Breakdown of the 195 surface stations:
+
+  | location | stations | on a tile with L1 obs |
+  |---|---:|---:|
+  | Arizona + 200 km, south of 37.4° N | 45 | 41 |
+  | Arizona + 200 km, 37.4° N or further north | 54 | 0 |
+  | outside Arizona + 200 km | 96 | 2 |
+
+- **Stations scored:**
+  - Surface: 42 stations on 25 tiles (SNOTEL 14, SCAN 12, SOILSCAPE 9, USCRN 7).
+  - Root zone: 33 stations on 19 tiles (SNOTEL 13, SCAN 11, SOILSCAPE 6, USCRN 3).
+  - The median is about 600 L1 obs per tile.
+- **Statistics:**
+  - Each Δ is the mean over stations of the paired difference.
+  - 95% CIs are from a **tile-cluster bootstrap**: tiles are resampled with all their stations, because stations on the same tile share
+    one model time series.
+  - \* marks a CI that excludes 0. "better" is the share of stations that improve.
+
+## Mean skill (L1 area)
 
 | domain | run | R | anomR | ubRMSE |
 |---|---|---:|---:|---:|
-| surface | OL | 0.5383 | 0.4599 | 0.0636 |
-| | L1coh | 0.5401 | 0.4617 | 0.0636 |
-| | L1coh_err39 | 0.5403 | 0.4615 | 0.0636 |
-| | L3 | 0.5380 | 0.4556 | 0.0636 |
-| | SMAP | **0.5809** | **0.5386** | **0.0616** |
-| rz | OL | 0.5841 | 0.5289 | 0.0440 |
-| | L1coh | 0.5933 | 0.5343 | 0.0439 |
-| | L1coh_err39 | 0.5905 | 0.5330 | 0.0439 |
-| | L3 | 0.5873 | 0.5299 | 0.0440 |
-| | SMAP | 0.5880 | **0.5737** | 0.0437 |
+| surface | OL | 0.521 | 0.444 | 0.0515 |
+| | L1coh | 0.528 | 0.450 | 0.0512 |
+| | L1coh_err39 | 0.529 | 0.449 | 0.0511 |
+| | L3 | 0.525 | 0.437 | 0.0512 |
+| | SMAP | **0.588** | **0.532** | **0.0490** |
+| rz | OL | 0.468 | 0.491 | 0.0354 |
+| | L1coh | 0.511 | 0.518 | 0.0349 |
+| | L1coh_err39 | 0.497 | 0.510 | 0.0351 |
+| | L3 | 0.479 | 0.495 | 0.0354 |
+| | SMAP | **0.534** | **0.568** | **0.0343** |
 
-## Paired per-station change vs OL (mean Δ, 95% bootstrap CI over stations, % of stations improved)
-
-| domain | metric | L1coh | L1coh_err39 | L3 | SMAP |
-|---|---|---|---|---|---|
-| surface | ΔR | +.0018 [−.0007, +.0043] 58% | **+.0020 [+.0004, +.0036] 60%** | −.0003 [−.0022, +.0017] 56% | **+.043 [+.036, +.049] 85%** |
-| surface | ΔanomR | +.0017 [−.0009, +.0044] 56% | +.0016 [−.0003, +.0037] 59% | **−.0043 [−.0066, −.0022] 46%** | **+.079 [+.071, +.086] 92%** |
-| rz | ΔR | **+.0091 [+.0051, +.0139] 70%** | **+.0063 [+.0035, +.0094] 72%** | +.0031 [−.0003, +.0068] 63% | +.004 [−.008, +.018] 45% |
-| rz | ΔanomR | **+.0054 [+.0010, +.0114] 60%** | **+.0041 [+.0013, +.0078] 62%** | +.0010 [−.0028, +.0048] 56% | **+.045 [+.030, +.060] 72%** |
-
-Excluding SNOTEL (mountain snow sites, 60% of the sample), n = 78 surface / 53 rz:
-- The L1 root-zone gain roughly doubles: ΔR L1coh +.020 [+.009, +.034], L1coh_err39 +.013 [+.006, +.021].
-- Surface ΔR for L1coh_err39 is +.004 [+.001, +.008].
-- L3 surface ΔanomR stays negative: −.005 [−.009, −.001].
-
-## Excluding SNOTEL
-
-78 surface sites (SCAN 36, SOILSCAPE 23, USCRN 13, iRON 6) and 53 root-zone sites (SCAN 34, USCRN 7, SOILSCAPE 6, iRON 6).
-
-| domain | run | R | anomR | ubRMSE |
-|---|---|---:|---:|---:|
-| surface | OL | 0.6180 | 0.4786 | 0.0367 |
-| | L1coh | 0.6228 | 0.4802 | 0.0366 |
-| | L1coh_err39 | 0.6222 | 0.4796 | 0.0366 |
-| | L3 | 0.6205 | 0.4736 | 0.0365 |
-| | SMAP | **0.6610** | **0.5459** | **0.0353** |
-| rz | OL | 0.5544 | 0.5248 | 0.0253 |
-| | L1coh | 0.5746 | 0.5350 | 0.0251 |
-| | L1coh_err39 | 0.5672 | 0.5313 | 0.0252 |
-| | L3 | 0.5615 | 0.5269 | 0.0252 |
-| | SMAP | 0.5781 | 0.5481 | 0.0253 |
-
-Paired change vs OL (mean Δ [95% bootstrap CI], % of stations improved; bold = CI excludes 0):
+## Change vs OL (L1 area)
 
 | domain | metric | L1coh | L1coh_err39 | L3 | SMAP |
 |---|---|---|---|---|---|
-| surface | ΔR | +.0049 [−.0002, +.0104] 59% | **+.0043 [+.0010, +.0080] 64%** | +.0026 [−.0016, +.0068] 54% | **+.043 [+.032, +.056] 85%** |
-| surface | ΔanomR | +.0016 [−.0039, +.0074] 49% | +.0010 [−.0030, +.0048] 53% | **−.0050 [−.0091, −.0014] 37%** | **+.067 [+.056, +.079] 89%** |
-| surface | ΔubRMSE ×10⁻³ | −.11 [−.25, +.02] 55% | **−.12 [−.22, −.03] 65%** | **−.24 [−.40, −.08] 68%** | **−1.35 [−1.89, −.84] 71%** |
-| rz | ΔR | **+.020 [+.009, +.034] 70%** | **+.013 [+.006, +.021] 70%** | +.007 [−.002, +.017] 64% | +.024 [−.003, +.053] 57% |
-| rz | ΔanomR | +.010 [−.001, +.028] 57% | **+.007 [+.000, +.016] 57%** | +.002 [−.006, +.009] 59% | +.023 [−.009, +.060] 65% |
-| rz | ΔubRMSE ×10⁻³ | **−.24 [−.37, −.12] 75%** | **−.16 [−.25, −.08] 72%** | **−.14 [−.25, −.03] 70%** | −.00 [−.45, +.45] 47% |
+| surface | ΔR | +.007 [−.008, +.020] 62% | +.008 [−.002, +.016] 69% | +.005 [−.010, +.018] 55% | **+.067 [+.033, +.097]\* 86%** |
+| surface | ΔanomR | +.006 [−.010, +.022] 63% | +.005 [−.006, +.017] 68% | −.007 [−.018, +.002] 46% | **+.088 [+.060, +.110]\* 90%** |
+| surface | ΔubRMSE ×10⁻³ | −.27 [−.61, +.12] 50% | **−.31 [−.54, −.02]\* 67%** | −.25 [−.67, +.24] 60% | **−2.42 [−3.62, −.88]\* 81%** |
+| rz | ΔR | **+.044 [+.019, +.067]\* 88%** | **+.030 [+.013, +.044]\* 91%** | +.012 [−.018, +.037] 55% | **+.066 [+.034, +.112]\* 76%** |
+| rz | ΔanomR | **+.027 [+.005, +.063]\* 71%** | **+.019 [+.004, +.040]\* 71%** | +.003 [−.021, +.027] 61% | **+.077 [+.028, +.141]\* 74%** |
+| rz | ΔubRMSE ×10⁻³ | **−.53 [−.79, −.22]\* 88%** | **−.36 [−.51, −.18]\* 85%** | −.07 [−.36, +.25] 61% | **−1.18 [−1.69, −.70]\* 82%** |
 
-Mean ΔR by network (surface / rz):
+## L1 vs L3 directly (L1 area)
 
-| network | L1coh | L1coh_err39 | L3 | SMAP |
-|---|---|---|---|---|
-| SCAN | +.005 / +.014 | +.004 / +.008 | −.004 / −.005 | +.038 / +.032 |
-| SOILSCAPE | +.012 / +.097 | +.009 / +.064 | +.017 / +.080 | +.067 / +.039 |
-| USCRN | −.006 / +.003 | −.003 / +.003 | −.004 / +.007 | +.038 / +.009 |
-| iRON | +.001 / +.001 | +.001 / +.001 | +.001 / +.001 | −.006 / −.022 |
+| domain | metric | L1coh − L3 | L1coh_err39 − L3 |
+|---|---|---|---|
+| surface | ΔR | +.002 [−.009, +.020] 36% | +.003 [−.008, +.019] 45% |
+| surface | ΔanomR | **+.012 [+.002, +.027]\* 61%** | **+.012 [+.003, +.024]\* 63%** |
+| surface | ΔubRMSE ×10⁻³ | −.03 [−.54, +.33] 38% | −.06 [−.52, +.29] 48% |
+| rz | ΔR | **+.032 [+.011, +.065]\* 70%** | +.018 [−.001, +.046] 64% |
+| rz | ΔanomR | +.024 [−.005, +.068] 52% | +.015 [−.010, +.047] 52% |
+| rz | ΔubRMSE ×10⁻³ | **−.46 [−.73, −.26]\* 82%** | **−.29 [−.56, −.09]\* 70%** |
 
-**Caveat: SOILSCAPE is 2022 only** (115–242 paired days per station) and drives much of the rz mean: its 6 rz sites contribute
-+.06 to +.10. Excluding both SNOTEL and SOILSCAPE (55 sfc / 47 rz):
-- rz ΔR stays significant for both L1 arms: L1coh +.010 [+.002, +.023], L1coh_err39 +.006 [+.001, +.014].
-- L1 surface is not significant: ΔR +.002, ΔanomR ≈ 0.
-- L3 becomes negative: sfc ΔR −.003 [−.007, −.000], sfc ΔanomR −.006 [−.012, −.002], rz ΔR −.002.
-- SMAP is unchanged: sfc ΔanomR +.070.
+## Reading
 
-## SOILSCAPE only
+1. **Where L1 obs exist, L1 assimilation clearly improves the root zone against in-situ data.** rz R rises by +0.03 to +0.04 over the OL
+   and rz anomR by +0.02 to +0.03, at 70–90% of stations, with tile-cluster CIs excluding 0. The surface gain is smaller (+0.005 to
+   +0.008) and not significant.
+2. **L3 assimilation does not significantly improve anything against in-situ data in the same area,** and its surface anomR is slightly
+   negative (−0.007).
+3. **L1 beats L3 in situ:** surface anomR by +0.012 (both L1 arms, significant), and rz R / ubRMSE for the L1coh arm (+0.032, significant).
+   **This is the opposite of the O-F ranking,** where L3-only beat the best L1 arm on every monitor:
+   - The L3-only arm's L3-monitor score is own-fit, since L3 is assimilated there.
+   - On the fully independent Tb monitors, L3's O-F lead is only about 0.2–0.3 points.
+   - The large ASCAT O-F advantage of L3 (−3.6% vs +0.6%) is not reflected in situ. One possibility, not tested: L3 and ASCAT are both
+     SM retrievals with shared error structure.
+4. **Within the L1 arms, errstd 2.75 (L1coh) does better in situ than errstd 3.9** (rz R +0.044 vs +0.030), while O-F slightly preferred
+   errstd 3.9 because of ASCAT. The larger R costs in-situ root-zone skill.
+5. **SMAP-only is still clearly the strongest,** at both surface and root zone.
+6. **Caveats:**
+   - The sample is small (19–25 independent tiles).
+   - The station mix is point-scale against 36 km tiles.
+   - 2022 SOILSCAPE is one year on 3 tiles (below).
+   - Next checks: O-F scored over the same L1-area tiles (does L3's O-F lead survive there?), and a seasonal split of the in-situ skill
+     (does the spring O-F degradation appear in situ?).
+
+## SOILSCAPE
 
 Of particular interest because the SOILSCAPE instruments are run by the group developing the L1 operator. All SOILSCAPE data in the
 window are from **2022 only** (the current deployment), with 115–242 paired days per station.
@@ -147,18 +174,15 @@ Reading:
   GEOSldas box, and the L1 scaling climatology rebuilt.
 - With one year and effectively 1–3 independent tiles, this is a case study, not evidence of skill.
 
-## Reading
+## Appendix: all stations in the GEOSldas box (misleading for L1, kept for reference)
 
-- **In situ, SMAP-only is the only arm with a large gain.** Surface anomR is +0.08, and it improves at 92% of stations. This matches its
-  −10 to −14% Tb O-F. The ASCAT (+12.7%) and L3 (+3.9%) O-F degradations seen in the O-F comparison do not show up as in-situ harm.
-- **The L1 arms give a small but statistically robust in-situ gain, mostly in the root zone.** rz R is +0.006 to +0.009 (CI excludes 0,
-  improves at 70% of stations), and larger away from SNOTEL. The medians are ≈ 0, so the gain comes from a minority of stations with
-  real changes, while most stations barely move. That is consistent with the ~1% Tb O-F gains.
-- **L3-only, the best non-SMAP arm in O-F space (L3 O-F −5 to −6%, ASCAT −2.6 to −3.6%), is neutral to slightly negative in situ.** Its
-  surface anomR is −0.004 (CI excludes 0). The L3-vs-L1 ranking from O-F statistics does not hold up against in-situ data; if anything,
-  L1 ≥ L3 in situ.
-- The effect sizes for L1/L3 (±0.002–0.009 in R) are small compared with the station-to-station spread. Treat them as "not harmful,
-  slightly positive for L1", not as a strong skill result.
+195 surface / 167 rz stations; 78% of them are on tiles with no L1 obs. Mean Δ vs OL (station bootstrap):
 
-Possible follow-ups: seasonal split (does the spring O-F degradation show in situ?), and per-station maps of ΔR against CYGNSS
-L1 obs density.
+| domain | metric | L1coh | L1coh_err39 | L3 | SMAP |
+|---|---|---:|---:|---:|---:|
+| surface | ΔR | +.002 | +.002 | −.000 | +.043 |
+| surface | ΔanomR | +.002 | +.002 | −.004 | +.079 |
+| rz | ΔR | +.009 | +.006 | +.003 | +.004 |
+| rz | ΔanomR | +.005 | +.004 | +.001 | +.045 |
+
+The L1 effect in this table is diluted about 4–5× by stations that L1 can reach only through spill-over from neighbouring tiles.
