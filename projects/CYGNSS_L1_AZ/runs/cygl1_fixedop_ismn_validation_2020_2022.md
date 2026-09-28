@@ -106,8 +106,49 @@ sit where the CYGNSS L1 stream never reaches, so it understated L1 and was not a
    - The sample is small (19–25 independent tiles).
    - The station mix is point-scale against 36 km tiles.
    - 2022 SOILSCAPE is one year on 3 tiles (below).
-   - Next checks: O-F scored over the same L1-area tiles (does L3's O-F lead survive there?), and a seasonal split of the in-situ skill
-     (does the spring O-F degradation appear in situ?).
+   - Next check: a seasonal split of the in-situ skill (does the spring O-F degradation appear in situ?). The O-F over the same L1
+     area is in the next section.
+
+## O-F over the same L1 area
+
+Species-group mean of `% (DA−OL)/OL` of O-F stdv, pooled over 2020–2022.
+- Computed from the per-tile whole-period `temporal_stats_*_20200101_20221231.nc4` files (DA vs its OL cross-mask), pooled N-weighted
+  over the masked tiles.
+- Check: pooling all 909 tiles reproduces the domain pkl values to within about 0.03%.
+- Output: `output/ismn_fixedop_20200101_20221231/omf_by_l1_area_2020_2022.csv`.
+- Masks: L1 area = the 552 tiles with ≥ 100 unfiltered L1 obs; outside = the other 357 tiles; station tiles = the 25 ISMN tiles scored
+  above.
+
+| tiles | arm | SMOS | SMAP | ASCAT | L3 | L1 |
+|---|---|---:|---:|---:|---:|---:|
+| all 909 | L1coh | −1.01 | −1.27 | +2.18 | −1.86 | −0.76 |
+| | L1coh_err39 | −0.93 | −1.18 | +0.55 | −2.08 | −0.68 |
+| | L3 | −1.12 | −1.48 | −3.61 | −6.01 | −0.54 |
+| | SMAP | −14.04 | −11.32 | +12.59 | +2.94 | −0.67 |
+| **L1 area (552)** | L1coh | −1.35 | −1.66 | +3.21 | −2.21 | −0.76 |
+| | L1coh_err39 | −1.25 | −1.55 | +0.84 | −2.49 | −0.68 |
+| | L3 | −1.36 | −1.76 | −4.24 | −6.00 | −0.54 |
+| | SMAP | −14.31 | −11.25 | +13.70 | +2.61 | −0.68 |
+| outside L1 area (357) | L1coh | −0.12 | −0.18 | −0.06 | −0.37 | −0.06 |
+| | L1coh_err39 | −0.10 | −0.16 | −0.11 | −0.34 | −0.11 |
+| | L3 | −0.49 | −0.68 | −2.30 | −6.06 | −0.45 |
+| | SMAP | −13.33 | −11.54 | +10.17 | +4.33 | +0.64 |
+| ISMN station tiles (25) | L1coh | −0.68 | −0.64 | +7.84 | −0.95 | −0.69 |
+| | L1coh_err39 | −0.76 | −0.91 | +3.93 | −1.76 | −0.65 |
+| | L3 | −1.08 | −1.67 | −2.52 | −5.84 | −0.51 |
+| | SMAP | −15.43 | −11.70 | +15.05 | +1.99 | −0.69 |
+
+- **Coverage explains part of L3's domain-wide O-F lead, but not all of it.** Outside the L1 area the L1 arms do nothing (as expected),
+  while L3 still gains (Tb −0.5 to −0.7). Inside the L1 area the L1 arms' Tb gains grow (SMAP −1.66 / −1.55) and are **essentially tied
+  with L3 (−1.76)**. The L3 lead that remains is on ASCAT (−4.2 vs +0.8 / +3.2) and on the L3 monitor, which is own-fit for the L3 arm.
+- **At the 25 ISMN station tiles, O-F and in situ disagree outright.** O-F favours L3 (SMAP −1.67 vs −0.64 / −0.91; ASCAT −2.5 vs +7.8 /
+  +3.9). In situ, on the same tiles, L1 beats L3 (surface anomR +0.012, rz R +0.032 for L1coh).
+- **A consistent reading:**
+  - Every O-F monitor senses only the top few cm. On surface-sensing measures L1 and L3 are close: a Tb tie in O-F, and ΔR +0.002–0.003
+    at the surface in situ.
+  - L1's in-situ advantage is in the **root zone**, which no O-F monitor sees.
+  - The one measure that strongly favours L3 over L1 is ASCAT O-F, and in situ does not support it. That is consistent with treating
+    ASCAT as a secondary monitor.
 
 ## SOILSCAPE
 
