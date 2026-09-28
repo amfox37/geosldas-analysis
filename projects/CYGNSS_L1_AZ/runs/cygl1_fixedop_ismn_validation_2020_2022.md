@@ -38,6 +38,50 @@ Excluding SNOTEL (mountain snow sites, 60% of the sample), n = 78 surface / 53 r
 - Surface ΔR for L1coh_err39 is +.004 [+.001, +.008].
 - L3 surface ΔanomR stays negative: −.005 [−.009, −.001].
 
+## Excluding SNOTEL
+
+78 surface sites (SCAN 36, SOILSCAPE 23, USCRN 13, iRON 6) and 53 root-zone sites (SCAN 34, USCRN 7, SOILSCAPE 6, iRON 6).
+
+| domain | run | R | anomR | ubRMSE |
+|---|---|---:|---:|---:|
+| surface | OL | 0.6180 | 0.4786 | 0.0367 |
+| | L1coh | 0.6228 | 0.4802 | 0.0366 |
+| | L1coh_err39 | 0.6222 | 0.4796 | 0.0366 |
+| | L3 | 0.6205 | 0.4736 | 0.0365 |
+| | SMAP | **0.6610** | **0.5459** | **0.0353** |
+| rz | OL | 0.5544 | 0.5248 | 0.0253 |
+| | L1coh | 0.5746 | 0.5350 | 0.0251 |
+| | L1coh_err39 | 0.5672 | 0.5313 | 0.0252 |
+| | L3 | 0.5615 | 0.5269 | 0.0252 |
+| | SMAP | 0.5781 | 0.5481 | 0.0253 |
+
+Paired change vs OL (mean Δ [95% bootstrap CI], % of stations improved; bold = CI excludes 0):
+
+| domain | metric | L1coh | L1coh_err39 | L3 | SMAP |
+|---|---|---|---|---|---|
+| surface | ΔR | +.0049 [−.0002, +.0104] 59% | **+.0043 [+.0010, +.0080] 64%** | +.0026 [−.0016, +.0068] 54% | **+.043 [+.032, +.056] 85%** |
+| surface | ΔanomR | +.0016 [−.0039, +.0074] 49% | +.0010 [−.0030, +.0048] 53% | **−.0050 [−.0091, −.0014] 37%** | **+.067 [+.056, +.079] 89%** |
+| surface | ΔubRMSE ×10⁻³ | −.11 [−.25, +.02] 55% | **−.12 [−.22, −.03] 65%** | **−.24 [−.40, −.08] 68%** | **−1.35 [−1.89, −.84] 71%** |
+| rz | ΔR | **+.020 [+.009, +.034] 70%** | **+.013 [+.006, +.021] 70%** | +.007 [−.002, +.017] 64% | +.024 [−.003, +.053] 57% |
+| rz | ΔanomR | +.010 [−.001, +.028] 57% | **+.007 [+.000, +.016] 57%** | +.002 [−.006, +.009] 59% | +.023 [−.009, +.060] 65% |
+| rz | ΔubRMSE ×10⁻³ | **−.24 [−.37, −.12] 75%** | **−.16 [−.25, −.08] 72%** | **−.14 [−.25, −.03] 70%** | −.00 [−.45, +.45] 47% |
+
+Mean ΔR by network (surface / rz):
+
+| network | L1coh | L1coh_err39 | L3 | SMAP |
+|---|---|---|---|---|
+| SCAN | +.005 / +.014 | +.004 / +.008 | −.004 / −.005 | +.038 / +.032 |
+| SOILSCAPE | +.012 / +.097 | +.009 / +.064 | +.017 / +.080 | +.067 / +.039 |
+| USCRN | −.006 / +.003 | −.003 / +.003 | −.004 / +.007 | +.038 / +.009 |
+| iRON | +.001 / +.001 | +.001 / +.001 | +.001 / +.001 | −.006 / −.022 |
+
+**Caveat: SOILSCAPE is 2022 only** (115–242 paired days per station) and drives much of the rz mean: its 6 rz sites contribute
++.06 to +.10. Excluding both SNOTEL and SOILSCAPE (55 sfc / 47 rz):
+- rz ΔR stays significant for both L1 arms: L1coh +.010 [+.002, +.023], L1coh_err39 +.006 [+.001, +.014].
+- L1 surface is not significant: ΔR +.002, ΔanomR ≈ 0.
+- L3 becomes negative: sfc ΔR −.003 [−.007, −.000], sfc ΔanomR −.006 [−.012, −.002], rz ΔR −.002.
+- SMAP is unchanged: sfc ΔanomR +.070.
+
 ## Reading
 
 - **In situ, SMAP-only is the only arm with a large gain.** Surface anomR is +0.08, and it improves at 92% of stations. This matches its
