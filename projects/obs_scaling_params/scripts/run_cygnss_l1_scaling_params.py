@@ -47,8 +47,45 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--tilecoord", type=Path, help="Explicit ldas_tilecoord.bin path")
     parser.add_argument("--tilegrids", type=Path, help="Explicit ldas_tilegrids.bin path")
     parser.add_argument("--no-overwrite", dest="overwrite", action="store_false")
+    parser.add_argument(
+        "--keep-list",
+        type=Path,
+        help="Parquet of obs-file rows (T = window center, s since 2020-01-01; float32 lon/lat; "
+        "coherency_ratio) from CYGNSS_L1_AZ/scripts/cygl1_coherency_filter.py annotate; "
+        "only OL rows whose (T, lon, lat) passes --keep-lo/--keep-hi are used",
+    )
+    parser.add_argument("--keep-lo", type=float, default=0.40)
+    parser.add_argument("--keep-hi", type=float, default=2.16)
     parser.set_defaults(overwrite=True)
     return parser.parse_args(argv)
+
+
+def make_keep_filter(path: Path, lo: float, hi: float):
+    """obs_keep callable: True where the OL obs (exact float32 sp lon/lat, same
+    window) is in the keep-list with lo <= coherency_ratio <= hi."""
+    from datetime import datetime
+
+    import numpy as np
+    import pandas as pd
+
+    d = pd.read_parquet(path, columns=["T", "lon", "lat", "coherency_ratio"])
+    d = d[(d.coherency_ratio >= lo) & (d.coherency_ratio <= hi)]
+    key = (d.lon.to_numpy(np.float32).view(np.uint32).astype(np.int64) << 32) | d.lat.to_numpy(
+        np.float32
+    ).view(np.uint32).astype(np.int64)
+    keep = {int(t): set(k) for t, k in pd.Series(key).groupby(d["T"].to_numpy()).agg(set).items()}
+    epoch = datetime(2020, 1, 1)
+    print(f"  keep-list: {len(d)} obs with {lo} <= coherency_ratio <= {hi} from {path}")
+
+    def obs_keep(t, lon, lat):
+        tt = int((datetime(t.year, t.month, t.day, t.hour, t.minute) - epoch).total_seconds())
+        k = (np.asarray(lon, np.float32).view(np.uint32).astype(np.int64) << 32) | np.asarray(
+            lat, np.float32
+        ).view(np.uint32).astype(np.int64)
+        s = keep.get(tt, set())
+        return np.fromiter((int(x) in s for x in k), dtype=bool, count=len(k))
+
+    return obs_keep
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -100,6 +137,9 @@ def main(argv: list[str] | None = None) -> None:
         tilecoord_path=args.tilecoord,
         tilegrids_path=args.tilegrids,
         overwrite=args.overwrite,
+        obs_keep=make_keep_filter(args.keep_list, args.keep_lo, args.keep_hi)
+        if args.keep_list
+        else None,
     )
     print("Wrote", output)
 

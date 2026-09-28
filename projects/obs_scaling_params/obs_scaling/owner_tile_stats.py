@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import floor
 from pathlib import Path
-from typing import Sequence
+from typing import Callable, Sequence
 
 import numpy as np
 
@@ -174,8 +174,15 @@ def generate_cygnss_l1_scaling_params(
     tilecoord_path: str | Path | None = None,
     tilegrids_path: str | Path | None = None,
     overwrite: bool = True,
+    obs_keep: Callable[[DateTime, np.ndarray, np.ndarray], np.ndarray] | None = None,
 ) -> Path:
-    """Generate one 73-pentad CYGNSS L1 owner-tile scaling file."""
+    """Generate one 73-pentad CYGNSS L1 owner-tile scaling file.
+
+    obs_keep, if given, is called as obs_keep(ofa_time, lon, lat) on each
+    ObsFcstAna file's CYGNSS L1 rows and returns a boolean keep mask; rows it
+    rejects are left out of the statistics (e.g. an obs-quality screen that
+    the assimilating run applies to its obs stream).
+    """
 
     if window_days % 5 or window_days % 10 == 0:
         raise ValueError("window_days must be an odd number of pentads (for example, 75)")
@@ -253,6 +260,12 @@ def generate_cygnss_l1_scaling_params(
                         & (np.abs(obs - NODATA) > 1e-4)
                         & (np.abs(model - NODATA) > 1e-4)
                     )
+                    if obs_keep is not None:
+                        valid &= obs_keep(
+                            actual_time,
+                            record.obs_lon[selected_mask],
+                            record.obs_lat[selected_mask],
+                        )
                     indices = model_indices[valid]
                     obs = obs[valid]
                     model = model[valid]

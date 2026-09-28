@@ -1,0 +1,95 @@
+####################################################################################
+#                                                                                  #
+#   L3-assim companion to DAv8_M36_AZ_paired_cygl1_dense075_coh05.                #
+#   Same dense075+coherency>=0.5 CYGNSS L1 obs population, same domain/period/    #
+#   restart/localization/binary -- but CYGNSS L1 (species 56) is now MONITOR-ONLY #
+#   (assim=.false., same obs path, still scored via getinnov) and CYGNSS_SM_6hr   #
+#   (species 54, CYGNSS L3 SM) is ASSIMILATED instead (assim=.true., errstd=0.04  #
+#   m3/m3 -- pre-existing nml default, NOT yet empirically diagnosed via a real   #
+#   R-sweep the way L1's 2.75dB was; revisit if this run looks divergent).        #
+#   nml dir: nml_paired_dense075_coh05_L3assim (copy of nml_paired_dense075_coh05 #
+#   with ONLY these two %assim flags flipped -- confirmed via diff, everything    #
+#   else byte-identical incl. xcompact/ycompact, all other 12 species).           #
+#   Submitted directly for the full 24mo (Jan2020-Dec2021), matching how          #
+#   dense050_coh05 was run, rather than dense075_coh05's original staged 6mo-     #
+#   then-extended path. Requires the UNGATED binary (build symlink repointed at   #
+#   /gpfsm/dnb34/amfox/cygl1_pregate_build/install) -- same as every other arm in #
+#   this density-spectrum family.                                                 #
+#                                                                                  #
+####################################################################################
+
+EXP_ID: DAv8_M36_AZ_paired_cygl1_dense075_coh05_L3assim
+EXP_DOMAIN: SMAP_EASEv2_M36_GLOBAL
+NUM_LDAS_ENSEMBLE: 24
+BEG_DATE: 20200101 000000
+END_DATE: 20220101 000000
+
+RESTART: 1
+RESTART_ID: LS_OLv8_M36
+RESTART_PATH: /discover/nobackup/projects/land_da/M21C_land_sweeper/LS_OLv8_M36_v2
+RESTART_DOMAIN: SMAP_EASEv2_M36_GLOBAL
+
+MET_TAG: cross_d5294_GEOSIT__precIMERGv7BFinal_GEOSIT_Lattaper
+MET_PATH: /discover/nobackup/projects/gmao/merra/iau/merra_land/GEOSIT_land_forcing/
+FORCE_DTSTEP: 3600
+
+BCS_PATH: /discover/nobackup/projects/gmao/bcs_shared/fvInput/ExtData/esm/tiles/v12/
+BCS_RESOLUTION: EASEv2_M36
+
+CATCHMENT_OFFLINE: 1
+CATCHMENT_SPINUP: 0
+LSM_CHOICE: 1
+TILE_TYPES: 100
+DO_ISSM: 0
+TILE_FILE_FORMAT: DEFAULT
+
+MINLON: -118.
+MAXLON: -106.
+MINLAT:   29.
+MAXLAT:   40.
+
+MET_HINTERP: 1
+
+LAND_ASSIM: YES
+
+PERTURBATIONS: 1
+FIRST_ENS_ID: 0
+ENSEMBLE_FORCING: NO
+
+NML_INPUT_PATH: /discover/nobackup/projects/land_da/cygl1_operator_test/templates/DA_L3
+
+MWRTM_PATH: /discover/nobackup//projects/gmao/smap/SMAP_Nature/bcs/RTM_params/RTMParam_L2DCA_R19/
+
+JOB_SGMT: 00000100 000000
+NUM_SGMT: 1
+
+LDAS_logit: YES
+
+SURFRC: LDAS.rc
+
+DYCORE: none
+MAPL_ENABLE_BOOTSTRAP: YES
+WRITE_RESTART_BY_OSERVER: NO
+
+CHOOSEMOSFC:                  0
+MOSFC_EXTRA_DERIVS_OFFL_LAND: 1
+SURFLAY: 50.0
+LAND_PARAMS: NRv7.2
+Z0_FORMULATION: 4
+USE_FWET_FOR_RUNOFF: .FALSE.
+FWETC: 0.02
+FWETL: 0.02
+USE_ASCATZ0: 0
+SNOW_ALBEDO_INFO: 0
+AEROSOL_DEPOSITION: 0
+N_CONST_LAND4SNWALB: 0
+RUN_IRRIG: 0
+IRRIG_METHOD: 0
+RUN_ROUTE: 0
+RRM_DT: 3600
+PRINTRC: 1
+DTCN: 5400
+ATM_CO2: 2
+CO2: 350.e-6
+CO2_YEAR:-9999
+PRESCRIBE_DVG: 0
