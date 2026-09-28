@@ -86,6 +86,44 @@ sit where the CYGNSS L1 stream never reaches, so it understated L1 and was not a
 | rz | ΔanomR | +.024 [−.005, +.068] 52% | +.015 [−.010, +.047] 52% |
 | rz | ΔubRMSE ×10⁻³ | **−.46 [−.73, −.26]\* 82%** | **−.29 [−.56, −.09]\* 70%** |
 
+## Bias, ubRMSE and RMSE (L1 area)
+
+Mean over stations, m³/m³. bias = model − in situ.
+
+| domain | run | bias | \|bias\| | ubRMSE | RMSE |
+|---|---|---:|---:|---:|---:|
+| surface | OL | −0.0235 | 0.0529 | 0.0515 | 0.0783 |
+| | L1coh | −0.0241 | 0.0529 | 0.0512 | 0.0783 |
+| | L1coh_err39 | −0.0234 | 0.0527 | 0.0511 | 0.0781 |
+| | L3 | −0.0239 | 0.0534 | 0.0512 | 0.0786 |
+| | SMAP | −0.0216 | 0.0520 | 0.0490 | 0.0761 |
+| rz | OL | −0.0332 | 0.0615 | 0.0354 | 0.0748 |
+| | L1coh | −0.0327 | 0.0617 | 0.0349 | 0.0747 |
+| | L1coh_err39 | −0.0325 | 0.0614 | 0.0351 | 0.0746 |
+| | L3 | −0.0339 | 0.0623 | 0.0354 | 0.0753 |
+| | SMAP | −0.0300 | 0.0599 | 0.0343 | 0.0732 |
+
+Paired Δ in units of 10⁻³ m³/m³, with tile-cluster 95% CI and % of stations where the value decreases:
+
+| domain | metric | L1coh − OL | L1coh_err39 − OL | L3 − OL | SMAP − OL | L1coh_err39 − L3 |
+|---|---|---|---|---|---|---|
+| surface | ubRMSE | −0.27 [−0.60, +0.11] | **−0.31 [−0.55, −0.03]\* 67%** | −0.25 [−0.67, +0.25] | **−2.42 [−3.66, −0.88]\* 81%** | −0.06 [−0.53, +0.29] |
+| surface | \|bias\| | +0.05 | −0.20 | +0.55 | −0.89 | −0.74 [−1.54, +0.31] |
+| surface | RMSE | −0.05 | −0.27 [−0.73, +0.19] 74% | +0.24 [−0.17, +0.53] 36% | **−2.21\* 79%** | −0.51 [−0.97, +0.09] |
+| rz | ubRMSE | **−0.53 [−0.78, −0.23]\* 88%** | **−0.36 [−0.52, −0.17]\* 85%** | −0.07 [−0.35, +0.25] | **−1.18 [−1.69, −0.69]\* 82%** | **−0.29 [−0.56, −0.09]\* 70%** |
+| rz | bias | +0.49 | **+0.71 [+0.07, +1.16]\*** | **−0.66 [−1.04, −0.16]\*** | **+3.19 [+1.54, +4.71]\*** | **+1.36 [+0.52, +2.01]\*** |
+| rz | \|bias\| | +0.16 | −0.10 | **+0.76 [+0.28, +1.15]\* 27%** | −1.59 [−3.15, +0.17] | **−0.86 [−1.45, −0.00]\* 73%** |
+| rz | RMSE | −0.09 | −0.19 | **+0.53 [+0.33, +0.74]\* 6%** | **−1.58\* 73%** | **−0.72 [−1.10, −0.10]\* 76%** |
+
+- **The changes are small relative to the errors,** which is expected: the obs are rescaled to the model climatology, so DA is not
+  designed to remove the model's dry bias (−0.02 to −0.03 m³/m³ against these stations). ubRMSE changes are about 1% for L1 and L3 and
+  about 3–5% for SMAP.
+- **ubRMSE confirms the R result.** L1 reduces rz ubRMSE significantly (−0.4 to −0.5 × 10⁻³, at 85–88% of stations) and beats L3 there.
+  L3 has no significant ubRMSE change.
+- **Bias: L3 dries the root zone slightly** (−0.66 × 10⁻³), on top of the model's existing dry bias. That makes rz |bias| and rz RMSE
+  significantly worse for L3 (RMSE worse at 94% of stations). The L1 arms and SMAP-only moisten the root zone slightly (+0.5 to +0.7 and
+  +3.2 × 10⁻³), which reduces RMSE for SMAP-only. All of these shifts are ≤ 10% of the existing bias.
+
 ## Reading
 
 1. **Where L1 obs exist, L1 assimilation clearly improves the root zone against in-situ data.** rz R rises by +0.03 to +0.04 over the OL
