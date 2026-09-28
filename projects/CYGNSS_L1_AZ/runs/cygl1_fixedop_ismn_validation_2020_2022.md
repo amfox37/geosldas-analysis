@@ -133,10 +133,18 @@ Reading:
   corrects the 2022 seasonal cycle at this tile rather than the day-to-day variability. At the surface, SMAP-only dominates as elsewhere.
 - **At Jornada the L1 filter arm has the best surface anomaly R of all runs** (+.013, vs SMAP +.010 and L3 −.005). But the tile receives
   **no CYGNSS L1 obs at all**, so this is spill-over from neighbouring-tile updates (xcorr 0.15°), not direct L1 information.
-- **Open question for the operator team:** Jornada and CO-Z1 are among the 335 of 909 domain tiles with zero L1 obs over 2020–2022 in
-  every arm, including the unfiltered monitor stream. Jornada is flat, sparsely vegetated desert, which should be a good CYGNSS target,
-  so the reason it gets no L1 obs is worth checking: preprocessing/owner-grid assignment, a QC or topography mask, or the scaling-clim
-  N_min. SMAP Tb (1,623 obs) and CYGNSS L3 (1,098 obs) are both available on that tile.
+- **Why Jornada and CO-Z1 get no L1 obs (resolved 2026-09-28): they are outside the preprocessing region.** The CYGNSS_operator
+  pipeline (`scripts/sbatch_cygnss_m36_best_obs_daily_workflow.sh`: `REGION=arizona`, `REGION_BUFFER_KM=200`) keeps only specular
+  points inside the Arizona polygon or within 200 km of it (`point_in_region`). Jornada is **215 km** from the Arizona border and CO-Z1
+  **271 km**; Walnut Gulch is inside Arizona. In the 598k preprocessed obs for 2020–2022 there is not a single specular point within 0.25°
+  of either tile. The preprocessed stream stops at about 106.8° W, while the GEOSldas domain extends to 106° W.
+  Breakdown of the 335 of 909 domain tiles with no L1 obs:
+  - 238 are outside Arizona + 200 km. This is 28% of the GEOSldas box, including Jornada, CO-Z1, and the NW/SW/SE corners.
+  - 90 are in-region but at the CYGNSS latitude limit: every tile at 37.4–37.8° N, plus the rows north of that. The specular points are
+    too sparse there for the scaling climatology's N_min.
+  - 7 are isolated in-region tiles: the Gulf of California / Baja coast, the western edge, and the Grand Canyon (tile 391).
+  To get L1 at Jornada the obs would have to be re-preprocessed with a larger buffer (≥ 250 km) or a `bounds` region matching the
+  GEOSldas box, and the L1 scaling climatology rebuilt.
 - With one year and effectively 1–3 independent tiles, this is a case study, not evidence of skill.
 
 ## Reading
