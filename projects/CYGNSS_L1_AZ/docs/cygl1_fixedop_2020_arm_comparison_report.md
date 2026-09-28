@@ -1,10 +1,21 @@
-# CYGNSS L1 DA, fixed operator: full-year 2020 arm comparison and noise-vs-gain split
+# CYGNSS L1 DA, fixed operator: 2020 arm comparison and noise-vs-gain split, extended through 2022
 
 *2026-09-27. Arizona limited domain (lon −118..−106, lat 29..40), EASEv2 M36, 2020-01-01 → 2021-01-01, fixed-operator build
 (md5 6a70b496). Every arm is scored against the single unscaled open loop `OLv8_M36_AZ_fixedop`, using the DA run's scaled obs and
-cross-masking.*
+cross-masking. Extended 2026-09-28: four arms continued through 2022-12-31, see §3.*
 
 ## Summary
+
+**2021–2022 update (§3):**
+- **Filter+err39 is still the best L1 arm**, and still beats the OL on every monitor except ASCAT, but by about half the 2020 margin.
+  Pooled 2021–22: SMOS −0.71, SMAP −0.93, ASCAT +0.61, L3 −1.51. Whole period 2020–22: SMAP −1.20, L3 −2.08, ASCAT +0.55.
+- **The spring degradation recurs every year, with a moving window:** May–Jun 2020, Apr–Jun 2021, Feb–May 2022.
+- **It has two mechanisms.** In 2020 and 2022 the L1 → Tb signal collapses (corr < 0.1, α_opt ≈ 0). In 2021 the increments overshoot
+  (corr normal, α_opt ≈ 0.45–0.75). A spring R increase over a wide window (Feb–Jun) is the next experiment. A fixed May–Aug gate would
+  have missed 2022.
+- **L3-only is still better than every L1 arm on every monitor; SMAP-only's ASCAT damage grew** (+12.7% in 2021–22).
+
+**2020 results (§1–2):**
 
 - **Best L1 configuration: full-stream L1, xcorr 0.15, coherency filter 0.40–2.16 with a rebuilt z-score climatology, errstd 3.9**
   (`DA_L1_full_xc015_coh040216_err39_fixedop`). Full-year monitor O-F std change vs OL: SMOS −1.35%, SMAP −1.52%, ASCAT +0.23%, CYGNSS L3
@@ -159,15 +170,173 @@ Values are computed per month and for the pooled year.
 5. **For L3 as a monitor, the L1 arms keep corr at 0.08–0.20 all year.** With filter+err39, α_opt is ≥ ~1 in most months, which is
    consistent with its L3 score being better than the OL in 11 of 12 months.
 
-## 3. Recommended next steps
+## 3. 2021–2022 extension: do the 2020 findings hold?
 
-1. **Seasonal R / gating experiment**, as one intervention against filter+err39: keep errstd 3.9 but switch L1 assimilation off
-   (or R ×4) in May–August. Also consider a smaller R (errstd ≈ 2.75) in Jan–Apr and Sep–Dec with the filter, where α_opt is well above 1.
-2. **Diagnose the May–June L1 → Tb decoupling:** corr(dF, inn) stratified by vegetation / NDVI / VWC and by land cover, plus L1 innovation
-   vs Tb innovation correlation by month (from the obs-quality pipeline).
-3. Extend the obs-quality report (`cygl1_obs_quality_vs_qc_report.md`) to the full year using the filtered arm.
-4. Still open: along-track superobbing / nugget options (`cygl1_obs_error_correlation_report.md`), and why the realized L1-space HPH is
-   only 30–50% of the ensemble's.
+*Added 2026-09-28.* The four arms that decide the next experiment (coherency filter, filter + errstd 3.9, L3-only, SMAP-only) were
+continued unchanged from their 2021-01-01 restarts to 2023-01-01 (CAP.rc END_DATE edit, same build, same exeinp; cap_restart 20230101
+and 0 `LDAS ERROR`/`forrtl` in every run). The benchmark, benchmark + errstd 3.9, and thinned arms stop at 2020. Scoring is identical
+to §1: same OL, the DA run's scaled obs, cross-masked, `% (DA−OL)/OL` of O-F stdv, negative = better.
+
+### Per-year and pooled
+
+| arm | period | SMOS | SMAP | ASCAT | L3 | L1 own |
+|---|---|---:|---:|---:|---:|---:|
+| full_xc015_coh040216_fixedop | 2020 | −1.29 | −1.51 | +1.99 | −3.01 | −0.81 |
+| | 2021 | −0.42 | −0.68 | +1.81 | −1.35 | −0.64 |
+| | 2022 | −1.11 | −1.47 | +2.22 | −0.75 | −0.79 |
+| | 2021–22 | −0.77 | −1.02 | +2.10 | −1.15 | −0.71 |
+| **full_xc015_coh040216_err39_fixedop** | 2020 | −1.35 | −1.52 | +0.23 | −2.99 | −0.71 |
+| | 2021 | −0.55 | −0.70 | +0.35 | −1.62 | −0.62 |
+| | 2022 | −0.88 | −1.21 | +0.77 | −1.23 | −0.65 |
+| | 2021–22 | **−0.71** | **−0.93** | **+0.61** | **−1.51** | −0.64 |
+| l3_fixedop | 2020 | −1.67 | −1.75 | −4.89 | −7.61 | −0.51 |
+| | 2021 | −0.96 | −1.16 | −2.06 | −4.02 | −0.43 |
+| | 2022 | −1.04 | −1.35 | −3.10 | −5.65 | −0.68 |
+| | 2021–22 | −0.87 | −1.20 | −2.57 | −5.09 | −0.55 |
+| smap_fixedop | 2020 | −14.41 | −11.81 | +8.29 | +1.80 | −0.67 |
+| | 2021 | −14.68 | −9.09 | +13.05 | +3.04 | −0.53 |
+| | 2022 | −11.58 | −11.79 | +10.54 | +4.73 | −0.82 |
+| | 2021–22 | −13.02 | −10.26 | +12.70 | +3.88 | −0.65 |
+
+Each year or two-year value is one pooled statistic, not the mean of the months (see §1). The whole-period 2020–2022 pooled values are
+in `output/full_period_2020_2022/` (see Reproduction).
+
+### Findings
+
+1. **The best L1 arm still beats the OL on every monitor except ASCAT, but by about half as much as in 2020.** Filter+err39 goes from
+   SMAP −1.52 / L3 −2.99 in 2020 to −0.93 / −1.51 pooled over 2021–22. Part of the 2020 gain looks like a one-off: Jan 2020 (SMOS/SMAP −5
+   to −6%) was partly spin-up from the OL restart. 2021 is the weakest year; 2022 recovers on Tb (SMAP −1.21) but not on L3.
+2. **Filter+err39 is still the L1 configuration to carry forward.** Against the filter alone it is equal on Tb (SMAP −0.93 vs −1.02),
+   better on L3 (−1.51 vs −1.15), and cuts the ASCAT penalty from +2.1 to +0.6. It beats the OL on SMAP in 9 of 12 months in 2021 and 7 of
+   12 in 2022, and on L3 in 11 of 12 and 8 of 12.
+3. **The spring degradation is not a 2020 accident; it recurs every year, and its window moves.** Filter-arm SMAP months worse than
+   the OL: May–Jun 2020, Apr–Jun 2021 (+3.1/+1.9/+0.4), Feb–May 2022 (+2.5/+0.7/+2.7/+3.4). L3 follows the same pattern (May 2022 +4.6).
+   errstd 3.9 roughly halves each of these (Apr 2021 SMAP +3.1 → +1.0; May 2022 +3.4 → +1.3) but does not remove them. A second, weaker
+   bad month appears in August (Aug 2022 SMAP +1.6 / +1.3). A fixed May–August gate would have missed Feb–Apr 2022.
+4. **Oct–Jan is consistently the L1 arms' best period** (e.g. Jan 2022 SMAP −5.0 / −3.9, Oct and Dec 2022 −2.1 / −2.9 in the filter arm),
+   as in 2020 (Oct 2020 −6.1 / −6.8).
+5. **L3-only is still better than the best L1 arm on every independent monitor, in every year**, though its margin on Tb is small
+   (2021–22 SMAP −1.20 vs −0.93) and its own spring is also weaker (May, Jun and Aug 2022 are its only SMAP months worse than the OL, by
+   +0.1 to +0.6).
+6. **SMAP-only's asymmetry got worse:** Tb −10 to −13%, but ASCAT +12.7% (2020: +8.3%) and L3 +3.9% (2020: +1.8%). The ASCAT damage
+   peaks in autumn (Sep–Dec 2021 +16 to +26%).
+7. **Assimilating L1 barely improves the fit to L1 itself more than assimilating another sensor does.** L1 own O-F is −0.64% for
+   filter+err39, vs −0.55% for L3-only and −0.65% for SMAP-only (2021–22). Most of the L1 O-F reduction comes from a better soil-moisture
+   state in general, not from L1-specific information.
+8. **The spring failure has two different mechanisms, depending on the year** (noise-vs-gain split, SMAP Tb, same method as §2):
+
+   | | 2020 May–Jun | 2021 Apr–May | 2022 Feb–May |
+   |---|---|---|---|
+   | corr(dF, inn), filter / filter+err39 | .03–.05 / .02–.04 | .13–.16 / .14–.16 | .08–.15 / .07–.15 |
+   | α_opt, filter+err39 | −.02 / .19 | .62 / .74 | −.17 / .28 / .30 / .40 |
+   | noise, filter+err39 (% of OL MSE) | 2.9 / 2.9 | 9.7 / 8.7 | 5.9 / 3.1 / 11.9 / 8.4 |
+
+   - **2020 and 2022: signal collapse.** corr drops below ~0.1 and α_opt is near 0, as in §2.
+   - **2021: overshoot.** corr stays at a normal 0.13–0.16, but the noise is 3–5× the winter value and α_opt ≈ 0.45–0.75, so the
+     increments are about 1.5–2× too big. That is an R-amplitude problem, and a larger spring R would fix it.
+   - Either way, the right move in spring is to strongly down-weight L1, and the window cannot be a fixed calendar block (it started in
+     February in 2022).
+   - **Winter increments are still too small.** α_opt for filter+err39 is 1.9–2.0 in Jan 2021, Jan 2022, Oct 2022 and Dec 2022 (and
+     1.9–2.0 in July of both years, at monsoon onset). A smaller winter R would be worth more there.
+   - Whole-period (36-month) pooled corr is 0.16–0.17 for both L1 arms and for L3-only, and 0.48 for SMAP-only.
+
+### Whole period 2020–2022 (pooled over 36 months)
+
+| arm | SMOS | SMAP | ASCAT | L3 | L1 own |
+|---|---:|---:|---:|---:|---:|
+| full_xc015_coh040216_fixedop | −1.02 | −1.29 | +2.18 | −1.86 | −0.76 |
+| **full_xc015_coh040216_err39_fixedop** | **−0.97** | **−1.20** | **+0.55** | **−2.08** | −0.68 |
+| l3_fixedop | −1.14 | −1.48 | −3.61 | −6.01 | −0.54 |
+| smap_fixedop | −14.12 | −11.48 | +12.59 | +2.94 | −0.67 |
+
+These are the species-group means of the per-species pooled % change, computed from the whole-period pkl files
+(`spatial_stats_*_202001_202212.pkl`, N-weighted pooling of the 36 monthly rows, same formula as the bundle README).
+
+### Monthly detail, 2021–2022
+
+#### SMOS
+
+| arm | year | Jan | Feb | Mar | Apr | May | Jun | Jul | Aug | Sep | Oct | Nov | Dec | year |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| full_xc015_coh040216_fixedop | 2021 | -0.80 | -1.67 | +0.43 | +0.89 | +1.09 | +0.78 | -0.71 | +0.51 | -0.69 | -0.49 | -0.64 | -0.67 | -0.42 |
+| full_xc015_coh040216_fixedop | 2022 | -3.65 | +0.73 | +1.30 | +2.04 | +4.87 | -0.10 | -1.49 | -0.42 | -0.40 | -2.02 | -0.26 | -3.46 | -1.11 |
+| full_xc015_coh040216_err39_fixedop | 2021 | -0.56 | -1.86 | -0.06 | -0.28 | +0.42 | +0.11 | -0.61 | +0.20 | -0.72 | -0.62 | -1.07 | -0.62 | -0.55 |
+| full_xc015_coh040216_err39_fixedop | 2022 | -2.76 | +0.19 | +0.28 | +0.34 | +2.27 | -0.05 | -1.17 | -0.25 | -0.38 | -1.69 | -0.43 | -2.52 | -0.88 |
+| l3_fixedop | 2021 | -1.12 | -4.12 | -1.14 | -1.48 | -1.39 | -1.90 | -0.31 | -0.59 | -0.53 | +0.40 | -1.69 | -0.68 | -0.96 |
+| l3_fixedop | 2022 | -4.20 | -0.87 | -0.49 | -1.39 | +0.58 | +0.48 | -0.58 | -0.76 | -1.14 | -0.24 | -5.02 | -3.80 | -1.04 |
+| smap_fixedop | 2021 | -20.95 | -14.09 | -12.19 | -10.35 | -7.63 | -13.04 | -12.17 | -15.11 | -10.63 | -19.95 | -18.66 | -16.86 | -14.68 |
+| smap_fixedop | 2022 | -19.35 | -6.55 | -8.65 | -8.96 | -14.40 | -8.34 | -16.12 | -1.23 | -0.23 | -22.43 | -12.98 | -25.48 | -11.58 |
+
+#### SMAP
+
+| arm | year | Jan | Feb | Mar | Apr | May | Jun | Jul | Aug | Sep | Oct | Nov | Dec | year |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| full_xc015_coh040216_fixedop | 2021 | -1.68 | -1.61 | -0.33 | +3.09 | +1.94 | +0.42 | -0.63 | +0.27 | -0.59 | -1.55 | -1.84 | -0.35 | -0.68 |
+| full_xc015_coh040216_fixedop | 2022 | -5.04 | +2.52 | +0.74 | +2.66 | +3.37 | +0.02 | -1.65 | +1.57 | -0.46 | -2.10 | -0.58 | -2.85 | -1.47 |
+| full_xc015_coh040216_err39_fixedop | 2021 | -1.30 | -1.66 | -0.76 | +0.99 | +0.20 | -0.42 | -0.57 | +0.15 | -0.52 | -1.25 | -1.80 | -0.27 | -0.70 |
+| full_xc015_coh040216_err39_fixedop | 2022 | -3.87 | +1.53 | +0.21 | +0.31 | +1.32 | -0.11 | -1.41 | +1.29 | -0.43 | -1.62 | -0.90 | -2.15 | -1.21 |
+| l3_fixedop | 2021 | -1.56 | -5.13 | -2.00 | -1.56 | -1.70 | -0.80 | -0.32 | -0.69 | -0.92 | -0.57 | -1.93 | -0.45 | -1.16 |
+| l3_fixedop | 2022 | -4.82 | -1.44 | -1.43 | -3.02 | +0.28 | +0.64 | -0.52 | +0.09 | -0.58 | -1.04 | -6.43 | -3.72 | -1.35 |
+| smap_fixedop | 2021 | -17.72 | -16.95 | -11.28 | -10.45 | -8.19 | -4.86 | -4.19 | -5.04 | -5.32 | -14.80 | -15.67 | -11.29 | -9.09 |
+| smap_fixedop | 2022 | -18.21 | -5.67 | -8.36 | -6.55 | -13.92 | -6.21 | -5.77 | -5.05 | -10.31 | -13.20 | -13.26 | -18.19 | -11.79 |
+
+#### ASCAT
+
+| arm | year | Jan | Feb | Mar | Apr | May | Jun | Jul | Aug | Sep | Oct | Nov | Dec | year |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| full_xc015_coh040216_fixedop | 2021 | -0.23 | +3.63 | +1.42 | +5.77 | +2.17 | +1.12 | +1.01 | +1.59 | +3.19 | +6.37 | +4.11 | +5.12 | +1.81 |
+| full_xc015_coh040216_fixedop | 2022 | +0.46 | +7.08 | +1.69 | +5.12 | +2.00 | +2.56 | +3.01 | -0.14 | +2.76 | +2.67 | +2.38 | +1.93 | +2.23 |
+| full_xc015_coh040216_err39_fixedop | 2021 | -1.26 | +1.07 | +0.35 | +2.93 | +0.89 | +0.38 | +0.33 | +0.37 | +1.28 | +2.98 | +1.65 | +2.92 | +0.35 |
+| full_xc015_coh040216_err39_fixedop | 2022 | -0.35 | +3.77 | +0.76 | +2.35 | +0.64 | +1.25 | +1.33 | -0.51 | +0.72 | +0.93 | +0.90 | +0.48 | +0.77 |
+| l3_fixedop | 2021 | -3.44 | -2.48 | -1.05 | +0.37 | -0.24 | -1.18 | -0.98 | -2.06 | -0.56 | +1.09 | -1.06 | -0.47 | -2.06 |
+| l3_fixedop | 2022 | -2.92 | -0.29 | -1.02 | -0.98 | +0.41 | -1.17 | -1.01 | -1.10 | -1.93 | -1.93 | -3.57 | -1.63 | -3.10 |
+| smap_fixedop | 2021 | +10.79 | +4.81 | +4.72 | +4.13 | +4.40 | +2.70 | +6.55 | +11.29 | +20.59 | +25.57 | +24.55 | +15.96 | +13.05 |
+| smap_fixedop | 2022 | +6.11 | +11.07 | +8.14 | +7.43 | -2.10 | +9.80 | +12.11 | +0.20 | +2.62 | +13.38 | +15.07 | +16.23 | +10.54 |
+
+#### L3
+
+| arm | year | Jan | Feb | Mar | Apr | May | Jun | Jul | Aug | Sep | Oct | Nov | Dec | year |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| full_xc015_coh040216_fixedop | 2021 | -0.94 | -2.55 | -3.01 | +0.81 | +1.20 | -0.35 | -0.87 | +0.08 | -0.95 | +0.75 | -1.87 | +0.81 | -1.35 |
+| full_xc015_coh040216_fixedop | 2022 | -3.55 | +1.79 | -0.05 | +2.38 | +4.60 | -0.45 | -0.01 | +0.48 | -0.61 | -1.44 | +0.68 | -1.72 | -0.75 |
+| full_xc015_coh040216_err39_fixedop | 2021 | -1.54 | -2.41 | -2.91 | -0.01 | -0.08 | -1.56 | -0.73 | -0.22 | -1.21 | -0.17 | -2.43 | +0.06 | -1.62 |
+| full_xc015_coh040216_err39_fixedop | 2022 | -3.22 | +0.81 | -0.29 | +0.89 | +2.50 | -1.12 | -0.73 | +0.16 | -1.25 | -1.80 | -0.31 | -1.94 | -1.23 |
+| l3_fixedop | 2021 | -4.80 | -4.22 | -3.78 | -1.27 | -1.82 | -5.35 | -1.01 | -4.22 | -3.75 | -1.57 | -4.44 | -1.99 | -4.02 |
+| l3_fixedop | 2022 | -5.38 | +0.80 | -1.50 | -1.37 | -0.31 | -1.74 | -2.43 | -3.28 | -6.47 | -5.58 | -7.53 | -4.71 | -5.65 |
+| smap_fixedop | 2021 | +5.77 | -1.91 | -2.16 | -0.83 | -1.32 | +0.15 | +2.33 | +5.52 | +7.72 | +10.96 | -0.89 | -0.71 | +3.04 |
+| smap_fixedop | 2022 | -6.51 | +0.76 | +0.52 | -0.11 | +0.61 | +7.90 | +6.61 | +2.47 | +1.28 | +10.52 | -2.54 | +6.27 | +4.73 |
+
+#### L1
+
+| arm | year | Jan | Feb | Mar | Apr | May | Jun | Jul | Aug | Sep | Oct | Nov | Dec | year |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| full_xc015_coh040216_fixedop | 2021 | -0.20 | -0.62 | -1.21 | -0.74 | -0.25 | +0.18 | -0.72 | -0.19 | -0.64 | -0.47 | -0.74 | -0.02 | -0.64 |
+| full_xc015_coh040216_fixedop | 2022 | -1.10 | +0.01 | -0.08 | -0.04 | +0.11 | -0.30 | -0.61 | -0.39 | -0.57 | -1.84 | -0.11 | -1.70 | -0.79 |
+| full_xc015_coh040216_err39_fixedop | 2021 | -0.29 | -0.58 | -1.10 | -0.75 | -0.39 | -0.07 | -0.56 | -0.17 | -0.51 | -0.44 | -0.70 | -0.10 | -0.62 |
+| full_xc015_coh040216_err39_fixedop | 2022 | -0.91 | -0.06 | -0.17 | -0.19 | -0.00 | -0.31 | -0.52 | -0.29 | -0.48 | -1.35 | -0.20 | -1.32 | -0.65 |
+| l3_fixedop | 2021 | -0.67 | -0.76 | -1.05 | -0.24 | -0.46 | -0.57 | -0.15 | -0.37 | -0.57 | -0.15 | -0.81 | -0.23 | -0.43 |
+| l3_fixedop | 2022 | -1.26 | -0.48 | -0.30 | -0.16 | -0.27 | -0.55 | -0.53 | -0.43 | -0.82 | -0.65 | -0.95 | -1.45 | -0.68 |
+| smap_fixedop | 2021 | -1.36 | -0.54 | -1.08 | +0.04 | -0.52 | -0.47 | -0.40 | -0.39 | -1.30 | -0.11 | -0.73 | -1.20 | -0.53 |
+| smap_fixedop | 2022 | -2.73 | -0.13 | +0.12 | -0.14 | +0.17 | -0.07 | -1.46 | -0.55 | -0.46 | -2.03 | -0.82 | -3.31 | -0.82 |
+
+## 4. Recommended next steps
+
+*Revised 2026-09-28 after the 2021–2022 extension.*
+
+1. **Seasonal / adaptive L1 weighting experiment**, as one intervention against filter+err39. The 2021–22 results rule out a fixed
+   May–August gate (2022's bad window was Feb–May, and 2021's was an overshoot, not a signal loss). Options, in order of simplicity:
+   - a. Larger R (errstd ×2, i.e. 7.8) from February through June, errstd 3.9 otherwise. It would cover the bad windows of all three
+     years, at the cost of some Feb–Mar gain in good years.
+   - b. The same plus a smaller winter R (errstd ≈ 2.75) in Oct–Jan, where α_opt is 1.5–2. That is a second knob, so run it as its own arm
+     after (a).
+   - c. Adaptive: scale R per month (or per pentad) from an innovation-based statistic, e.g. a rolling corr(L1 innovation, Tb innovation)
+     or Desroziers ratio. More work; only if (a)/(b) show the season is the right axis.
+2. **Diagnose the L1 → Tb decoupling in 2020/2022 spring:** corr(dF, inn) stratified by vegetation / NDVI / VWC and by land cover, plus L1
+   innovation vs Tb innovation correlation by month (from the obs-quality pipeline). 2021 is the useful control: a spring where the
+   signal did not collapse.
+3. Extend the obs-quality report (`cygl1_obs_quality_vs_qc_report.md`) to 2020–2022 using the filtered arm.
+4. Still open: along-track superobbing / nugget options (`cygl1_obs_error_correlation_report.md`), why the realized L1-space HPH is
+   only 30–50% of the ensemble's, and why SMAP-only degrades ASCAT so much (worse in 2021–22, peaking in autumn).
 
 ## Reproduction
 
@@ -179,6 +348,13 @@ Values are computed per month and for the pooled year.
   array `output/noise_gain_split/run_ngs_2020.sh` (job 58598164, about 3 min per arm). The output is
   `output/noise_gain_split/<tag>_202001_202012.csv`.
 - Overnight scoring log (individual per-month score logs): `output/overnight_20260927/`.
+- 2021–2022 month × arm tables (§3): `output/month_arm_table_2021_2022/score_arm.sh` (one SLURM job per arm, jobs 58620093–96, 5–7 min
+  each; `--time=1:00:00` is plenty). The outputs are `table_<SHORT>_{months,2021,2022}.{md,csv}` and the combined
+  `month_arm_omf_stdv_pct_vs_OL_2021_2022.csv`.
+- Whole-period 2020–2022 stats and noise-vs-gain split (§3): SLURM array `output/full_period_2020_2022/run_full_period.sh` (job 58621001,
+  about 10 min per arm). It runs `score_cygl1_arm.py --start 20200101 --cap-end 20230101`, which writes
+  `spatial_stats_*_202001_202212.pkl` and `temporal_stats_*_20200101_20221231.nc4` to `output/postproc_paired_density/stats_output/`,
+  and writes `noise_gain_<tag>_202001_202212.csv`.
 
 ## Appendix: full noise-vs-gain tables (all arms, all monitors)
 
