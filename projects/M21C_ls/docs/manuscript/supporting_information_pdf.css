@@ -1,0 +1,97 @@
+@page {
+  size: Letter;
+  margin: 0.65in 0.7in 0.72in 0.7in;
+}
+
+html {
+  color: #171717;
+  background: white;
+}
+
+body {
+  max-width: 7.1in;
+  margin: 0 auto;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9.5pt;
+  line-height: 1.35;
+}
+
+h1 {
+  margin: 0.7em 0 0.35em;
+  color: #16324f;
+  font-size: 18pt;
+  break-after: avoid;
+}
+
+h2 {
+  margin: 1em 0 0.3em;
+  padding-bottom: 0.1em;
+  border-bottom: 1px solid #c8d3dc;
+  color: #24557a;
+  font-size: 13pt;
+  break-after: avoid;
+}
+
+h3 {
+  color: #333333;
+  font-size: 11pt;
+  break-after: avoid;
+}
+
+p, li {
+  orphans: 3;
+  widows: 3;
+}
+
+table {
+  width: 100%;
+  margin: 0.65em 0 0.9em;
+  border-collapse: collapse;
+  font-size: 7.4pt;
+}
+
+th, td {
+  padding: 0.24em 0.32em;
+  border: 1px solid #b9c4cc;
+  vertical-align: top;
+}
+
+th {
+  color: #17334a;
+  background: #e8eff3;
+}
+
+figure {
+  margin: 0.7em 0 0.9em;
+  break-inside: avoid;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  max-height: 8in;
+  margin: 0.55em auto 0.2em;
+  object-fit: contain;
+}
+
+figcaption {
+  margin: 0.2em 0 0.7em;
+  color: #424242;
+  font-size: 8.2pt;
+}
+
+code {
+  font-size: 0.9em;
+}
+
+h1#supplementary-figures {
+  break-before: page;
+}
+
+h1#supplementary-figures ~ h2 {
+  break-before: page;
+}
+
+h1#supplementary-figures + h2 {
+  break-before: auto;
+}
