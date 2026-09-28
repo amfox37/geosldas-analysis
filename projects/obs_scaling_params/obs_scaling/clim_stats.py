@@ -99,7 +99,16 @@ def get_model_and_obs_clim_stats_latlon_grid(
     out_dir: str,
     enable_dedup: bool = False,
     obsfcstana_format: str = "nc4",
+    exclude_tile_mask: np.ndarray | None = None,
 ) -> None:
+    """
+    exclude_tile_mask: optional boolean lookup array indexed by tilenum
+        (1-based; index 0 unused), True = keep, False = drop the obs. Used
+        to retroactively exclude observations at tiles flagged by a QC that
+        did not exist when this ObsFcstAna archive was generated (e.g. the
+        ASCAT peat/wetland footprint QC), without needing to rerun the
+        experiment. See hsaf_cdr_test/build_hsaf_peat_obs_tilenum_mask.py.
+    """
     nodata = -9999.0
     overwrite = True
     n_fields = 7
@@ -211,6 +220,8 @@ def get_model_and_obs_clim_stats_latlon_grid(
                         else:
                             mask = record.obs_species == species_group[0]
                         mask &= valid
+                        if exclude_tile_mask is not None:
+                            mask &= exclude_tile_mask[record.obs_tilenum]
                         if not np.any(mask):
                             continue
                         obs_lon = record.obs_lon[mask]

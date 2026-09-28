@@ -9,12 +9,14 @@ explicit option.
 from __future__ import annotations
 
 import argparse
+import csv
 import sys
 from datetime import datetime
 from math import ceil
 from pathlib import Path
 from typing import Iterable
 
+import numpy as np
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -50,6 +52,10 @@ def main(argv: list[str] | None = None) -> None:
     obs_params = read_obs_param(obs_param_fname)
     species = collect_species_ids(obs_params, species_names)
 
+    exclude_tile_mask = None
+    if args.exclude_tiles_csv:
+        exclude_tile_mask = load_exclude_tile_mask(args.exclude_tiles_csv, args.exclude_tiles_column)
+
     print("Observation scaling configuration")
     print("  exp_path:", args.exp_path)
     print("  exp_run:", args.exp_run)
@@ -66,6 +72,10 @@ def main(argv: list[str] | None = None) -> None:
     print("  each_doy:", args.print_each_doy)
     print("  all_pentads:", args.print_all_pentads)
     print("  out_dir:", args.out_dir)
+    if args.exclude_tiles_csv:
+        n_excluded = int((~exclude_tile_mask).sum())
+        print("  exclude_tiles_csv:", args.exclude_tiles_csv,
+              f"(column={args.exclude_tiles_column!r}, {n_excluded} tiles excluded)")
 
     get_model_and_obs_clim_stats_latlon_grid(
         species_names=species_names,
@@ -89,6 +99,7 @@ def main(argv: list[str] | None = None) -> None:
         out_dir=args.out_dir,
         enable_dedup=args.enable_dedup,
         obsfcstana_format=args.obsfcstana_format,
+        exclude_tile_mask=exclude_tile_mask,
     )
 
 
@@ -160,6 +171,23 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--each-pentad", dest="print_each_pentad", action="store_true")
     parser.add_argument("--no-all-pentads", dest="print_all_pentads", action="store_false")
+    parser.add_argument(
+        "--exclude-tiles-csv",
+        default="",
+        help=(
+            "Optional path to a CSV with a 'tilenum' column and a boolean "
+            "exclusion column (see --exclude-tiles-column). Observations at "
+            "flagged tiles are dropped before accumulating stats -- used to "
+            "retroactively apply a QC that postdates the ObsFcstAna archive "
+            "(e.g. the ASCAT peat-footprint QC) without rerunning the "
+            "experiment."
+        ),
+    )
+    parser.add_argument(
+        "--exclude-tiles-column",
+        default="reject",
+        help="Column in --exclude-tiles-csv that is truthy for tiles to exclude. Default: 'reject'.",
+    )
     parser.set_defaults(
         combine_species=True,
         enable_dedup=False,
@@ -212,6 +240,28 @@ def compute_year_bounds(
         current_end = datetime(end_year, month, 1)
         latest.append(end_year - 1 if current_end > end_ref else end_year)
     return earliest, latest
+
+
+def load_exclude_tile_mask(csv_path: str, column: str) -> np.ndarray:
+    """Read a tilenum/reject CSV (see hsaf_cdr_test/build_hsaf_peat_obs_tilenum_mask.py)
+    into a boolean lookup array indexed by tilenum (1-based; index 0 unused),
+    True = keep, False = drop."""
+    tilenums = []
+    rejects = []
+    with open(csv_path, newline="") as fh:
+        reader = csv.DictReader(fh)
+        if column not in (reader.fieldnames or []):
+            raise ValueError(f"Column {column!r} not found in {csv_path} (columns: {reader.fieldnames})")
+        for row in reader:
+            tilenums.append(int(row["tilenum"]))
+            rejects.append(str(row[column]).strip().lower() in ("true", "1", "yes"))
+
+    tilenums_arr = np.array(tilenums, dtype=int)
+    rejects_arr = np.array(rejects, dtype=bool)
+    max_tile = int(tilenums_arr.max())
+    keep_mask = np.ones(max_tile + 1, dtype=bool)
+    keep_mask[tilenums_arr[rejects_arr]] = False
+    return keep_mask
 
 
 def collect_species_ids(obs_params, species_names: list[str]) -> list[int]:
