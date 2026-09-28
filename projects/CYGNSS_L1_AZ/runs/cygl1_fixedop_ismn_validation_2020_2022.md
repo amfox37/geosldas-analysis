@@ -82,6 +82,63 @@ Mean ΔR by network (surface / rz):
 - L3 becomes negative: sfc ΔR −.003 [−.007, −.000], sfc ΔanomR −.006 [−.012, −.002], rz ΔR −.002.
 - SMAP is unchanged: sfc ΔanomR +.070.
 
+## SOILSCAPE only
+
+Of particular interest because the SOILSCAPE instruments are run by the group developing the L1 operator. All SOILSCAPE data in the
+window are from **2022 only** (the current deployment), with 115–242 paired days per station.
+
+**The sites are clustered into very few model tiles, so they are not independent samples.** Stations in one M36 tile are all compared
+with the same model time series, so the effective sample size is the number of tiles:
+
+| tile | tile center | sites | surface / rz stations | direct CYGNSS L1 obs on tile, 2020–22 (unfiltered stream) |
+|---|---|---|---|---|
+| 591 | 31.62 N, 109.98 W | Walnut Gulch: Kendall, Lucky Hills | 9 / 6 | 1,303 (filtered arms: 437 / 434 / 323 per year) |
+| 867 | 32.62 N, 106.62 W | Jornada: JR-1, JR-2, JR-3 | 10 / 0 | **0** |
+| 885 | 37.08 N, 106.24 W | CO-Z1 | 4 / 0 | **0** |
+
+Station-bootstrap CIs over SOILSCAPE (as used in the sections above) are therefore not meaningful. The surface is effectively n = 3, and
+the root zone is n = 1 (tile 591).
+
+Mean over stations:
+
+| domain | run | R | anomR | ubRMSE |
+|---|---|---:|---:|---:|
+| surface (23 stations, 3 tiles) | OL | 0.649 | 0.530 | 0.0303 |
+| | L1coh | 0.661 | 0.539 | 0.0299 |
+| | L1coh_err39 | 0.658 | 0.535 | 0.0300 |
+| | L3 | 0.666 | 0.528 | 0.0296 |
+| | SMAP | **0.716** | **0.590** | **0.0283** |
+| rz (6 stations, tile 591) | OL | 0.669 | 0.623 | 0.0270 |
+| | L1coh | **0.766** | 0.630 | **0.0259** |
+| | L1coh_err39 | 0.733 | 0.626 | 0.0263 |
+| | L3 | 0.749 | 0.640 | 0.0263 |
+| | SMAP | 0.708 | **0.652** | **0.0259** |
+
+Change vs OL by tile (mean over the tile's stations):
+
+| tile | metric | L1coh | L1coh_err39 | L3 | SMAP |
+|---|---|---:|---:|---:|---:|
+| 591 Walnut Gulch | sfc ΔR | +.022 | +.019 | +.040 | +.136 |
+| | sfc ΔanomR | +.007 | +.004 | +.006 | +.123 |
+| | rz ΔR | **+.097** | +.064 | +.080 | +.039 |
+| | rz ΔanomR | +.008 | +.003 | +.017 | +.029 |
+| 867 Jornada | sfc ΔR | +.008 | +.005 | +.007 | +.025 |
+| | sfc ΔanomR | **+.013** | +.007 | −.005 | +.010 |
+| 885 CO-Z1 | sfc ΔR | −.001 | −.000 | −.011 | +.014 |
+| | sfc ΔanomR (1 station) | .000 | .000 | −.034 | +.006 |
+
+Reading:
+- **Walnut Gulch is the only place in the domain where an L1 arm beats SMAP-only on any in-situ metric (rz R +.097 vs +.039).** All
+  runs improve rz R there by a lot, though, and the gain is almost entirely in raw R, not anomaly R (L1coh rz ΔanomR +.008). So DA mostly
+  corrects the 2022 seasonal cycle at this tile rather than the day-to-day variability. At the surface, SMAP-only dominates as elsewhere.
+- **At Jornada the L1 filter arm has the best surface anomaly R of all runs** (+.013, vs SMAP +.010 and L3 −.005). But the tile receives
+  **no CYGNSS L1 obs at all**, so this is spill-over from neighbouring-tile updates (xcorr 0.15°), not direct L1 information.
+- **Open question for the operator team:** Jornada and CO-Z1 are among the 335 of 909 domain tiles with zero L1 obs over 2020–2022 in
+  every arm, including the unfiltered monitor stream. Jornada is flat, sparsely vegetated desert, which should be a good CYGNSS target,
+  so the reason it gets no L1 obs is worth checking: preprocessing/owner-grid assignment, a QC or topography mask, or the scaling-clim
+  N_min. SMAP Tb (1,623 obs) and CYGNSS L3 (1,098 obs) are both available on that tile.
+- With one year and effectively 1–3 independent tiles, this is a case study, not evidence of skill.
+
 ## Reading
 
 - **In situ, SMAP-only is the only arm with a large gain.** Surface anomR is +0.08, and it improves at 92% of stations. This matches its
