@@ -1,0 +1,40 @@
+#
+# REQUIRED inputs
+#
+# NOTE:
+# - account          = computational project number
+#                      [At NCCS: Use command "getsponsor" to see available account number(s).]
+# - walltime         = walltime requested; format is HH:MM:SS (hours/minutes/seconds)
+# - ntasks_model     = number of processors requested for the model (typically 112; output server is not included)
+# - ntasks-per-node  = number of tasks per node (typically 46 for cascade* and 40 for skylake nodes)
+#                      [If >40, cascade nodes will be allocated, else cascade or skylake.]
+#                      [*NCCS recommends <=46 cores per node on SCU16 (cascade) due to OS issues (as of 6 Oct 2021).]
+#
+# NOTE: ntasks_model reduced from the global-domain default (126) to 24 for this
+# limited-domain (CONUS box) run: the land-pert parallel FFT grid collapses to 64
+# points for this small domain, and >64 tasks on one node makes it fail (job 56764396).
+#
+# NOTE: single 1-month segment (2026-08-01, first CYGNSS L1 assim test). Baseline
+# monitoring-only runs observed ~1hr/month at ntasks_model=24 (bat_inp_limdom_long.txt);
+# 1:00:00 walltime: past 1-month L1-assim segments (full stream and thinned) took 26-44 min (2026-09-26 sacct check).
+# for margin. No qos specified (debug qos caps walltime too low, per bat_inp_limdom_long.txt).
+#
+account: s3208
+walltime: 1:00:00
+ntasks_model: 24
+
+#
+# OPTIONAL inputs
+#
+# NOTE:
+# - job_name   = name of experiment; default is "exp_id"
+# - qos        = quality-of-service; do not specify by default; specify "debug" for faster but limited service.
+# - oserver_nodes    = number of nodes for oserver ( default is 0 )
+# - writers-per-node = tasks per oserver_node for writing ( default is 5 ),
+#      IMPORTANT REQUIREMENT: total #writers = writers-per-node * oserver_nodes >= 2
+#      Jobs will hang when oserver_nodes = writers-per-node = 1.
+#
+#job_name:
+#qos:
+#oserver_nodes:
+#writers-per-node:

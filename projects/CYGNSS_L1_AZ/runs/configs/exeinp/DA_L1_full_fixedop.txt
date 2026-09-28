@@ -1,0 +1,96 @@
+####################################################################################
+#                                                                                  #
+#   Jan-Jun 2020 CYGNSS L1 experiment: dense075 density + coherency filter.       #
+#   New thinning tier, nested superset of DA-intermediate (min_sep=0.75deg on top #
+#   of intermediate's own min_sep=2.40deg base), targeting ~1-2 M36 grid cells    #
+#   median obs spacing (~5x intermediate's obs count) -- see                      #
+#   build_cygl1_dense075_6mo.py. Additionally screened to keep only obs with      #
+#   coherency_ratio>=0.5 (see filter_cygl1_dense075_by_coherency.py,              #
+#   CYGNSS_L1_thinned_dense075_coh05). Same nml deltas as                        #
+#   DAv8_M36_AZ_paired_cygl1_intermediate_coh05 (only obs density differs):       #
+#   obs_param_nml(56)%xcorr/ycorr widened to 0.625deg (from 0.25; originally set  #
+#   to 1.25deg but that violates check_compact()'s xcompact/ycompact>=2x(own      #
+#   xcorr/ycorr) floor at the unchanged xcompact=ycompact=1.25deg -- 0.625deg is  #
+#   the largest value that still clears the floor), errstd reduced to 2.75dB      #
+#   (from 3.0). Requires the UNGATED binary (build symlink                        #
+#   pointed at /gpfsm/dnb34/amfox/cygl1_pregate_build/install, the pre-406206a    #
+#   surgical relink) since the shared install's hard CYGNSS-L1 admission gate     #
+#   (+/-0.20deg lon / +/-0.16deg lat box) is not an nml-toggleable option.        #
+#                                                                                  #
+####################################################################################
+
+EXP_ID: DA_L1_full_fixedop
+EXP_DOMAIN: SMAP_EASEv2_M36_GLOBAL
+NUM_LDAS_ENSEMBLE: 24
+BEG_DATE: 20200101 000000
+END_DATE: 20200201 000000
+
+RESTART: 1
+RESTART_ID: LS_OLv8_M36
+RESTART_PATH: /discover/nobackup/projects/land_da/M21C_land_sweeper/LS_OLv8_M36_v2
+RESTART_DOMAIN: SMAP_EASEv2_M36_GLOBAL
+
+MET_TAG: cross_d5294_GEOSIT__precIMERGv7BFinal_GEOSIT_Lattaper
+MET_PATH: /discover/nobackup/projects/gmao/merra/iau/merra_land/GEOSIT_land_forcing/
+FORCE_DTSTEP: 3600
+
+BCS_PATH: /discover/nobackup/projects/gmao/bcs_shared/fvInput/ExtData/esm/tiles/v12/
+BCS_RESOLUTION: EASEv2_M36
+
+CATCHMENT_OFFLINE: 1
+CATCHMENT_SPINUP: 0
+LSM_CHOICE: 1
+TILE_TYPES: 100
+DO_ISSM: 0
+TILE_FILE_FORMAT: DEFAULT
+
+MINLON: -118.
+MAXLON: -106.
+MINLAT:   29.
+MAXLAT:   40.
+
+MET_HINTERP: 1
+
+LAND_ASSIM: YES
+
+PERTURBATIONS: 1
+FIRST_ENS_ID: 0
+ENSEMBLE_FORCING: NO
+
+NML_INPUT_PATH: /discover/nobackup/projects/land_da/cygl1_operator_test/templates/DA_L1_full
+
+MWRTM_PATH: /discover/nobackup//projects/gmao/smap/SMAP_Nature/bcs/RTM_params/RTMParam_L2DCA_R19/
+
+JOB_SGMT: 00000100 000000
+NUM_SGMT: 1
+
+LDAS_logit: YES
+
+SURFRC: LDAS.rc
+
+DYCORE: none
+MAPL_ENABLE_BOOTSTRAP: YES
+WRITE_RESTART_BY_OSERVER: NO
+
+CHOOSEMOSFC:                  0
+MOSFC_EXTRA_DERIVS_OFFL_LAND: 1
+SURFLAY: 50.0
+LAND_PARAMS: NRv7.2
+Z0_FORMULATION: 4
+USE_FWET_FOR_RUNOFF: .FALSE.
+FWETC: 0.02
+FWETL: 0.02
+USE_ASCATZ0: 0
+SNOW_ALBEDO_INFO: 0
+AEROSOL_DEPOSITION: 0
+N_CONST_LAND4SNWALB: 0
+RUN_IRRIG: 0
+IRRIG_METHOD: 0
+RUN_ROUTE: 0
+RRM_DT: 3600
+PRINTRC: 1
+DTCN: 5400
+ATM_CO2: 2
+CO2: 350.e-6
+CO2_YEAR:-9999
+PRESCRIBE_DVG: 0

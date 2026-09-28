@@ -1,0 +1,89 @@
+####################################################################################
+#                                                                                  #
+#   OL/monitor rerun on the DA runs' CYGNSS L1 obs (2026-09-25).                   #
+#   Clone of DAv8_M36_AZ_paired_cygl1_dense075_coh05 with ONLY                     #
+#   obs_param_nml(56)%assim=.false. (nml_paired_OL_dense075obs). Reads the same    #
+#   CYGNSS_L1_thinned_dense075_coh05 files as the L1/L3/SMAP arms, so the L1       #
+#   operator's per-tile support/incidence-angle selection (cygnss_preproc_find_obs,#
+#   which scans all obs in the day files) sees the same file contents. Replaces    #
+#   OLv8_M36_AZ_paired_monitor (read the full CYGNSS_L1 stream) as the L1 baseline.#
+#   build symlink -> /gpfsm/dnb34/amfox/cygl1_pregate_build/install (same binary   #
+#   as the arms, md5 0cec6f5e18ed3f30a72eba91c43e6d12).                           #
+#                                                                                  #
+####################################################################################
+
+EXP_ID: OLv8_M36_AZ_paired_monitor_dense075obs
+EXP_DOMAIN: SMAP_EASEv2_M36_GLOBAL
+NUM_LDAS_ENSEMBLE: 24
+BEG_DATE: 20200101 000000
+END_DATE: 20220101 000000
+
+RESTART: 1
+RESTART_ID: LS_OLv8_M36
+RESTART_PATH: /discover/nobackup/projects/land_da/M21C_land_sweeper/LS_OLv8_M36_v2
+RESTART_DOMAIN: SMAP_EASEv2_M36_GLOBAL
+
+MET_TAG: cross_d5294_GEOSIT__precIMERGv7BFinal_GEOSIT_Lattaper
+MET_PATH: /discover/nobackup/projects/gmao/merra/iau/merra_land/GEOSIT_land_forcing/
+FORCE_DTSTEP: 3600
+
+BCS_PATH: /discover/nobackup/projects/gmao/bcs_shared/fvInput/ExtData/esm/tiles/v12/
+BCS_RESOLUTION: EASEv2_M36
+
+CATCHMENT_OFFLINE: 1
+CATCHMENT_SPINUP: 0
+LSM_CHOICE: 1
+TILE_TYPES: 100
+DO_ISSM: 0
+TILE_FILE_FORMAT: DEFAULT
+
+MINLON: -118.
+MAXLON: -106.
+MINLAT:   29.
+MAXLAT:   40.
+
+MET_HINTERP: 1
+
+LAND_ASSIM: YES
+
+PERTURBATIONS: 1
+FIRST_ENS_ID: 0
+ENSEMBLE_FORCING: NO
+
+NML_INPUT_PATH: /discover/nobackup/projects/land_da/cygl1_operator_test/templates/OL_monitor_paired
+
+MWRTM_PATH: /discover/nobackup//projects/gmao/smap/SMAP_Nature/bcs/RTM_params/RTMParam_L2DCA_R19/
+
+JOB_SGMT: 00000100 000000
+NUM_SGMT: 1
+
+LDAS_logit: YES
+
+SURFRC: LDAS.rc
+
+DYCORE: none
+MAPL_ENABLE_BOOTSTRAP: YES
+WRITE_RESTART_BY_OSERVER: NO
+
+CHOOSEMOSFC:                  0
+MOSFC_EXTRA_DERIVS_OFFL_LAND: 1
+SURFLAY: 50.0
+LAND_PARAMS: NRv7.2
+Z0_FORMULATION: 4
+USE_FWET_FOR_RUNOFF: .FALSE.
+FWETC: 0.02
+FWETL: 0.02
+USE_ASCATZ0: 0
+SNOW_ALBEDO_INFO: 0
+AEROSOL_DEPOSITION: 0
+N_CONST_LAND4SNWALB: 0
+RUN_IRRIG: 0
+IRRIG_METHOD: 0
+RUN_ROUTE: 0
+RRM_DT: 3600
+PRINTRC: 1
+DTCN: 5400
+ATM_CO2: 2
+CO2: 350.e-6
+CO2_YEAR:-9999
+PRESCRIBE_DVG: 0
