@@ -61,8 +61,7 @@ geometry fixed across the full run.
 ## Typical command
 
 ```bash
-source ~/opt/anaconda3/etc/profile.d/conda.sh
-conda activate /Users/amfox/mamba/envs/regrid
+mamba activate regrid
 
 python projects/SMOS_IC/scripts/preprocess_smos_ic_daily_to_m36.py \
   --smos-root /Users/amfox/Desktop/SMOS_IC \
