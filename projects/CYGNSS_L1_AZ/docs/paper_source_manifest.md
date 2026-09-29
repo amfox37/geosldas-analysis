@@ -41,7 +41,7 @@ feeds.
 | Section | Main sources |
 |---|---|
 | Introduction / motivation | [OP] `README.CYGNSSOperatorDesign.md`, `README.CYGNSSPrototypeScope.md`; prior CYGNSS L3 DA paper (Fox, Reichle & Liu 2026, JHM, submitted; [GA] `projects/cygnss_da/notebooks/Readme.txt`); refs in [OP] `docs/*.pdf` |
-| Forward model and tile-coefficient operator | [OP] `CYGNSS_IGOT_GEOSldas_Report.md`, `docs/cygnss_operator_forward_model_explainer.md`, `README.CYGNSSTileCoefficientOperator.md`, `README.IGOTForwardOperator.md`, `README.CYGNSSVegetation.md`, `README.CYGNSSCompletePythonOperator.md` |
+| Forward model and tile-coefficient operator | [OP] `CYGNSS_IGOT_GEOSldas_Report.md`, `docs/cygnss_operator_forward_model_explainer.md`, `README.CYGNSSTileCoefficientOperator.md`, `README.IGOTForwardOperator.md`, `README.CYGNSSVegetation.md`, `README.CYGNSSCompletePythonOperator.md`; schematic figure: [GA] `notebooks/cygl1_operator_story_figure.ipynb` |
 | Observations, QC, preprocessing | [OP] `README.CYGNSSObservationInputs.md`, `README.CYGNSSObservationQC.md`, `README.CYGNSSCoefficientPreprocessor.md`, `docs/cygnss_m36_window_thinning_notes.md`, `docs/discover_cygnss_preprocessor_quickstart.md` |
 | GEOSldas implementation | [OP] `docs/geosldas_cygnss_preprocessed_operator_handoff.md`, `docs/cygnss_preprocessed_operator_validation_20191101.md`, `README.CYGNSSFortranPortPlan.md`, `fortran/README.md`; GEOSldas source (see "Outside these repos") |
 | Experiment design (domain, OL, arms, scaling, scoring) | [GA] `docs/cygl1_operator_test_project_README.md`, `runs/configs/`, `docs/cygl1_fixedop_2020_arm_comparison_report.md` (Arms, scoring rule), `projects/obs_scaling_params/README.md` |
@@ -82,6 +82,8 @@ unaffected.
 | `README.CYGNSSCodeGuide.md`, `cygnss_operator/README.md` | Code guide for the Python package. | METHOD (code reference) |
 | `README.IGOTCodeProvenance.md` | IGOT code is private USC/MiXIL code: sharing restrictions. | BACKGROUND (**constraint**) |
 | `README.GEOSldasRestartSFMC.md` | Utility to derive SFMC from Catchment restarts for operator development. | METHOD (minor) |
+| `scripts/plot_cygnss_good_obs_operator_story.py` | 3×3 single-obs "operator anatomy" figure at tile level. Its data loaders are reused by the paper schematic notebook ([GA] `notebooks/cygl1_operator_story_figure.ipynb`, see the [GA] section). Its original 2019-11-01 12z output (`artifacts/out_images/cygnss_good_obs_operator_story_20191101_1200z/`) is PRE-FIX. | METHOD (code) |
+| `artifacts/cygl1_story_figure_bundle/` (untracked) | Discover bundle for the schematic (13 MB), with `MANIFEST.txt` listing sources, md5s and the obs selection. Built from `docs/discover_operator_story_figure_handoff.md` ([GA]). | CURRENT (inputs) |
 
 ### Observations, QC, preprocessing, thinning
 
@@ -126,6 +128,9 @@ unaffected.
 | `docs/cygl1_fixedop_2020_2022_stats_README.md` | 2026-09-28 | README for the O-F stats bundle (pkl/nc4 formats, cross-mask convention, headline table). |
 | `docs/cygl1_fixedop_2020_7arm_stats_README.md` | 2026-09-27 | README for the earlier 2020-only bundle (superseded by the one above). |
 | `notebooks/cygl1_ismn_skill_figures.ipynb` | 2026-09-28 | CYGNSS-paper-style in-situ figures (raw skill, Δ vs OL, Δ vs L3; paired-t CIs). |
+| `notebooks/cygl1_operator_story_figure.ipynb` | 2026-09-29 | **Methods schematic** (4×3). One assimilated L1 obs (cyg02 sample 163383 ch 3, 2020-11-16 00z window, SW Arizona) traced from native ~30 m IGOT pixels (σ factor, footprint, pixel contribution to H(x)) to M36 tile coefficients and the increment, in both candidate L1 arms. It checks the recomputed C_t against the product. Needs the `cygnss` env and the bundle in [OP] `artifacts/cygl1_story_figure_bundle/`. Output: `output/operator_story_20201116_0000z/`. |
+| `docs/discover_operator_story_figure_handoff.md` | 2026-09-29 | Discover task brief for the schematic: obs selection criteria and bundle contents. |
+| `paper/paper_outline.md` | 2026-09-29 | Paper outline: storyline, section key points with numbers and sources, figure/table list with status, open decisions. |
 | `runs/configs/` | 2026-09-28 | exeinp, bat_inp and namelist templates for every fixed-operator experiment (reproducibility / supplement). |
 
 ### Pre-fix documents (numbers invalid; history, methods and ideas only)

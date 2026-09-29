@@ -16,6 +16,8 @@ __pycache__/
 !projects/M21C_ls/docs/trends_breakpoints_report_figures/*.png
 !projects/M21C_ls/docs/paper_figures/
 !projects/M21C_ls/docs/paper_figures/*.png
+!projects/CYGNSS_L1_AZ/paper/figures/
+!projects/CYGNSS_L1_AZ/paper/figures/*.png
 
 
 # Ignore possible symlinked build and install directories
