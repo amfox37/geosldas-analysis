@@ -39,6 +39,20 @@ It has netCDF4, pandas, scipy, cartopy and jupyter, and needs no `g5_modules`.
   - Caches go to `M21C_testing/analysis_M21C_land/`, outside the repo. Figures go to `figures/`
     (`*.png` is git-ignored).
 
+- `notebooks/cf0360_allsp_may2019_states.ipynb`
+  - Model states SFMC and RZMC for the same two runs. allsp vs OL6 uses the daily 0.5 deg `tavg24_2d_lnd_Nx` files,
+    because OL6 wrote nothing else: daily global and latitude-band means, and maps of the monthly-mean and
+    31 May differences.
+  - allsp only: analysis increments (ANA - FCST from `inst3_1d_lndfcstana_Nt`) summed over the month in tile
+    space, averaged to cube cells with `frac_cell` weights, and drawn on the true cube-cell shapes.
+
+- `notebooks/cf0360_allsp_may2019_suspicious_increments.ipynb`
+  - Flags excessive analysis increments per land tile and cycle, and maps the worst tile per cube cell.
+    Groups: A = large compared with the forecast ensemble spread (z > 3 plus a minimum size; TSURF flags that come
+    with a snow update are kept separate); B = physically large (|dW| > 100 mm, |dRZMC| > 0.05, |dSFMC| > 0.1,
+    TC > 5 K); C = root zone pinned at saturation with collapsed spread for 5+ days after DA wetting;
+    D = assimilated obs with |normalized innovation| > 5. Includes a top-events table with the obs assimilated nearby.
+
 ## Shared code used
 
 - `projects/ascat_da/scripts/compare_thin_superob_ofa.py`: `species_groups()` maps the ObsFcstAna
