@@ -160,6 +160,12 @@ from the pair data.*
 - **ASCAT:** the penalty is concentrated in the Four Corners area (Fig. 7).
 - **By season (Fig. 6):** Oct–Jan is consistently the best period for L1. Spring is consistently the worst: SMAP Tb O−F is worse than
   the OL in May–Jun 2020, Apr–Jun 2021 and Feb–May 2022.
+- **Fit to L1 itself (Figs. 6e and 7, right column).**
+  - Assimilating L1 reduces L1 O−F by 0.76%, against 0.54% when L3 is assimilated and 0.67% when SMAP is.
+  - The improvement is spread across the L1 area (tile median −0.9%). 33 of 36 months beat the OL. The other 3 (Jun 2021, Feb 2022,
+    May 2022) all fall inside the spring windows, and are worse by at most +0.18%.
+  - L1's own-fit gain is only slightly larger than what any soil-moisture assimilation gives. Much of the L1 O−F reduction comes from a
+    generally better soil-moisture state, and the L1-specific information is a smaller part.
 - **SMAP assimilation** is in a different class for Tb (−11 to −14%), but degrades ASCAT by +12.6%.
 
 **Table 3.** O−F standard deviation, % change vs the OL, pooled over 2020–2022 (negative = better). *Own fit* marks the assimilated
@@ -175,13 +181,15 @@ type. Sources: the O-F report §3, and "O-F over the same L1 area" in the ISMN r
 
 ![Fig. 6](figures/fig06_monthly_omf_change.png)
 
-**Fig. 6.** Monthly change in O−F standard deviation vs the open loop, for L1 and L3 assimilation. Shaded: the spring windows in which L1
-degrades Tb.
+**Fig. 6.** Monthly change in O−F standard deviation vs the open loop, for L1 and L3 assimilation. The panels show (a) SMAP Tb, (b) SMOS
+Tb, (c) ASCAT, (d) CYGNSS L3 and (e) CYGNSS L1, which is the experiment's own fit for L1 and an independent monitor for L3. Shaded: the
+spring windows in which L1 degrades Tb.
 
 ![Fig. 7](figures/fig07_omf_change_maps.png)
 
 **Fig. 7.** Change in O−F standard deviation per tile vs the open loop, pooled over 2020–2022, for L1 (top) and L3 (bottom)
-assimilation.
+assimilation. The right column is CYGNSS L1, on its own narrower colour scale (±3%); it is assimilated in the top row and monitored in
+the bottom row.
 
 ### 5.2 Why spring fails
 

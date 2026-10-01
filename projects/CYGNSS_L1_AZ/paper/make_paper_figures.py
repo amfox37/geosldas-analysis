@@ -288,15 +288,17 @@ def monthly_table():
 
 def fig06_monthly():
     m = monthly_table()
-    panels = [("SMAP", "SMAP Tb"), ("SMOS", "SMOS Tb"), ("ASCAT", "ASCAT soil moisture"), ("L3", "CYGNSS L3 soil moisture")]
-    fig, axes = plt.subplots(4, 1, figsize=(8.5, 8.4), sharex=True, constrained_layout=True)
+    panels = [("SMAP", "SMAP Tb"), ("SMOS", "SMOS Tb"), ("ASCAT", "ASCAT soil moisture"), ("L3", "CYGNSS L3 soil moisture"),
+              ("L1", "CYGNSS L1 (DDM crop sum)")]
+    own_fit = {("l3_fixedop", "L3"), ("full_xc015_coh040216_fixedop", "L1")}
+    fig, axes = plt.subplots(len(panels), 1, figsize=(8.5, 10.4), sharex=True, constrained_layout=True)
     for ax, (col, title) in zip(axes, panels):
         shade_spring(ax)
         ax.axhline(0, color="0.5", lw=0.7)
         for tag in ["full_xc015_coh040216_fixedop", "l3_fixedop"]:
             lab, c = ARMS[tag]
             s = m[m.arm == tag].sort_values("time")
-            own = " (assimilated)" if (tag == "l3_fixedop" and col == "L3") else ""
+            own = " (assimilated)" if (tag, col) in own_fit else ""
             ax.plot(s.time, s[col], "o-", ms=3, lw=1.3, color=c, label=f"{lab}{own}")
         ax.set_ylabel("Δ O−F stdv (%)")
         ax.set_title(title, loc="left")
@@ -322,24 +324,28 @@ def tile_pct(tag, group, nmin=50):
 
 def fig07_maps():
     tiles = load_tiles()
-    cols = ["SMAP Tb", "ASCAT SM", "CYGNSS L3 SM"]
+    # CYGNSS L1 O-F changes are a few %, so that column gets its own, narrower colour scale.
+    cols = [("SMAP Tb", 10), ("ASCAT SM", 10), ("CYGNSS L3 SM", 10), ("CYGNSS L1", 3)]
     rows = ["full_xc015_coh040216_fixedop", "l3_fixedop"]
-    fig = plt.figure(figsize=(11, 6.4))
-    vmax = 10
+    own_fit = {("l3_fixedop", "CYGNSS L3 SM"), ("full_xc015_coh040216_fixedop", "CYGNSS L1")}
+    fig = plt.figure(figsize=(14, 6.4))
+    mappables = {}
     for i, tag in enumerate(rows):
-        for j, grp in enumerate(cols):
-            ax = map_axes(fig, (2, 3, i * 3 + j + 1))
+        for j, (grp, vmax) in enumerate(cols):
+            ax = map_axes(fig, (2, len(cols), i * len(cols) + j + 1))
             v = tile_pct(tag, grp)
-            sc = tile_squares(ax, tiles.com_lon, tiles.com_lat, v, cmap="RdBu_r", vmin=-vmax, vmax=vmax, s=9)
+            mappables[vmax] = tile_squares(ax, tiles.com_lon, tiles.com_lat, v, cmap="RdBu_r", vmin=-vmax, vmax=vmax)
             lab = ARMS[tag][0]
-            own = " (assimilated)" if (tag == "l3_fixedop" and grp == "CYGNSS L3 SM") else ""
+            own = " (assimilated)" if (tag, grp) in own_fit else ""
             ax.set_title(f"{lab} DA: {grp}{own}", fontsize=9)
             ax.text(0.02, 0.03, f"tile median {np.nanmedian(v):+.1f}%", transform=ax.transAxes, fontsize=7,
                     bbox=dict(fc="white", ec="none", alpha=0.8))
-    cax = fig.add_axes([0.25, 0.05, 0.5, 0.02])
-    cb = fig.colorbar(sc, cax=cax, orientation="horizontal", extend="both")
-    cb.set_label("Δ O−F stdv vs open loop, 2020–2022 (%; negative = better)")
     fig.subplots_adjust(left=0.02, right=0.98, top=0.93, bottom=0.12, wspace=0.05, hspace=0.12)
+    label = "Δ O−F stdv vs open loop, 2020–2022 (%; negative = better)"
+    cb = fig.colorbar(mappables[10], cax=fig.add_axes([0.08, 0.05, 0.6, 0.02]), orientation="horizontal", extend="both")
+    cb.set_label(label + ": SMAP, ASCAT, CYGNSS L3")
+    cb = fig.colorbar(mappables[3], cax=fig.add_axes([0.77, 0.05, 0.18, 0.02]), orientation="horizontal", extend="both")
+    cb.set_label("CYGNSS L1 (%)")
     save(fig, "fig07_omf_change_maps.png")
 
 
