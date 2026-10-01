@@ -169,11 +169,10 @@ from the pair data.*
   - Assimilating L1 reduces L1 O−F by 0.76%, against 0.54% when L3 is assimilated and 0.67% when SMAP is.
   - The improvement is spread across the L1 area (tile median −0.9%). 33 of 36 months beat the OL. The other 3 (Jun 2021, Feb 2022,
     May 2022) all fall inside the spring windows, and are worse by at most +0.18%.
-  - L1's own-fit gain is only slightly larger than what any soil-moisture assimilation gives. Much of the L1 O−F reduction comes from a
-    generally better soil-moisture state, and the L1-specific information is a smaller part.
+  - Assess forecast variance, normalized innovations, gains and increments before attributing this to low signal-to-noise. Own-fit
+    percentages across species are not directly comparable information measures or independent validation.
 - **SMAP assimilation** is in a different class for Tb (−11 to −14%), but degrades ASCAT by +12.6%.
 
-- **L1 own fit:** O−F decreases only 0.76%; L3 assimilation decreases the L1 monitor by 0.54%. Assess forecast variance, normalized innovations, gains and increments before attributing this to low signal-to-noise. Own-fit percentages across species are not directly comparable information measures or independent validation.
 - SMAP's ASCAT penalty shows disagreement between monitors and in-situ evaluation, not proof ASCAT is biased or invalid. Spatially matched coverage and seasonal/QC checks are needed.
 
 **Table 3.** O−F standard deviation, % change vs the OL, pooled over 2020–2022 (negative = better). *Own fit* marks the assimilated
