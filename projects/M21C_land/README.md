@@ -100,6 +100,22 @@ It has netCDF4, pandas, scipy, cartopy and jupyter, and needs no `g5_modules`.
     `SFMC_FCST` per window from `M21C_test_CF0360_baseline_HSAF_xc03125`, its ObsFcstAna). Runs locally in ~75 s.
   - Obs space only, against one background: it does not show the impact on analyses or forecasts (needs cycling runs).
 
+- `notebooks/cf0360_cycling_superob_vs_thinning.ipynb`
+  - Examples from the H SAF-only cycling pair `M21C_test_CF0360_sob025fp_HSAF_xc03125` (0.25° super-obs, `9624356`) and
+    `M21C_test_CF0360_thin25km_HSAF_xc03125` (`thin_dist_km = 25`, `5e220ff`), with `M21C_test_CF0360_OL_monitor_HSAF`
+    (H SAF monitored in raw mode) as the reference, on 2019-05-01 (shared first forecast) and 2019-05-10. Shows over SW
+    Kansas the obs each run assimilated, their footprints, tile weights (one super-ob vs the thinned obs around it;
+    weight per unit area), and SFMC increments; globally, counts, spacing and increment statistics, and each run's
+    forecast against the raw H SAF obs and against the monitored SMAP/SMOS Tb (same obs in all runs).
+  - Rebuilds every run's obs offline and checks them against its ObsFcstAna (positions exact, `fcst` to ~1e-4).
+    The super-ob run uses the scaling derived for the old super-obs (deliberate; the thinning run's raw-obs scaling is
+    correct for it): for the new super-obs this adds ~0.015 m³/m³ of tile-to-tile noise, which confounds the comparison.
+  - Section 5.3: where the obs fall pass after pass. Thinning keeps a different set of grid points each pass (even for
+    identical raw obs), so tile weights vary ~17% between passes; super-obs sit at the same position every pass.
+  - Data fetched once with `scripts/fetch_cycling_superob_vs_thin.py` (run on Discover with GEOSpyD) into
+    `~/Desktop/M21C_land_local/cf0360_cycling_sob_vs_thin/`; 5/1 raw H121 comes from `cf0360_obs_fcst_20190501/`.
+    Runs locally in ~3.5 min. ANA − FCST has a ~1e-3 noise floor (nonzero even in the OL), so increments are counted above it.
+
 ## Shared code used
 
 - `projects/ascat_da/scripts/compare_thin_superob_ofa.py`: `species_groups()` maps the ObsFcstAna
