@@ -110,6 +110,10 @@ It has netCDF4, pandas, scipy, cartopy and jupyter, and needs no `g5_modules`.
   - Rebuilds every run's obs offline and checks them against its ObsFcstAna (positions exact, `fcst` to ~1e-4).
     The super-ob run uses the scaling derived for the old super-obs (deliberate; the thinning run's raw-obs scaling is
     correct for it): for the new super-obs this adds ~0.015 m³/m³ of tile-to-tile noise, which confounds the comparison.
+  - Includes the rerun `M21C_test_CF0360_sob025fp_OL1sc_HSAF_xc03125` (same super-obs, raw-obs/OL scaling; data in
+    `~/Desktop/M21C_land_local/cf0360_cycling_sob025fp_OL1sc/`). With consistent scaling, super-obs and thinning are
+    indistinguishable after 10 days (fit to raw H SAF obs and to SMAP/SMOS Tb); the old run's larger increments, Kansas
+    overshoot (section 6.1) and worse Tb fit were the scaling. Super-obs give somewhat smaller increments for the same fit.
   - Section 5.3: where the obs fall pass after pass. Thinning keeps a different set of grid points each pass (even for
     identical raw obs), so tile weights vary ~17% between passes; super-obs sit at the same position every pass.
   - Data fetched once with `scripts/fetch_cycling_superob_vs_thin.py` (run on Discover with GEOSpyD) into
