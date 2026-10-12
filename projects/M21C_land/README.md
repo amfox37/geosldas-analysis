@@ -53,6 +53,12 @@ It has netCDF4, pandas, scipy, cartopy and jupyter, and needs no `g5_modules`.
     TC > 5 K); C = root zone pinned at saturation with collapsed spread for 5+ days after DA wetting;
     D = assimilated obs with |normalized innovation| > 5. Includes a top-events table with the obs assimilated nearby.
 
+- `notebooks/cf0360_allsp_thin25km_3mo_{ofa_maps,states,suspicious_increments}.ipynb`
+  - The three notebooks above, copied for 1 May to 31 July 2019 and the all-species run with H SAF thinned to
+    25 km (`M21C_test_CF0360_allsp_thin25km_1f0e9ef_xc03125`, GEOSldas commit 1f0e9ef), again against OL6.
+  - `NMIN = 20` (repo default). Cycle counts and colour scales follow the period. SMAP has no obs after about
+    20 June 2019 in this run. The OFA maps notebook needs roughly three times the memory of the May version.
+
 - `notebooks/cf0360_hsaf_superob_fov.ipynb`
   - H SAF ASCAT raw obs vs 0.25 deg super-obs for one cycle (2019-05-01 03z) over a small box in SW Kansas,
     comparing `M21C_test_CF0360_baseline_HSAF_xc03125` with `M21C_test_CF0360_superob025ml_OL6sc_HSAF_xc03125`.
