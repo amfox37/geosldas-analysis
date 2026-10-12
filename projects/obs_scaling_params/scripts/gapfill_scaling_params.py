@@ -22,7 +22,6 @@ The input file is not modified.
 from __future__ import annotations
 
 import argparse
-import shutil
 from pathlib import Path
 
 import netCDF4 as nc
@@ -59,6 +58,34 @@ def nearest_fill(valid: np.ndarray, xyz: np.ndarray, max_chord: float):
     dist, idx = tree.query(xyz[targets], k=1, distance_upper_bound=max_chord)
     ok = np.isfinite(dist)
     return targets[ok], donors_all[idx[ok]], km_from_chord(dist[ok])
+
+
+def copy_rechunked(infile: Path, outfile: Path) -> None:
+    """Copy infile to outfile with one pentad per chunk for every (pentad, ...) variable.
+
+    GEOSldas reads one pentad slice per call; older files written with the netCDF default
+    chunking (19 pentads per chunk) make it decompress ~19x more data than it needs.
+    """
+    with nc.Dataset(infile) as src, nc.Dataset(outfile, "w", format=src.data_model) as dst:
+        dst.setncatts({k: src.getncattr(k) for k in src.ncattrs()})
+        for name, dim in src.dimensions.items():
+            dst.createDimension(name, None if dim.isunlimited() else dim.size)
+        for name, var in src.variables.items():
+            filters = var.filters() or {}
+            kwargs = {}
+            if var.dimensions:
+                kwargs.update(zlib=bool(filters.get("zlib")), complevel=filters.get("complevel", 4),
+                              shuffle=bool(filters.get("shuffle")))
+                if var.dimensions[0] == "pentad" and len(var.dimensions) > 1:
+                    kwargs["chunksizes"] = (1,) + var.shape[1:]
+                elif var.chunking() != "contiguous":
+                    kwargs["chunksizes"] = var.chunking()
+            fill = var.getncattr("_FillValue") if "_FillValue" in var.ncattrs() else None
+            out = dst.createVariable(name, var.dtype, var.dimensions, fill_value=fill, **kwargs)
+            out.setncatts({k: var.getncattr(k) for k in var.ncattrs() if k != "_FillValue"})
+            var.set_auto_maskandscale(False)
+            out.set_auto_maskandscale(False)
+            out[...] = var[...]
 
 
 def main() -> int:
@@ -118,14 +145,15 @@ def main() -> int:
         return 0
 
     args.outfile.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(args.infile, args.outfile)
+    copy_rechunked(args.infile, args.outfile)
     with nc.Dataset(args.outfile, "a") as out:
         for v in ZSCORE_VARS:
             out[v][:] = data[v]
         out["m_min"][:] = m_min
         out["m_max"][:] = m_max
         fdv = out.createVariable("fill_distance_km", "f4", ("pentad", "lon", "lat"),
-                                 zlib=True, fill_value=np.float32(np.nan))
+                                 zlib=True, fill_value=np.float32(np.nan),
+                                 chunksizes=(1, n_lon, n_lat))
         fdv.long_name = ("great-circle distance to the cell the z-score stats were copied from "
                          "(0 = original stats, NaN = no stats)")
         fdv.units = "km"

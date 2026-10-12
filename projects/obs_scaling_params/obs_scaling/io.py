@@ -664,7 +664,11 @@ def write_netcdf_latlon_grid(
 
         def _var(name: str, dimensions: tuple[str, ...], attrs: dict[str, str]) -> nc.Variable:
             compression = dict(zlib=True, complevel=5)
-            var = dataset.createVariable(name, "f8", dimensions, **compression)
+            # One pentad per chunk: GEOSldas reads one pentad slice per call, and the netCDF
+            # default chunking (19 pentads per chunk) makes it decompress ~19x more data.
+            sizes = {"pentad": 1, "lon": n_lon, "lat": n_lat}
+            chunks = tuple(sizes[d] for d in dimensions)
+            var = dataset.createVariable(name, "f8", dimensions, chunksizes=chunks, **compression)
             for key, val in attrs.items():
                 var.setncattr(key, val)
             return var
