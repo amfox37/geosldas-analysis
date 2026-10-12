@@ -44,6 +44,7 @@ projects/
   ISMN/             # ISMN soil-moisture in-situ skill
   SMOS_IC/          # SMOS-IC comparison
   M21C_ls/          # Combined manuscript (SM + SCF): figure provenance, ISMN batch
+  M21C_land/        # CF0360 cubed-sphere M21C land DA diagnostics (Discover, GEOSpyD py3.13)
   utils/            # General utilities
   matlab2python/    # Migrating legacy MATLAB postprocessing to Python
   discover_JH/      # Sandbox for NASA Discover / JupyterHub work
