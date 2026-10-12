@@ -10,22 +10,71 @@ Separate from the CYGNSS L3 soil-moisture species (`obs_param_nml(54)`).
 `geosldas-analysis/projects/CYGNSS_L1_AZ/docs/cygl1_operator_test_project_README.md`, and all
 run configs are in `runs/configs/` there. Keep the two copies in sync.*
 
-## Status (2026-09-28)
+## Overview (for someone new to the project)
+
+**Question.** Can assimilating CYGNSS L1 reflectivity directly (instead of the CYGNSS L3 soil-moisture retrieval) improve GEOSldas
+soil moisture? The test bed is the Arizona box, 2020–2022, at EASEv2 M36 with a 24-member ensemble. The L1 obs are preprocessed DDM
+"crop scalar" coefficients, and a new obs operator maps the model state to them.
+
+**How we judge it.** Each DA run ("arm") is compared with one open loop (OL, no assimilation), using independent obs that are
+monitored but **not** assimilated: SMOS and SMAP Tb, H SAF ASCAT and CYGNSS L3. The main metric is the change in the std of O-F
+(obs minus forecast) relative to the OL, `(DA−OL)/OL` in %. **Negative means DA beats the OL.** SMAP/SMOS Tb and CYGNSS L3 are the
+monitors that matter most, and ASCAT is secondary. In situ (ISMN) is used as a cross-check, and only over tiles that actually get L1 obs.
+
+**History in brief.**
+1. Jun–Sep 2026: operator development, R tuning, thinning and coherency screening studies, all **pre-fix**. They have been archived and
+   their L1 numbers are invalid.
+2. 2026-09-25: we found an operator bug where O and F could come from different obs (see "The operator bug" below). After fixing it,
+   we rebuilt and restarted from scratch: a new OL, a new L1 scaling climatology, and new DA arms (the "fixedop" experiments).
+3. 2020: seven arms tested R and xcorr, the full vs thinned stream, a coherency_ratio filter, and SMAP-only/L3-only baselines.
+4. Four arms were extended through 2022 (the run dirs kept here) and scored per month, per year and over the whole period.
+
+**Headline result** (whole period 2020–2022, % change in O-F std vs OL; negative = better):
+
+| arm (run dir) | SMOS Tb | SMAP Tb | ASCAT | CYGNSS L3 | L1 own |
+|---|---:|---:|---:|---:|---:|
+| L1, coherency filter (`DA_L1_full_xc015_coh040216_fixedop`) | −1.02 | −1.29 | +2.18 | −1.86 | −0.76 |
+| **L1, filter + errstd 3.9 (`..._err39_fixedop`), best L1 arm** | **−0.97** | **−1.20** | **+0.55** | **−2.08** | −0.68 |
+| CYGNSS L3 only (`DA_L3_fixedop`) | −1.14 | −1.48 | −3.61 | −6.01 | −0.54 |
+| SMAP Tb only (`DA_SMAP_fixedop`) | −14.12 | −11.48 | +12.59 | +2.94 | −0.67 |
+
+- **Main finding:** L1 DA gives a small but consistent improvement on the independent monitors (about 1–2%). It is still behind
+  L3-only by O-F. In situ, L1 improves root-zone correlation by +0.03 to +0.04 and beats L3, which is neutral.
+- **Spring problem:** every year L1 DA degrades Tb in spring, and the bad window moves: May–Jun 2020, Apr–Jun 2021, Feb–May 2022.
+  There are two causes. In 2020 and 2022 the L1 increments stop carrying information about Tb. In 2021 the increments overshoot.
+- **Next step (not started):** one arm with a seasonal R (errstd 7.8 in Feb–Jun, 3.9 otherwise) vs filter+err39.
+
+**Read in this order** (in `geosldas-analysis/projects/CYGNSS_L1_AZ/`):
+1. `docs/cygl1_fixedop_2020_arm_comparison_report.md` (main O-F results and next steps)
+2. `runs/cygl1_fixedop_ismn_validation_2020_2022.md` (in situ)
+3. `docs/paper_source_manifest.md` (map of all sources)
+
+**Glossary.**
+- **xcorr:** obs-error correlation length.
+- **errstd:** obs-error std in scaled units. L1 obs are z-score scaled to the model climatology.
+- **coh040216:** keep L1 obs with coherency_ratio 0.40–2.16 only.
+- **fixedop:** run on the fixed-operator build.
+- **cross-masked:** DA and OL scored on exactly the same obs.
+
+## Status (2026-10-12)
 
 The L1 operator bug was fixed on 2026-09-25 (details below). Everything since then was rerun from scratch on
 the fixed build (the "fixedop" experiments). All pre-fix results are invalid and archived in `archive/`.
 
-**Fixed-operator experiments** (all ended clean, with 0 `LDAS ERROR`/`forrtl`):
+**Fixed-operator experiments** (all ended clean, with 0 `LDAS ERROR`/`forrtl`). The four 2020-only/Jan-only L1 arms were retired
+on 2026-10-12: only `archive/<EXP_ID>_configs_stats.tar.gz` is left (run/, scratch/, input/, rc_out/ and the exeinp; model output
+deleted). Their O-F stats are in `cygl1_fixedop_2020_2022_stats.tar.gz` (`stats/2020_only_arms/`), except the Jan-only
+`DA_L1_full_fixedop`, which survives only in the reports. Live run dirs: the OL and the four 2020–2022 arms.
 
 | EXP_ID | assimilated | period | templates/ (NML_INPUT_PATH) |
 |---|---|---|---|
 | `OLv8_M36_AZ_fixedop` | none (unscaled OL, all 13 species monitored) | 2020–2022 | `OL_monitor_unscaled` |
-| `DA_L1_full_fixedop` | full L1, xcorr 0.625 (ill-conditioned-R test) | Jan 2020 | `DA_L1_full` |
-| `DA_L1_full_xc015_fixedop` | full L1, xcorr 0.15, errstd 2.75 (benchmark) | 2020 | `DA_L1_full_xc015` |
-| `DA_L1_full_xc015_err39_fixedop` | benchmark with errstd 3.9 | 2020 | `DA_L1_full_xc015_err39` |
+| `DA_L1_full_fixedop` (archived) | full L1, xcorr 0.625 (ill-conditioned-R test) | Jan 2020 | `DA_L1_full` |
+| `DA_L1_full_xc015_fixedop` (archived) | full L1, xcorr 0.15, errstd 2.75 (benchmark) | 2020 | `DA_L1_full_xc015` |
+| `DA_L1_full_xc015_err39_fixedop` (archived) | benchmark with errstd 3.9 | 2020 | `DA_L1_full_xc015_err39` |
 | `DA_L1_full_xc015_coh040216_fixedop` | benchmark + coherency filter 0.40–2.16 + rebuilt L1 clim | **2020–2022** | `DA_L1_full_xc015_coh040216` |
 | `DA_L1_full_xc015_coh040216_err39_fixedop` | filter + clim + errstd 3.9 (**best L1 arm by O-F**) | **2020–2022** | `DA_L1_full_xc015_coh040216_err39` |
-| `DA_L1_dense075_coh05_fixedop` | thinned L1 (pre-fix "best" config) | 2020 | `DA_L1_dense075_coh05` |
+| `DA_L1_dense075_coh05_fixedop` (archived) | thinned L1 (pre-fix "best" config) | 2020 | `DA_L1_dense075_coh05` |
 | `DA_L3_fixedop` | CYGNSS L3 (`CYGNSS_SM_6hr`), full L1 monitored | **2020–2022** | `DA_L3_fullL1mon` |
 | `DA_SMAP_fixedop` | SMAP L1C Tb, full L1 monitored | **2020–2022** | `DA_SMAP_fullL1mon` |
 
@@ -50,7 +99,7 @@ Their exeinp files in the project root still show the original END_DATE.
 **Transfer bundles** (project root; each has a matching `*_README.md`, also tracked in the repo's `docs/`):
 
 - `cygl1_fixedop_2020_2022_stats.tar.gz`: pkl/nc4 O-F stats for the whole of 2020–2022 (4 arms), per-year nc4, the 2020-only arms and
-  summary tables. It supersedes `cygl1_fixedop_2020_7arm_stats.tar.gz`.
+  summary tables. It supersedes `cygl1_fixedop_2020_7arm_stats.tar.gz` (moved to `archive/old_root_files_20261012/`).
 - `cygl1_ismn_fixedop_2020_2022_inputs.tar.gz`: inputs for the ISMN figures notebook when running it locally.
 
 **CYGNSS L1 coverage limit:** the preprocessed L1 stream only contains specular points within 200 km of Arizona (the
@@ -79,7 +128,7 @@ and the L1 z-score scaling climatology.
 obs the reader kept (owner tile + J2000 time stamp from a shared
 `cygnss_l1_obs_J2000()`, with an exact sp lon/lat match), and aborts on any mismatch.
 
-**What is still good:** the obs (`CYGNSS_L1/`, `CYGNSS_L1_thinned_dense075_coh05/`)
+**What is still good:** the obs (`CYGNSS_L1/`, and the thinned set now in `archive/CYGNSS_L1_thinned_dense075_coh05.tar.gz`)
 and the non-L1 scaling parameters (`scaling_params/`).
 
 ## Build
@@ -90,7 +139,7 @@ The top level is on `feature/amfox/cygnss-ascat-hsaf-v8-regtest`, with `origin/d
 GMAO_Shared v3.0.2, GEOS_Util v3.0.3, MAPL v2.70.0, and GEOSgcm_GridComp at
 `develop`. It was a clean full rebuild on 2026-09-25 (`parallel_build.csh -account s3208 -q debug`,
 ~12 min), and `install/bin/GEOSldas.x` has md5 `6a70b4968b2b376b601636f780a0da2f`.
-The previous build/install are kept as `build_pre_20260925/`, `install_pre_20260925/`.
+The previous build/install (`build_pre_20260925/`, `install_pre_20260925/`) were deleted on 2026-10-12.
 
 **Must** use this checkout's `install/bin/ldas_setup`. The shared
 `land_da/GEOSldas_develop` install doesn't have the CYGNSS L1 operator. After
@@ -105,12 +154,12 @@ install is ungated.
 |---|---|
 | `CYGNSS_L1/` | Full CYGNSS L1 coefficient-product obs (schema 0.5), 2020-01-01 to 2022-12-31 (`old_Y2019`/`Y2019`: older vintages). |
 | `CYGNSS_L1_coh040_216/` | Full stream screened to coherency_ratio 0.40–2.16, 2020–2022. The obs for the two `coh040216` arms. |
-| `CYGNSS_L1_thinned_dense075_coh05/` | Thinned subset (min separation 0.75 deg on top of the intermediate tier, coherency_ratio >= 0.5), 2020-01-01 to 2021-12-31. The obs used by the paired experiments. |
+| `archive/CYGNSS_L1_thinned_dense075_coh05.tar.gz` | Thinned subset (min separation 0.75 deg on top of the intermediate tier, coherency_ratio >= 0.5), 2020-01-01 to 2021-12-31, used by the paired experiments and `DA_L1_dense075_coh05_fixedop`. Tarred 2026-10-12: extract it into the project root before using the `DA_L1_dense075_coh05`, `OL_monitor_paired`, `DA_L3` or `DA_SMAP` templates, whose L1 path points at it. |
 | `scaling_params/` | z-score scaling params, still valid: `z_score_clim/` (SMOS/SMAP Tb, species 21-24, 31-34), `python_z_score_clim_quarter_degree/` (H SAF ASCAT 49-51, CYGNSS L3 54). Copied from the archived `OLv8_M36_all_sensors_AZ` (2020-2022 climatology). Post-fix L1 clims: `cygnss_l1_z_score_clim/` (full stream) and `cygnss_l1_z_score_clim_coh040216/` (screened stream), both built from `OLv8_M36_AZ_fixedop` for 2020–2022 (W=75 d, Nmin=20, short `AZ_CYGNSS_L1_zscore_all_pentads.nc4` symlink). |
 | `templates/` | exeinp + `LDASsa_SPECIAL_inputs_ens{upd,prop}.nml` to start the new experiments from (see below). |
 | `<EXP_ID>/`, `<EXP_ID>.txt` | The fixed-operator experiments (table above) and their exeinp files. |
 | `archive/` | Tarballs of everything retired (see below). |
-| `bat_inp_*.txt` | Batch inputs (account s3208, 24 tasks): `debug_limdom` (debug qos), `limdom_1mo_monitor` (1:30 h, monitor-only months), `limdom_1mo_cygl1assim` (2 h, L1-assim months), `limdom_long` (8 h). |
+| `bat_inp_*.txt` | Batch inputs (account s3208, 24 tasks): `debug_limdom` (9 min, debug qos), `limdom_2mo_monitor` (1 h; used by the OL), `limdom_1mo_cygl1assim_1h` (1 h; used by the DA arms). Older ones (2 h, 1:30 h, 8 h) moved to `archive/old_root_files_20261012/` on 2026-10-12. |
 
 The L1 scaling clims were regenerated post-fix on 2026-09-26 (see `scaling_params/` above); the pre-fix clim is only in
 `archive/OLv8_M36_all_sensors_AZ_configs_stats.tar.gz`.
@@ -152,6 +201,17 @@ so no separate scaled OL or "OL on the DA's obs files" is needed.
 - `root_analysis_files_20260925.tar.gz`: loose analysis scripts, npz, maps
   and notes from the project root (tile quality/SNR maps, coherence, R
   diagnosis, coherency spec, L3/SMAP 24-month README).
+- 2026-10-12 tidy (script + log: `/discover/nobackup/projects/land_da/util/inode_pack/tidy_cygl1_20261012.*`):
+  - `DA_L1_{full,full_xc015,full_xc015_err39,dense075_coh05}_fixedop_configs_stats.tar.gz`: the retired fixed-operator arms
+    (everything except `output/*/{cat,ana,diag,rs}`), each with a `*.manifest.txt`.
+  - `CYGNSS_L1_thinned_dense075_coh05.tar.gz`: the thinned obs (see Layout).
+  - The pre-fix full-output tarballs `DAv8_M36_all_sensors_AZ_scaled_{cygl3assim,smapassim}`,
+    `DAv8_M36_AZ_paired_cygl1_dense075_coh05_errstd325` and `OLv8_M36_AZ_paired_monitor` were slimmed to
+    `<name>_configs_stats.tar.gz` (model output dropped). The pure-ObsFcstAna tarball
+    `LS_DAv8_M36_as_20200701_cygl1_global_1mo_newobs_ObsFcstAna.tar.gz` was deleted.
+  - `old_root_files_20261012/`: superseded root files (7-arm 2020 bundle, `README.md.bak_20260925`, old batch inputs).
+  - The pre-fix build `build_pre_20260925/`/`install_pre_20260925/` in the personal GEOSldas checkout was deleted. The fixed build
+    (md5 6a70b496) is the only one left, apart from the archived hard-gate binary.
 - Older tarballs (2026-09-23 and earlier): previously archived experiments and
   stats bundles. All of them are pre-fix, so none of their L1 results is valid.
 
@@ -169,7 +229,7 @@ L1 results are invalid. The post-fix documents are the ones listed under Status.
   the global `LS_OLv8_M36_v2` instead.
 - MetOp-A (`ASCAT_HSAF_META_SM`) ends 2021-11-15 (clean early return, not an abort).
 - `END_DATE=YYYYMMDD` needs obs through that date. `CYGNSS_L1` has daily files
-  through 2022-12-31, and the thinned set through 2021-12-31.
+  through 2022-12-31, and the (archived) thinned set through 2021-12-31.
 - To extend a finished run, edit `run/CAP.rc` END_DATE (exactly `END_DATE: 20230101 000000`) and resubmit `lenkf.j`. No new
   `ldas_setup` is needed.
 - land_da has an 800k HARD inode limit, and each arm-month adds about 1.4k inodes. Check `showquota` before long extensions. The
