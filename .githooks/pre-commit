@@ -12,10 +12,18 @@ fi
 
 printf '[pre-commit] Clearing outputs in staged notebooks...\n'
 
-changed="$(STAGED_NOTEBOOKS="$staged_notebooks" python3 - <<'PY'
+# Stdlib-only script, so any Python 3 works; override with PRECOMMIT_PYTHON if needed.
+py="${PRECOMMIT_PYTHON:-$(command -v python3 || command -v python || true)}"
+if [ -z "$py" ]; then
+  printf '[pre-commit] error: no python3 found; set PRECOMMIT_PYTHON\n' >&2
+  exit 1
+fi
+
+changed="$(STAGED_NOTEBOOKS="$staged_notebooks" "$py" - <<'PY'
 import json
 import os
 import pathlib
+import sys
 
 changed = []
 

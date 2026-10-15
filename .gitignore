@@ -42,6 +42,7 @@ spack*.log
 *.h5
 *.hdf5
 *.pkl
+*.npz
 *.double
 *.csv
 
