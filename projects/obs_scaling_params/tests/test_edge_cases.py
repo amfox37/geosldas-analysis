@@ -140,6 +140,33 @@ def test_latlon_skips_feb29(tmp_path):
         assert ds["o_mean"][11][0, 0] == 0.5
 
 
+# ---- species ----------------------------------------------------------------------------
+
+def test_latlon_separate_species_files_have_their_own_statistics(tmp_path):
+    # --species not in species-ID order: MOD10C1 (13) obs 0.1, CYGNSS_SM_6hr (14) obs 0.9
+    out = _setup(tmp_path)
+    for day in range(2, 7):
+        _write_ofa(_ofa_fname(out, 2020, 1, day), [13, 14], [-175, -175], [-85, -85], [0.1, 0.9], [0.3, 0.3])
+    main(["--method", "latlon", "--exp-path", str(tmp_path), "--exp-run", EXP_RUN, "--domain", DOMAIN,
+          "--start", "2020-01", "--end", "2020-01", "--run-months", "1", "--species", "CYGNSS_SM_6hr,MOD10C1",
+          "--no-combine-species", "--grid-resolution", "10", "--window-days", "5", "--ndata-min", "1",
+          "--dt-assim", "86400", "--prefix", "t_"])
+
+    base = out / "stats" / "z_score_clim" / "t_2020_doy1_2020_doy31_W_5d_Nmin_1_sp_"
+    for name, value in (("CYGNSS_SM_6hr", 0.9), ("MOD10C1", 0.1)):
+        with nc.Dataset(f"{base}{name}_all_pentads.nc4") as ds:
+            np.testing.assert_allclose(ds["o_mean"][0][0, 0], np.float32(value))
+
+
+def test_latlon_rejects_duplicate_species(tmp_path):
+    out = _setup(tmp_path)
+    _write_ofa(_ofa_fname(out, 2020, 1, 2), [14], [-175], [-85], [0.5], [0.3])
+    with pytest.raises(ValueError, match="duplicate species"):
+        main(["--method", "latlon", "--exp-path", str(tmp_path), "--exp-run", EXP_RUN, "--domain", DOMAIN,
+              "--start", "2020-01", "--end", "2020-01", "--run-months", "1",
+              "--species", "CYGNSS_SM_6hr,CYGNSS_SM_6hr", "--prefix", "t_"])
+
+
 # ---- output options ---------------------------------------------------------------------
 
 def test_latlon_each_pentad_without_all_pentads_and_chunking(tmp_path):

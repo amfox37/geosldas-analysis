@@ -144,14 +144,18 @@ def main(argv=None):
 
     if args.method == 'latlon':
 
+        # one species ID per name, in the order of the names (the output files of the
+        # separate-species statistics are named with species_names)
+
         species_names = args.species
         species       = []
         for name in species_names:
             ids = [int(p['species']) for p in obs_param if p['descr'] == name]
-            if not ids:
-                raise ValueError(f'species {name} not found in {obsparam_file}')
+            if len(ids) != 1:
+                raise ValueError(f'expected one obsparam entry for species {name} in {obsparam_file}, found {len(ids)}')
             species += ids
-        species = sorted(set(species))
+        if len(set(species)) != len(species):
+            raise ValueError(f'duplicate species in --species: {species_names}')
         print(f'  species ids             : {species}')
 
         exclude_tiles = None
