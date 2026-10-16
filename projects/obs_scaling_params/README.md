@@ -1,227 +1,93 @@
 # Observation Scaling Parameters
 
-Tools for generating GEOS-LDAS observation z-score scaling climatologies from
-`ldas_ObsFcstAna` files.
-
-This project was promoted out of `projects/matlab2python/obs_scaling_params`
-once the Python port became the maintained workflow. The MATLAB files are kept
-under `matlab_reference/` as provenance and parity references.
-
-Two output paths are supported:
-
-- `scripts/run_scaling_params.py` writes the regular lat/lon NetCDF format used
-  by the maintained ASCAT workflow.
-- `scripts/run_tb_scaling_params.py` begins the tile-space SMAP Tb port and
-  writes the big-endian sequential-binary format consumed directly by
-  GEOS-LDAS `scale_obs_Tb_zscore`.
-
-The Tb path preserves the MATLAB field order, H/V and incidence-angle
-dimensions, EASEv2 M36 administering-tile selection, moving-window statistics,
-and pentad naming. Its initial production scope is `hscale=0`, one orbit per
-run, and EASEv2 M09/M36 model tiles converted to M36 observation support.
-
-## What This Computes
-
-For each moving time window, observation species group, and 0.25-degree
-lat/lon grid cell, the workflow accumulates matched observation and model
-forecast statistics:
-
-- `o_mean`: observation mean
-- `o_std`: observation standard deviation
-- `m_mean`: model forecast mean
-- `m_std`: model forecast standard deviation
-- `n_data`: number of matched samples
-- `m_min`: model forecast minimum
-- `m_max`: model forecast maximum
-
-The scaling implied by these fields is:
+Python scripts that compute the climatological mean and standard deviation of
+observations and model forecasts from the nc4 `ldas_ObsFcstAna` files of a
+GEOSldas experiment (usually an open loop). GEOSldas uses these statistics for
+the z-score scaling of observations before assimilation:
 
 ```text
-obs_scaled = m_mean + (obs_raw - o_mean) * (m_std / o_std)
+obs_scaled = m_mean + (obs - o_mean) * m_std / o_std
 ```
 
-## Layout
+These are the Python versions of the MATLAB scripts in
+`GEOSldas_GridComp/GEOSldas_App/util/inputs/obs_scaling_params/` and are written
+to move there. With the MATLAB fixes on GridComp branch
+`feature/amfox/matlab-obsfcstana-nc4`, MATLAB and Python give the same results
+(checked on the CF0360 OL1 experiment, Oct 2026).
 
-- `obs_scaling/`: importable Python package.
-- `scripts/run_scaling_params.py`: CLI driver with land-sweeper ASCAT defaults.
-- `scripts/prepare_fixture_case.py`: builds a tiny GEOS-LDAS-like fixture tree
-  from `test_data/inputs`.
-- `jobs/run_scaling_params.sbatch`: Discover batch-job template.
-- `jobs/run_python_fixture.sbatch`: Python one-timestamp fixture run.
-- `jobs/run_matlab_fixture.sbatch`: MATLAB reference one-timestamp fixture run.
-- `matlab_reference/`: frozen MATLAB reference implementation.
-- `docs/matlab_python_parity.md`: local MATLAB/Python parity check notes
-  (`run_scaling_params.py`, ASCAT lat/lon path).
-- `docs/tb_discover_validation.md`: pre-production Discover validation of
-  the SMAP Tb tile-space port (`run_tb_scaling_params.py`) — MATLAB parity
-  and real GEOS-LDAS consumption test, with scripts preserved under
-  `docs/tb_discover_validation_scripts/`.
+## Files
 
-## Default Run
+| File | Contents |
+|---|---|
+| `run_obs_scaling_params.py` | command-line driver |
+| `get_obs_scaling_latlon.py` | soil moisture obs (e.g. ASCAT, CYGNSS) on a global lat/lon grid; nc4 output for `scale_obs_sfmc_zscore` |
+| `get_obs_scaling_tb.py` | Tb obs (e.g. SMAP, SMOS) in tile space, one orbit per run; binary output for `scale_obs_Tb_zscore` |
+| `obs_scaling_utils.py` | readers (obsparam, tilecoord, tilegrids, nc4 ObsFcstAna) and time helpers |
+| `jobs/run_obs_scaling_params.sbatch` | Discover batch job; passes all arguments to the driver |
+| `tests/` | `python -m pytest -q tests` |
 
-From this project directory:
+Other scripts (not part of the scaling run): `scripts/gapfill_scaling_params.py`
+(fill gaps in a lat/lon scaling file), `scripts/make_superob_obsfcstana.py`,
+`scripts/verify_scaling_omf.py`.
+
+## Method
+
+For each day of the climatological year, the statistics are computed from all
+obs/forecast pairs within a moving window of `--window-days` days (75 by
+default), over all years of the period, and stored at the center of the window.
+Cells/tiles with fewer than `--ndata-min` obs (20 by default) get no-data.
+
+Output goes to `<exp-path>/<exp-run>/output/<domain>/stats/<out-dir>/`
+(`--out-dir` default: `z_score_clim`). The `ldas_obsparam` file is read from
+`rc_out/Y<start>/M<start>/` unless `--obsparam` is given.
+
+### `--method latlon`
+
+The grid cell of each obs is computed from its lat/lon with `ceil()` in single
+precision, as in GEOSldas (`scale_obs_sfmc_zscore`). By default all species
+given with `--species` are combined (`_sp_ALL_` in the file name); use
+`--no-combine-species` for one file per species. Output: one nc4 file with all
+73 pentads (`--no-all-pentads` to skip), and optionally one file per pentad
+(`--each-pentad`) or per DOY (`--each-doy`). Variables `o_mean`, `o_std`,
+`m_mean`, `m_std`, `n_data` are (pentad, lon, lat); `m_min`, `m_max` are
+(lon, lat).
+
+`--exclude-tiles-csv` drops obs at tiles flagged in a CSV file (columns
+`tilenum` and, by default, `reject`), e.g. to apply a QC that postdates the
+ObsFcstAna files.
 
 ```bash
-python scripts/run_scaling_params.py
+python run_obs_scaling_params.py --method latlon \
+  --exp-path /discover/nobackup/projects/land_da/M21C_testing --exp-run OL1 \
+  --domain CF0360x6C_GLOBAL --start 2019-02 --end 2020-08 \
+  --species ASCAT_HSAF_META_SM,ASCAT_HSAF_METB_SM,ASCAT_HSAF_METC_SM \
+  --prefix CF0360_OL1_HSAF_zscore_stats_
 ```
 
-The defaults target the current production ASCAT scaling configuration:
+### `--method tb`
 
-```text
-Experiment: /discover/nobackup/projects/land_da/Experiment_archive/M21C_land_sweeper_OLv8_M36/LS_OLv8_M36
-Domain:     SMAP_EASEv2_M36_GLOBAL
-Period:     2007-06 to 2024-05
-Species:    ASCAT_META_SM, ASCAT_METB_SM, ASCAT_METC_SM
-Window:     75 days
-Nmin:       20
-Grid:       0.25 degree lat/lon
-Output:     output/<domain>/stats/python_z_score_clim_quarter_degree/
-```
-
-By default, production runs write the all-pentads NetCDF file only. Pass
-`--each-doy` when you need one NetCDF file per output DOY.
-
-For another experiment/species set, pass explicit arguments:
+Selects one H-pol and one V-pol Tb species per angle (`--angles`, default 40)
+for the orbit (`--orbit A|D`) whose descr contains `--descr-contains` (default
+`SMAP_L1C`). Statistics are computed on EASEv2 M36 "administering" tiles, or on
+all model tiles with `--no-convert-grid`. One file per pentad (and optionally
+per DOY) in the big-endian Fortran sequential format read by GEOSldas
+(`read_Tb_scale_param.py` in GridComp reads it too).
 
 ```bash
-python scripts/run_scaling_params.py \
-  --exp-path /discover/nobackup/path/to/archive \
-  --exp-run LS_OLv8_M36 \
-  --domain SMAP_EASEv2_M36_GLOBAL \
-  --start 2007-06 \
-  --end 2024-05 \
-  --species ASCAT_META_SM,ASCAT_METB_SM,ASCAT_METC_SM
+python run_obs_scaling_params.py --method tb \
+  --exp-path /path/to/exps --exp-run OL1 --domain SMAP_EASEv2_M36_GLOBAL \
+  --start 2015-04 --end 2021-03 --descr-contains SMAP_L1C --orbit D \
+  --prefix OL1_SMAP_zscore_stats_
 ```
 
-ObsFcstAna input format can be selected with `--obsfcstana-format auto|bin|nc4`.
-The default is `nc4` for current production archives. Use
-`--obsfcstana-format bin` for legacy binary ObsFcstAna archives, or `auto` to
-try `.bin` first and then `.nc4`.
+## History
 
-Legacy observation de-duplication is available with `--dedup`, but is off by
-default. The de-dup path matches the MATLAB reference behavior by using a
-rounded tile/species/lon/lat/obs/year key and keeping the later recent
-occurrence.
-
-Daily DOY output is available with `--each-doy`, but is off by default to avoid
-large numbers of intermediate NetCDF writes.
-
-On Discover:
-
-```bash
-cd /path/to/geosldas-analysis/projects/obs_scaling_params
-sbatch jobs/run_scaling_params.sbatch
-```
-
-For legacy binary ObsFcstAna archives:
-
-```bash
-sbatch jobs/run_scaling_params.sbatch --obsfcstana-format bin
-```
-
-## SMAP Tb Tile-Space Run
-
-The SMAP driver requires an explicit experiment and output prefix:
-
-```bash
-python scripts/run_tb_scaling_params.py \
-  --exp-path /discover/nobackup/path/to/archive \
-  --exp-run SPL4SM_OL7000 \
-  --domain SMAP_EASEv2_M09_GLOBAL \
-  --start 2015-04 \
-  --end 2021-03 \
-  --orbit D \
-  --prefix L4SM_OL7000_SMAPL1CR17000_zscore_stats_
-```
-
-Defaults match the MATLAB SMAP setup: `SMAP_L1C` Tb, 40-degree incidence,
-75-day windows, 20 samples minimum, three-hourly assimilation cycles, and
-EASEv2 M36 administering tiles. Use `--obsparam` when the observation table is
-not in the standard dated `rc_out` location.
-
-The generated files can be inspected independently of GEOS-LDAS with
-`obs_scaling.seqbin.read_tb_scaling_file()`.
-
-For MATLAB byte-contract parity, the second integer in the file header remains
-`0` (the legacy writer's version slot). The requested `--ndata-min` is still
-applied when screening every H/V statistic and remains encoded in the filename.
-
-On Discover, the same arguments can be supplied to the batch template through
-environment variables:
-
-```bash
-EXP_PATH=/discover/nobackup/path/to/archive \
-EXP_RUN=SPL4SM_OL7000 \
-START_MONTH=2015-04 END_MONTH=2021-03 \
-PREFIX=L4SM_OL7000_SMAPL1CR17000_zscore_stats_ \
-sbatch jobs/run_python_SMAP_Tb.sbatch
-```
-
-## CYGNSS L1 Owner-Tile Run
-
-CYGNSS L1 scaling uses the preprocessor-selected owner tile rather than
-reconstructing a grid cell from the specular-point longitude and latitude:
-
-```bash
-python scripts/run_cygnss_l1_scaling_params.py \
-  --exp-path /discover/nobackup/path/to/archive \
-  --exp-run LS_OLv8_M36_CYGNSS \
-  --domain SMAP_EASEv2_M36_GLOBAL \
-  --start 2020-01 \
-  --end 2022-12
-```
-
-The driver resolves `CYGNSS_L1_DDM3X5_CROP_SCALAR` through the experiment's
-`ldas_obsparam` file and requires NetCDF ObsFcstAna input with
-`obsparam_scale=0`. Observation and forecast values are accumulated only as
-finite pairs. Multiple records for the same owner tile and cycle are rejected
-because the current CYGNSS preprocessor and GEOS-LDAS reader contract permits
-at most one selected observation per tile and species.
-
-Output is one compressed NetCDF file with dimensions `pentad=73`, `y=406`, and
-`x=964`. The spatial indices are normalized from the tile files as
-`i_indg-i_offg-ind_base` and `j_indg-j_offg-ind_base`. Statistics are in dB and
-include `o_mean`, `o_std`, `m_mean`, `m_std`, `n_data`, `m_min`, and `m_max`.
-Use `--obsparam`, `--tilecoord`, or `--tilegrids` when those files are outside
-their normal `rc_out` locations.
-
-## MATLAB/Python Fixture on Discover
-
-The repository includes a compact fixture under `test_data/inputs`. These jobs
-copy it into a GEOS-LDAS-like tree and run the same one-timestamp ASCAT scaling
-case through Python and the MATLAB reference implementation:
-
-```bash
-cd /discover/nobackup/projects/land_da/geosldas-analysis/projects/obs_scaling_params
-sbatch jobs/run_python_fixture.sbatch
-sbatch jobs/run_matlab_fixture.sbatch
-```
-
-Both jobs honor these optional environment variables:
-
-```bash
-REPO_ROOT=/path/to/geosldas-analysis
-FIXTURE_ROOT=/discover/nobackup/$USER/obs_scaling_fixture
-OFA_FORMAT=nc4
-MATLAB_MODULE=matlab
-```
-
-Expected outputs are written under:
-
-```text
-$FIXTURE_ROOT/LS_DAv8_M36_as_test2/output/SMAP_EASEv2_M36_GLOBAL/stats/
-  python_fixture_zscore_1deg/
-  matlab_fixture_zscore_1deg/
-```
-
-After both jobs finish, compare the NetCDF outputs:
-
-```bash
-python scripts/compare_fixture_outputs.py \
-  --fixture-root "$FIXTURE_ROOT" \
-  --key-contains DOY121
-```
-
-The comparison reports dimensions, finite-cell counts, finite-mask mismatches,
-and max/mean absolute differences for `o_mean`, `o_std`, `m_mean`, `m_std`,
-`n_data`, `m_min`, and `m_max`.
+- Ported from MATLAB in 2025 (`projects/matlab2python`), Tb added Jul 2026.
+- Oct 2026: refactored into plain scripts in GridComp style; nc4 ObsFcstAna
+  only; removed the binary ObsFcstAna reader, the legacy de-duplication option,
+  the MATLAB reference copy and fixtures, and the CYGNSS L1 owner-tile method
+  (not ready for GridComp; see git history before this change). Output is
+  unchanged (bit-identical to the previous code on CF0360 OL1 test cases).
+- `docs/tb_discover_validation.md` documents the Jul 2026 validation of the Tb
+  method against MATLAB and GEOSldas; it refers to the code before the Oct 2026
+  refactor (commit `cd3eb01`).
