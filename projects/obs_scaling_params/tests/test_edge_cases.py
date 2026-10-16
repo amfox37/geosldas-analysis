@@ -140,6 +140,24 @@ def test_latlon_skips_feb29(tmp_path):
         assert ds["o_mean"][11][0, 0] == 0.5
 
 
+# ---- obs/fcst pairs --------------------------------------------------------------------
+
+def test_latlon_uses_only_obs_fcst_pairs(tmp_path):
+    # same cell: valid pair (obs 0.1, fcst 0.2) and no-data obs with fcst 10 -> fcst 10 not used
+    out = _setup(tmp_path)
+    for day in range(2, 7):
+        _write_ofa(_ofa_fname(out, 2020, 1, day), [CYGNSS_SM_ID] * 2, [-175, -172], [-85, -85],
+                   [0.1, -9999.], [0.2, 10.])
+    _run_latlon(tmp_path, "2020-01", "2020-01", "1")
+
+    fname = out / "stats" / "z_score_clim" / "t_2020_doy1_2020_doy31_W_5d_Nmin_1_sp_ALL_all_pentads.nc4"
+    with nc.Dataset(fname) as ds:
+        assert ds["n_data"][0][0, 0] == 5
+        np.testing.assert_allclose(ds["m_mean"][0][0, 0], np.float32(0.2))
+        np.testing.assert_allclose(ds["m_std"][0][0, 0], 0., atol=1e-7)
+        np.testing.assert_allclose(ds["m_max"][0, 0], np.float32(0.2))
+
+
 # ---- species ----------------------------------------------------------------------------
 
 def test_latlon_separate_species_files_have_their_own_statistics(tmp_path):

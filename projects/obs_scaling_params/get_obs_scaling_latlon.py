@@ -122,8 +122,8 @@ def get_obs_scaling_latlon(exp_path, exp_run, domain, species, species_names, co
                         continue
                     n_read += 1
 
-                    # use only obs with valid fcst
-                    valid = ~np.isnan(ofa['obs_fcst'])
+                    # use only obs/fcst pairs (obs and fcst both valid)
+                    valid = ~np.isnan(ofa['obs_fcst']) & ~np.isnan(ofa['obs_obs'])
 
                     for g, species_group in enumerate(species_groups):
 
@@ -144,13 +144,12 @@ def get_obs_scaling_latlon(exp_path, exp_run, domain, species, species_names, co
                         fcst   = ofa['obs_fcst'][mask][inside].astype(float)
 
                         # add all obs/fcst to their grid cell (np.add.at adds repeated cells
-                        # one by one); obs can be NaN, fcst is always valid here
+                        # one by one)
 
-                        ok = ~np.isnan(obs)
-                        n_obs[g] += np.count_nonzero(ok)
-                        np.add.at(o_sum[ g, :, idx], cells[ok], obs[ok]          )
-                        np.add.at(o_sum2[g, :, idx], cells[ok], obs[ok] * obs[ok])
-                        np.add.at(n_data[g, :, idx], cells[ok], 1.               )
+                        n_obs[g] += len(cells)
+                        np.add.at(    o_sum[ g, :, idx], cells, obs        )
+                        np.add.at(    o_sum2[g, :, idx], cells, obs * obs  )
+                        np.add.at(    n_data[g, :, idx], cells, 1.         )
 
                         np.add.at(    m_sum[ g, :, idx], cells, fcst       )
                         np.add.at(    m_sum2[g, :, idx], cells, fcst * fcst)

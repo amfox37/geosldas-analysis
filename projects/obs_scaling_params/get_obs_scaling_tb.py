@@ -121,7 +121,8 @@ def get_obs_scaling_tb(exp_path, exp_run, domain, obs_param, descr_contains, orb
                         continue
                     n_read += 1
 
-                    valid = np.isfinite(ofa['obs_fcst'])
+                    # use only obs/fcst pairs (obs and fcst both valid)
+                    valid = np.isfinite(ofa['obs_fcst']) & np.isfinite(ofa['obs_obs'])
 
                     for species, (ipol, iang) in tb_species.items():
 
@@ -147,14 +148,13 @@ def get_obs_scaling_tb(exp_path, exp_run, domain, obs_param, descr_contains, orb
 
                         obs  = ofa['obs_obs' ][mask].astype(np.float64)
                         fcst = ofa['obs_fcst'][mask].astype(np.float64)
-                        ok   = np.isfinite(obs)
-                        n_obs += np.count_nonzero(ok)
+                        n_obs += len(out)
 
-                        np.add.at(ring[0, ipol, :, iang, idx], out[ok], obs[ok]   )
-                        np.add.at(ring[1, ipol, :, iang, idx], out[ok], obs[ok]**2)
-                        np.add.at(ring[2, ipol, :, iang, idx], out,     fcst      )
-                        np.add.at(ring[3, ipol, :, iang, idx], out,     fcst**2   )
-                        np.add.at(ring[4, ipol, :, iang, idx], out[ok], 1.        )
+                        np.add.at(ring[0, ipol, :, iang, idx], out, obs    )
+                        np.add.at(ring[1, ipol, :, iang, idx], out, obs**2 )
+                        np.add.at(ring[2, ipol, :, iang, idx], out, fcst   )
+                        np.add.at(ring[3, ipol, :, iang, idx], out, fcst**2)
+                        np.add.at(ring[4, ipol, :, iang, idx], out, 1.     )
 
             if count < w_days:
                 continue

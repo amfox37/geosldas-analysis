@@ -55,7 +55,7 @@ def test_tiny_latlon_run(tmp_path):
     # 10-deg grid, 5 daily files, 5-day window -> pentad 1.
     # Obs 1-2: same grid cell (both must count).  Obs 3: on the cell edge lon=-170, lat=-80
     # (ceil -> cell i=0, j=0, the same cell as obs 1-2).  Obs 4: other species.
-    # Obs 5: excluded tile.  Obs 6: no-data obs (not counted, fcst still counted).
+    # Obs 5: excluded tile.  Obs 6: no-data obs (obs and fcst not counted).
     exp_run, domain = "TINY", "TEST_DOMAIN"
     out = tmp_path / exp_run / "output" / domain
     rc = out / "rc_out" / "Y2020" / "M01"

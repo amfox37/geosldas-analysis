@@ -131,6 +131,38 @@ def _write_tiny_ofa(path: Path, h_species: int, v_species: int, day: int):
             ds.createVariable(name, dtype, ("n_obs",))[:] = data
 
 
+def test_tiny_tb_uses_only_obs_fcst_pairs(tmp_path):
+    # tile 2 H-pol obs is no-data on day 5 -> its fcst (235) is not used either
+    exp_run = "TINY_OL"
+    domain = "SMAP_EASEv2_M36_GLOBAL"
+    output = tmp_path / exp_run / "output" / domain
+    rc_dir = output / "rc_out"
+    rc_dir.mkdir(parents=True)
+    _write_tiny_tile_files(rc_dir, exp_run)
+    obs_param = read_obs_param(OBSPARAM)
+    h_species, v_species = select_tb_species(obs_param, "SMAP_L1C", 2, [40.0])
+    for day in range(1, 6):
+        fname = (output / "ana" / "ens_avg" / "Y2020" / "M01"
+                 / f"{exp_run}.ens_avg.ldas_ObsFcstAna.202001{day:02d}_0000z.nc4")
+        _write_tiny_ofa(fname, h_species, v_species, day)
+        if day == 5:
+            with nc.Dataset(fname, "a") as ds:
+                ds["obs"][1] = -9999.0
+
+    get_obs_scaling_tb(
+        str(tmp_path), exp_run, domain, obs_param, "SMAP_L1C", 2, [40.0],
+        [1], [2020], [2020], 3 * 60 * 60, 0, 5, 1, "tiny_", "z_score_clim", convert_grid=False,
+    )
+
+    data = read_tb_scaling_bin(
+        output / "stats" / "z_score_clim"
+        / "tiny_2020_p1_2020_p6_hscale_0.00_W_1p_Nmin_1_D_p01.bin"
+    )["data"]
+    np.testing.assert_allclose(data[4, :, 0], [5.0, 4.0])          # N, H-pol
+    np.testing.assert_allclose(data[0, :, 0], [203.0, 222.5])      # o_mean
+    np.testing.assert_allclose(data[2, :, 0], [213.0, 232.5])      # m_mean: days 1-4 only for tile 2
+
+
 def test_tiny_tb_generation_produces_expected_pentad_statistics(tmp_path):
     exp_run = "TINY_OL"
     domain = "SMAP_EASEv2_M36_GLOBAL"
