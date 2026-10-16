@@ -1,12 +1,10 @@
 from pathlib import Path
-import sys
 
 import netCDF4 as nc
 import numpy as np
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT))
+PROJECT_ROOT = Path(__file__).resolve().parents[1]      # test data; scripts: see conftest.py
 
 from get_obs_scaling_tb import (  # noqa: E402
     EASEv2_ind2latlon,

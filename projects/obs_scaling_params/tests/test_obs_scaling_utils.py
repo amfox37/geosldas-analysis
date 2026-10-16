@@ -1,13 +1,13 @@
 from pathlib import Path
 import shutil
-import sys
 
+import conftest
 import netCDF4 as nc
 import numpy as np
+import pytest
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT))
+PROJECT_ROOT = Path(__file__).resolve().parents[1]      # test data; scripts: see conftest.py
 
 from obs_scaling_utils import (  # noqa: E402
     get_doy_pentad_range,
@@ -63,6 +63,10 @@ def test_read_ObsFcstAna_nc4_matches_file():
                 expected[expected == -9999.0] = np.nan
             np.testing.assert_array_equal(ofa["obs_" + name], expected)
     assert ofa["obs_lon"].dtype == np.float32
+
+
+@pytest.mark.skipif(conftest.GRIDCOMP_READERS, reason="the GridComp reader returns empty arrays; the scripts check os.path.exists")
+def test_read_ObsFcstAna_nc4_missing_file_returns_None():
     assert read_ObsFcstAna_nc4(str(OFA_NC4) + ".missing") is None
 
 

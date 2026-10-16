@@ -1,13 +1,11 @@
 from pathlib import Path
-import sys
 
 import netCDF4 as nc
 import numpy as np
 import pytest
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT))
+PROJECT_ROOT = Path(__file__).resolve().parents[1]      # test data; scripts: see conftest.py
 
 from run_obs_scaling_params import main, parse_args  # noqa: E402
 
