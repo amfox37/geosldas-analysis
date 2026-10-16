@@ -116,4 +116,6 @@ python cygnss_l1/run_cygnss_l1_scaling_params.py \
   `OLv8_M36_AZ_fixedop`).
 - `docs/tb_discover_validation.md` documents the Jul 2026 validation of the Tb
   method against MATLAB and GEOSldas; it refers to the code before the Oct 2026
-  refactor (commit `cd3eb01`).
+  refactor (commit `cd3eb01`). The scripts in `docs/tb_discover_validation_scripts/`
+  are kept as a record: they import the removed `obs_scaling` package and do not
+  run with the current code (check out `cd3eb01` to rerun them).
