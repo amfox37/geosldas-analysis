@@ -28,6 +28,8 @@ import csv
 
 import numpy as np
 
+from datetime import datetime
+
 from obs_scaling_utils      import read_obs_param, get_year_bounds
 from get_obs_scaling_latlon import get_obs_scaling_latlon
 from get_obs_scaling_tb     import get_obs_scaling_tb
@@ -76,20 +78,53 @@ def parse_args(argv=None):
 
     args = p.parse_args(argv)
 
+    # check and convert the arguments
+
+    for name in ('start', 'end'):
+        try:
+            setattr(args, name, datetime.strptime(getattr(args, name), '%Y-%m'))
+        except ValueError:
+            p.error(f'--{name} must be YYYY-MM, not {getattr(args, name)}')
+    if args.start > args.end:
+        p.error('--start must not be after --end')
+
+    try:
+        args.run_months = [int(x) for x in split_list(args.run_months)]
+    except ValueError:
+        p.error(f'--run-months must be comma-separated integers, not {args.run_months}')
+    if any(m < 1 or m > 12 for m in args.run_months):
+        p.error(f'--run-months must be between 1 and 12: {args.run_months}')
+
+    args.species = split_list(args.species)
     if args.method == 'latlon' and not args.species:
         p.error('--species is required for --method latlon')
 
+    try:
+        args.angles = [float(x) for x in split_list(args.angles)]
+    except ValueError:
+        p.error(f'--angles must be comma-separated numbers, not {args.angles}')
+    if args.method == 'tb' and not args.angles:
+        p.error('--angles is required for --method tb')
+    if len(set(args.angles)) != len(args.angles):
+        p.error(f'duplicate --angles: {args.angles}')
+
     return args
+
+def split_list(value):
+
+    # comma-separated list -> list of stripped, non-empty strings
+
+    return [x.strip() for x in value.split(',') if x.strip()]
 
 def main(argv=None):
 
     args = parse_args(argv)
 
-    start_year, start_month = [int(x) for x in args.start.split('-')]
-    end_year,   end_month   = [int(x) for x in args.end.split('-')]
+    start_year, start_month = args.start.year, args.start.month
+    end_year,   end_month   = args.end.year,   args.end.month
 
     if args.run_months:
-        run_months = [int(x) for x in args.run_months.split(',')]
+        run_months = args.run_months
     else:
         run_months = list(range(1, 13)) + list(range(1, int(np.ceil(args.window_days / 30)) + 1))
 
@@ -103,11 +138,13 @@ def main(argv=None):
 
     print('Observation scaling configuration:')
     for key, value in vars(args).items():
+        if isinstance(value, datetime):
+            value = value.strftime('%Y-%m')
         print(f'  {key:22s}: {value}')
 
     if args.method == 'latlon':
 
-        species_names = args.species.split(',')
+        species_names = args.species
         species       = []
         for name in species_names:
             ids = [int(p['species']) for p in obs_param if p['descr'] == name]
@@ -117,34 +154,54 @@ def main(argv=None):
         species = sorted(set(species))
         print(f'  species ids             : {species}')
 
-        exclude_tile_mask = None
+        exclude_tiles = None
         if args.exclude_tiles_csv:
-            exclude_tile_mask = read_exclude_tile_mask(args.exclude_tiles_csv, args.exclude_tiles_column)
+            exclude_tiles = read_exclude_tiles(args.exclude_tiles_csv, args.exclude_tiles_column)
 
-        get_obs_scaling_latlon(args.exp_path, args.exp_run, args.domain, species, species_names,
-                               args.combine_species, run_months, first_year, last_year,
-                               args.dt_assim, args.t0_assim, args.grid_resolution,
-                               args.window_days, args.ndata_min, args.prefix, args.out_dir,
-                               args.each_doy, args.each_pentad, args.all_pentads,
-                               exclude_tile_mask=exclude_tile_mask)
+        get_obs_scaling_latlon(args.exp_path, args.exp_run, args.domain,
+                               species           = species,
+                               species_names     = species_names,
+                               combine_species   = args.combine_species,
+                               run_months        = run_months,
+                               first_year        = first_year,
+                               last_year         = last_year,
+                               dt_assim          = args.dt_assim,
+                               t0_assim          = args.t0_assim,
+                               resol             = args.grid_resolution,
+                               w_days            = args.window_days,
+                               ndata_min         = args.ndata_min,
+                               prefix            = args.prefix,
+                               out_dir           = args.out_dir,
+                               print_each_doy    = args.each_doy,
+                               print_each_pentad = args.each_pentad,
+                               print_all_pentads = args.all_pentads,
+                               exclude_tiles     = exclude_tiles)
 
     else:
 
-        angles = [float(x) for x in args.angles.split(',')]
-        orbit  = 1 if args.orbit == 'A' else 2
-
-        get_obs_scaling_tb(args.exp_path, args.exp_run, args.domain, obs_param, args.descr_contains,
-                           orbit, angles, run_months, first_year, last_year,
-                           args.dt_assim, args.t0_assim, args.window_days, args.ndata_min,
-                           args.prefix, args.out_dir, convert_grid=args.convert_grid,
-                           print_each_doy=args.each_doy)
+        get_obs_scaling_tb(args.exp_path, args.exp_run, args.domain,
+                           obs_param      = obs_param,
+                           descr_contains = args.descr_contains,
+                           orbit          = 1 if args.orbit == 'A' else 2,
+                           angles         = args.angles,
+                           run_months     = run_months,
+                           first_year     = first_year,
+                           last_year      = last_year,
+                           dt_assim       = args.dt_assim,
+                           t0_assim       = args.t0_assim,
+                           w_days         = args.window_days,
+                           ndata_min      = args.ndata_min,
+                           prefix         = args.prefix,
+                           out_dir        = args.out_dir,
+                           convert_grid   = args.convert_grid,
+                           print_each_doy = args.each_doy)
 
 # ----------------------------------------------------------------------------
 #
-# read CSV file with tilenum and exclude flag; returns boolean array indexed by
-# tilenum (1-based; index 0 unused), True = use the obs, False = drop the obs
+# read CSV file with tilenum and exclude flag; returns the tile numbers (1-based) whose
+# obs are not used, or None if no tile is flagged
 
-def read_exclude_tile_mask(fname, column):
+def read_exclude_tiles(fname, column):
 
     tilenum = []
     reject  = []
@@ -156,15 +213,15 @@ def read_exclude_tile_mask(fname, column):
             tilenum.append(int(row['tilenum']))
             reject.append(str(row[column]).strip().lower() in ('true', '1', 'yes'))
 
-    tilenum = np.array(tilenum)
-    reject  = np.array(reject, dtype=bool)
-
-    keep = np.ones(tilenum.max() + 1, dtype=bool)
-    keep[tilenum[reject]] = False
+    tilenum = np.array(tilenum, dtype=int)
+    reject  = np.array(reject,  dtype=bool)
 
     print(f'  excluding obs at {reject.sum()} tiles listed in {fname}')
 
-    return keep
+    if not np.any(reject):
+        return None
+
+    return np.unique(tilenum[reject])
 
 if __name__ == '__main__':
     main()

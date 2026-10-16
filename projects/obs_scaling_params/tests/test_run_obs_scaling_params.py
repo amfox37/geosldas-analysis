@@ -28,7 +28,7 @@ def test_cli_defaults():
 
     args = parse_args(["--method", "tb"] + REQUIRED)
     assert args.orbit == "D"
-    assert args.angles == "40"
+    assert args.angles == [40.0]
     assert args.descr_contains == "SMAP_L1C"
     assert args.convert_grid
 

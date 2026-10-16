@@ -15,6 +15,10 @@ to move there. With the MATLAB fixes on GridComp branch
 `feature/amfox/matlab-obsfcstana-nc4`, MATLAB and Python give the same results
 (checked on the CF0360 OL1 experiment, Oct 2026).
 
+Only the files in this directory move to GridComp. `cygnss_l1/` (the CYGNSS L1
+owner-tile method) stays in geosldas-analysis; it imports `obs_scaling_utils.py`
+from here, and nothing here imports from `cygnss_l1/`.
+
 ## Files
 
 | File | Contents |
@@ -25,6 +29,7 @@ to move there. With the MATLAB fixes on GridComp branch
 | `obs_scaling_utils.py` | readers (obsparam, tilecoord, tilegrids, nc4 ObsFcstAna) and time helpers |
 | `jobs/run_obs_scaling_params.sbatch` | Discover batch job; passes all arguments to the driver |
 | `tests/` | `python -m pytest -q tests` |
+| `cygnss_l1/` | CYGNSS L1 owner-tile method (geosldas-analysis only, see below); tests: `python -m pytest -q cygnss_l1/tests` |
 
 Other scripts (not part of the scaling run): `scripts/gapfill_scaling_params.py`
 (fill gaps in a lat/lon scaling file), `scripts/make_superob_obsfcstana.py`,
@@ -80,14 +85,35 @@ python run_obs_scaling_params.py --method tb \
   --prefix OL1_SMAP_zscore_stats_
 ```
 
+### CYGNSS L1 owner-tile method (`cygnss_l1/`, not for GridComp)
+
+`cygnss_l1/run_cygnss_l1_scaling_params.py` computes the statistics for the
+CYGNSS L1 species (`--descr`, default `CYGNSS_L1_DDM3X5_CROP_SCALAR`, dB) on
+the model tiles of an EASEv2 M36 experiment, from an unscaled (monitoring) run
+with at most one CYGNSS L1 obs per tile and ObsFcstAna file. Pentads also need
+the obs and model stdv above `--std-epsilon` (1e-6). Output: one nc4 file with
+all 73 pentads, with the tile statistics on the dense global EASEv2 M36 grid
+(`x`, `y` = 0-based global column and row); default `--out-dir`
+`cygnss_l1_z_score_clim`. `--keep-list` uses only the obs that pass the
+coherency screen in a parquet file from
+`CYGNSS_L1_AZ/scripts/cygl1_coherency_filter.py annotate`.
+
+```bash
+python cygnss_l1/run_cygnss_l1_scaling_params.py \
+  --exp-path /discover/nobackup/projects/land_da/cygl1_operator_test \
+  --exp-run OLv8_M36_AZ_fixedop --start 2020-01 --end 2022-12 \
+  --obsparam <exp>/output/SMAP_EASEv2_M36_GLOBAL/rc_out/Y2020/M01/OLv8_M36_AZ_fixedop.ldas_obsparam.20200101_0000z.txt
+```
+
 ## History
 
 - Ported from MATLAB in 2025 (`projects/matlab2python`), Tb added Jul 2026.
 - Oct 2026: refactored into plain scripts in GridComp style; nc4 ObsFcstAna
   only; removed the binary ObsFcstAna reader, the legacy de-duplication option,
-  the MATLAB reference copy and fixtures, and the CYGNSS L1 owner-tile method
-  (not ready for GridComp; see git history before this change). Output is
-  unchanged (bit-identical to the previous code on CF0360 OL1 test cases).
+  the MATLAB reference copy and fixtures. The CYGNSS L1 owner-tile method moved
+  to `cygnss_l1/` (not ready for GridComp). Output is unchanged (bit-identical
+  to the previous code on CF0360 OL1 test cases, and for CYGNSS L1 on
+  `OLv8_M36_AZ_fixedop`).
 - `docs/tb_discover_validation.md` documents the Jul 2026 validation of the Tb
   method against MATLAB and GEOSldas; it refers to the code before the Oct 2026
   refactor (commit `cd3eb01`).

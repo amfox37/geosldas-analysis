@@ -1,7 +1,7 @@
 """Close-pair innovation correlation for CYGNSS L1 vs distance, footprint overlap, same-track (fixed OL, 3 yr)."""
 import glob, sys, numpy as np, netCDF4 as nc, pandas as pd, datetime as dt
 sys.path.insert(0,'/gpfsm/dnb06/projects/p284/geosldas-analysis/projects/obs_scaling_params')
-from obs_scaling.tile_io import read_tilecoord
+from obs_scaling_utils import read_tilecoord
 P='/discover/nobackup/projects/land_da/cygl1_operator_test'
 OL=P+'/OLv8_M36_AZ_fixedop/output/SMAP_EASEv2_M36_GLOBAL'
 tc=read_tilecoord(glob.glob(OL+'/rc_out/*tilecoord.bin')[0])
@@ -40,7 +40,7 @@ for fi,f in enumerate(files):
     m=d['species'][:]==13
     if m.sum()<2: d.close(); continue
     lon,lat,o,fc,tl=[np.asarray(d[v][:][m],'f8') for v in ('lon','lat','obs','fcst','tilenum')]; d.close()
-    k=tl.astype(int)-1; i_,j_=tc.i_indg[k],tc.j_indg[k]
+    k=tl.astype(int)-1; i_,j_=tc['i_indg'][k],tc['j_indg'][k]
     doy=dt.datetime.strptime(t[:8],'%Y%m%d').timetuple().tm_yday; p_=min((doy-1)//5,72)
     om,os_,mm,ms,nd=[CL[v][p_,j_,i_] for v in ('o_mean','o_std','m_mean','m_std','n_data')]
     sc=np.clip(mm+ms/os_*(o-om),CL['m_min'][j_,i_],CL['m_max'][j_,i_]); ok=np.isfinite(sc)&(nd>=20)

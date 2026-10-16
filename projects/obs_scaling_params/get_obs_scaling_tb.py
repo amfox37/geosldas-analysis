@@ -22,6 +22,7 @@ from datetime          import datetime, timedelta
 
 from obs_scaling_utils import read_ObsFcstAna_nc4, read_tilecoord, read_tilegrids
 from obs_scaling_utils import get_ObsFcstAna_fname, get_doy_pentad_range, days_in_month, nodata
+from obs_scaling_utils import count_ObsFcstAna_files
 
 n_fields = 14
 
@@ -39,9 +40,19 @@ def get_obs_scaling_tb(exp_path, exp_run, domain, obs_param, descr_contains, orb
         raise ValueError('w_days must be an odd number of pentads (for example, 75)')
     if ndata_min < 1:
         raise ValueError('ndata_min must be at least 1')
+    if len(set(angles)) != len(angles):
+        raise ValueError(f'duplicate angles: {angles}')
 
     inpath  = exp_path + '/' + exp_run + '/output/' + domain
     outpath = inpath + '/stats/' + out_dir
+
+    t0_assim = t0_assim % dt_assim
+    cycles   = range(t0_assim, 86400, dt_assim)
+
+    n_files = count_ObsFcstAna_files(inpath, exp_run, run_months, first_year, last_year, cycles)
+    if n_files == 0:
+        raise ValueError(f'no ObsFcstAna files for the requested period in {inpath}/ana/ens_avg')
+
     os.makedirs(outpath, exist_ok=True)
 
     tile_coord   = read_tilecoord(inpath + '/rc_out/' + exp_run + '.ldas_tilecoord.bin')
@@ -86,8 +97,8 @@ def get_obs_scaling_tb(exp_path, exp_run, domain, obs_param, descr_contains, orb
     fname_base_p = (outpath + '/' + prefix + f'{min(first_year)}_p{p1}_{max(last_year)}_p{p2}' +
                     f'_hscale_0.00_W_{round(w_days / 5)}p_Nmin_{ndata_min}_{orb_tag}')
 
-    t0_assim = t0_assim % dt_assim
-    cycles   = range(t0_assim, 86400, dt_assim)
+    n_read = 0                          # number of ObsFcstAna files read
+    n_obs  = 0                          # number of Tb obs used
 
     count = 0
 
@@ -108,6 +119,7 @@ def get_obs_scaling_tb(exp_path, exp_run, domain, obs_param, descr_contains, orb
                     ofa   = read_ObsFcstAna_nc4(fname)
                     if ofa is None:
                         continue
+                    n_read += 1
 
                     valid = np.isfinite(ofa['obs_fcst'])
 
@@ -136,6 +148,7 @@ def get_obs_scaling_tb(exp_path, exp_run, domain, obs_param, descr_contains, orb
                         obs  = ofa['obs_obs' ][mask].astype(np.float64)
                         fcst = ofa['obs_fcst'][mask].astype(np.float64)
                         ok   = np.isfinite(obs)
+                        n_obs += np.count_nonzero(ok)
 
                         np.add.at(ring[0, ipol, :, iang, idx], out[ok], obs[ok]   )
                         np.add.at(ring[1, ipol, :, iang, idx], out[ok], obs[ok]**2)
@@ -171,6 +184,11 @@ def get_obs_scaling_tb(exp_path, exp_run, domain, obs_param, descr_contains, orb
 
             ring[..., :-1] = ring[..., 1:]
             ring[...,  -1] = 0.
+
+    print(f'Read {n_read} ObsFcstAna files, {n_obs} Tb obs used')
+
+    if n_obs == 0:
+        raise ValueError(f'no Tb obs used; the files written to {outpath} contain no data')
 
 # ----------------------------------------------------------------------------
 #

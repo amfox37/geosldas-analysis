@@ -23,7 +23,7 @@ from datetime          import datetime, timedelta
 from netCDF4           import Dataset
 
 from obs_scaling_utils import read_ObsFcstAna_nc4, get_ObsFcstAna_fname, get_doy_pentad_range
-from obs_scaling_utils import days_in_month, days_since_1950
+from obs_scaling_utils import days_in_month, days_since_1950, count_ObsFcstAna_files
 
 n_fields  = 7      # o_mean, o_std, m_mean, m_std, n_data, m_min, m_max
 n_pentads = 73
@@ -32,11 +32,10 @@ def get_obs_scaling_latlon(exp_path, exp_run, domain, species, species_names, co
                            run_months, first_year, last_year, dt_assim, t0_assim,
                            resol, w_days, ndata_min, prefix, out_dir,
                            print_each_doy, print_each_pentad, print_all_pentads,
-                           exclude_tile_mask=None):
+                           exclude_tiles=None):
 
-    # exclude_tile_mask: optional boolean array indexed by tilenum (1-based; index 0 unused),
-    #                    True = use the obs, False = drop the obs.  Used to exclude obs at
-    #                    tiles flagged by a QC that postdates the ObsFcstAna files.
+    # exclude_tiles: optional array of tile numbers (1-based) whose obs are not used, e.g.
+    #                tiles flagged by a QC that postdates the ObsFcstAna files.
 
     if combine_species:
         species_groups = [list(species)]
@@ -50,6 +49,13 @@ def get_obs_scaling_latlon(exp_path, exp_run, domain, species, species_names, co
     inpath  = exp_path + '/' + exp_run + '/output/' + domain
     outpath = inpath + '/stats/' + out_dir
     os.makedirs(outpath, exist_ok=True)
+
+    t0_assim = t0_assim % dt_assim
+    cycles   = range(t0_assim, 86400, dt_assim)
+
+    n_files = count_ObsFcstAna_files(inpath, exp_run, run_months, first_year, last_year, cycles)
+    if n_files == 0:
+        raise ValueError(f'no ObsFcstAna files for the requested period in {inpath}/ana/ens_avg')
 
     # global lat/lon grid; grid cell index = j*n_lon + i  (i: lon index, j: lat index)
     # (keep ll_lon, ll_lat, d_lon, d_lat as Python floats, so that the cell index of
@@ -74,7 +80,8 @@ def get_obs_scaling_latlon(exp_path, exp_run, domain, species, species_names, co
     m_min  = np.full( shape,  np.inf)
     m_max  = np.full( shape, -np.inf)
 
-    data_out     = np.full((n_groups, n_fields, n_cells, n_pentads), np.nan)
+    if print_all_pentads:
+        data_out = np.full((n_groups, n_fields, n_cells, n_pentads), np.nan)
     start_time_p = [datetime(2014, 1, 1)] * n_pentads
     end_time_p   = [datetime(2014, 1, 1)] * n_pentads
 
@@ -89,10 +96,8 @@ def get_obs_scaling_latlon(exp_path, exp_run, domain, species, species_names, co
 
     grid = (n_lon, n_lat, ll_lon, ll_lat, d_lon, d_lat)
 
-    # times of the assimilation cycles within a day
-
-    t0_assim = t0_assim % dt_assim
-    cycles   = range(t0_assim, 86400, dt_assim)
+    n_read = 0                          # number of ObsFcstAna files read
+    n_obs  = np.zeros(n_groups, int)    # number of obs used for each species group
 
     count = 0
 
@@ -115,6 +120,7 @@ def get_obs_scaling_latlon(exp_path, exp_run, domain, species, species_names, co
                     ofa   = read_ObsFcstAna_nc4(fname)
                     if ofa is None:
                         continue
+                    n_read += 1
 
                     # use only obs with valid fcst
                     valid = ~np.isnan(ofa['obs_fcst'])
@@ -122,8 +128,8 @@ def get_obs_scaling_latlon(exp_path, exp_run, domain, species, species_names, co
                     for g, species_group in enumerate(species_groups):
 
                         mask = valid & np.isin(ofa['obs_species'], species_group)
-                        if exclude_tile_mask is not None:
-                            mask &= exclude_tile_mask[ofa['obs_tilenum']]
+                        if exclude_tiles is not None:
+                            mask &= ~np.isin(ofa['obs_tilenum'], exclude_tiles)
                         if not np.any(mask):
                             continue
 
@@ -141,6 +147,7 @@ def get_obs_scaling_latlon(exp_path, exp_run, domain, species, species_names, co
                         # one by one); obs can be NaN, fcst is always valid here
 
                         ok = ~np.isnan(obs)
+                        n_obs[g] += np.count_nonzero(ok)
                         np.add.at(o_sum[ g, :, idx], cells[ok], obs[ok]          )
                         np.add.at(o_sum2[g, :, idx], cells[ok], obs[ok] * obs[ok])
                         np.add.at(n_data[g, :, idx], cells[ok], 1.               )
@@ -161,7 +168,12 @@ def get_obs_scaling_latlon(exp_path, exp_run, domain, species, species_names, co
             doy        = (end_time - timedelta(seconds=int(w_days*86400/2.))).timetuple().tm_yday
             pentad     = (doy + 2) // 5
 
+            is_pentad_center = (doy + 2) % 5 == 0
+
             for g in range(n_groups):
+
+                if not (print_each_doy or (is_pentad_center and (print_each_pentad or print_all_pentads))):
+                    continue
 
                 data2d = get_window_stats(o_sum[g], o_sum2[g], m_sum[g], m_sum2[g], n_data[g],
                                           m_min[g], m_max[g], ndata_min)
@@ -170,10 +182,11 @@ def get_obs_scaling_latlon(exp_path, exp_run, domain, species, species_names, co
                     fname_out = fname_base_d + '_sp_' + species_labels[g] + f'_DOY{doy:03d}.nc4'
                     write_latlon_nc4(fname_out, data2d[:, :, None], [pentad], [start_time], [end_time], grid)
 
-                if (doy + 2) % 5 == 0:
-                    data_out[g, :, :, pentad-1] = data2d
-                    start_time_p[pentad-1]      = start_time
-                    end_time_p[  pentad-1]      = end_time
+                if is_pentad_center:
+                    if print_all_pentads:
+                        data_out[g, :, :, pentad-1] = data2d
+                        start_time_p[pentad-1]      = start_time
+                        end_time_p[  pentad-1]      = end_time
 
                     if print_each_pentad:
                         fname_out = fname_base_p + '_sp_' + species_labels[g] + f'_p{pentad:02d}.nc4'
@@ -183,6 +196,15 @@ def get_obs_scaling_latlon(exp_path, exp_run, domain, species, species_names, co
                                (m_min, np.inf), (m_max, -np.inf)):
                 arr[:, :, :-1] = arr[:, :, 1:]
                 arr[:, :,  -1] = empty
+
+    print(f'Read {n_read} ObsFcstAna files')
+    for g in range(n_groups):
+        print(f'  species {species_labels[g]}: {n_obs[g]} obs used')
+
+    if np.any(n_obs == 0):
+        raise ValueError('no obs used for species ' +
+                         ', '.join(species_labels[g] for g in range(n_groups) if n_obs[g] == 0) +
+                         ' (all-pentads file not written)')
 
     if print_all_pentads:
         for g in range(n_groups):
