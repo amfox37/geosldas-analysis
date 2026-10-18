@@ -76,12 +76,6 @@ def test_cli_strips_species_and_rejects_empty_or_duplicate_selections():
         parse_args(["--method", "tb", "--angles", "40,40"] + REQUIRED + dates)
 
 
-def test_tb_rejects_duplicate_angles(tmp_path):
-    with pytest.raises(ValueError, match="duplicate angles"):
-        get_obs_scaling_tb(str(tmp_path), EXP_RUN, DOMAIN, read_obs_param(OBSPARAM), "SMAP_L1C", 2, [40.0, 40.0],
-                           [1], [2020], [2020], 86400, 0, 5, 1, "t_", "z_score_clim")
-
-
 # ---- no input ---------------------------------------------------------------------------
 
 def test_latlon_without_ObsFcstAna_files_fails_and_writes_nothing(tmp_path):
@@ -179,7 +173,7 @@ def test_latlon_rejects_duplicate_species(tmp_path):
     _write_ofa(_ofa_fname(out, 2020, 1, 2), [14], [-175], [-85], [0.5], [0.3])
     with pytest.raises(ValueError, match="duplicate species"):
         main(["--method", "latlon", "--exp-path", str(tmp_path), "--exp-run", EXP_RUN, "--domain", DOMAIN,
-              "--start", "2020-01", "--end", "2020-01", "--run-months", "1",
+              "--start", "2020-01", "--end", "2020-01", "--run-months", "1", "--window-days", "5",
               "--species", "CYGNSS_SM_6hr,CYGNSS_SM_6hr", "--prefix", "t_"])
 
 
