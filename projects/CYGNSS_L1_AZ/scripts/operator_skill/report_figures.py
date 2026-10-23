@@ -422,7 +422,41 @@ def fig_spring_maps(a):
              lon='com_lon', lat='com_lat', extra=scatter)
 
 
-FIGS = {'op_maps': fig_op_maps, 'geometry': fig_geometry, 'weakh': fig_weakh, 'obs_level': fig_obs_level, 'four_corners': fig_four_corners,
+# ---------------------------------------------------------------------------------------------
+# step 4, task A: whole-period per-tile link
+# ---------------------------------------------------------------------------------------------
+def fig_tile_link(a):
+    d = LINK + 'tile_whole_period/'
+    t = pd.read_csv(d + 'tile_table.csv')
+    t = t[t.l1area.astype(bool)]
+    b = pd.read_csv(d + 'bins_rs_smterm_q3.csv')
+
+    def terciles(ax):
+        x = np.arange(3)
+        for k, (tgt, lab, col, mk) in enumerate([('L1:SMAP_Tb', 'L1 DA', '#D55E00', 'o'),
+                                                 ('L3:SMAP_Tb', 'L3 DA (control)', '#0072B2', 's'),
+                                                 ('L1-L3:SMAP_Tb', 'L1 - L3 (points)', '0.3', 'D')]):
+            s = b[(b.target == tgt) & b.bin.isin(['1', '2', '3'])].sort_values('bin')
+            ax.errorbar(x + (k - 1) * 0.12, s['median'], yerr=[s['median'] - s.lo, s.hi - s['median']], fmt='-' + mk,
+                        color=col, ms=6, capsize=2, lw=1.5, label=lab)
+        ax.axhline(0, color='0.6', lw=0.8)
+        ax.set_xticks(x); ax.set_xticklabels(['T1 low', 'T2', 'T3 high'])
+        ax.set_xlabel('tile SM-term skill tercile')
+        ax.set_ylabel('SMAP Tb O-F stdv change (%), tile median')
+        ax.set_title('SMAP Tb benefit by SM-term skill (95% block bootstrap)')
+        ax.legend(loc='lower left')
+
+    panels = [('rs_smterm', 'L1 operator: SM-term skill', -0.6, 0.6, 'RdBu_r', 'rank correlation'),
+              ('L1:SMAP_Tb', 'L1 DA: SMAP Tb change', -6, 6, 'RdBu_r', '% (DA-OL)/OL'),
+              ('L3:SMAP_Tb', 'L3 DA (control): SMAP Tb change', -6, 6, 'RdBu_r', '% (DA-OL)/OL'),
+              ('L1-L3:SMAP_Tb', 'L1 DA minus L3 DA: SMAP Tb change', -6, 6, 'RdBu_r', 'percentage points'),
+              ('r_SMAPh', 'corr(L1 inn, SMAP Tbh inn); negative = consistent', -0.5, 0.5, 'RdBu_r', 'Pearson r')]
+    map_grid(t, panels, 3, 'fig05_operator_skill_vs_da_benefit.png',
+             'Where the L1 operator has SM skill, L1 DA improves SMAP Tb; L3 DA does not show this pattern '
+             '(2020-22, L1-area tiles)', extra=terciles)
+
+
+FIGS = {'op_maps': fig_op_maps, 'tile_link': fig_tile_link, 'geometry': fig_geometry, 'weakh': fig_weakh, 'obs_level': fig_obs_level, 'four_corners': fig_four_corners,
         'spring_monthly': fig_spring_monthly, 'spring_maps': fig_spring_maps}
 
 
