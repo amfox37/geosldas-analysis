@@ -2,7 +2,8 @@
 
 Development and validation of a GEOSldas observation operator for
 **preprocessed CYGNSS L1 DDM 3x5 "crop scalar" coefficients**
-(`obs_param_nml(56)`, `CYGNSS_L1_DDM3X5_CROP_SCALAR`, `varname = 'cygl1scal'`),
+(`obs_param_nml(59)`, `CYGNSS_L1_DDM3X5_CROP_SCALAR`, `varname = 'cygl1scal'`; it was
+species 56 before the 2026-10-26 rebuild, see Build),
 run over an Arizona box (`MINLON -118 MAXLON -106 MINLAT 29 MAXLAT 40`).
 Separate from the CYGNSS L3 soil-moisture species (`obs_param_nml(54)`).
 
@@ -141,6 +142,16 @@ GMAO_Shared v3.0.2, GEOS_Util v3.0.3, MAPL v2.70.0, and GEOSgcm_GridComp at
 ~12 min), and `install/bin/GEOSldas.x` has md5 `6a70b4968b2b376b601636f780a0da2f`.
 The previous build/install (`build_pre_20260925/`, `install_pre_20260925/`) were deleted on 2026-10-12.
 
+**2026-10-26 rebuild (in place):** `@GEOSldas_GridComp` was fast-forwarded to `e6a32ae` (develop
+merged in: H SAF thinning, N_ang fix, new H SAF xcorr/ycorr defaults, assimilation bug fixes) and
+rebuilt with `make install`. `install/bin/GEOSldas.x` now has md5 `f0f9c7ab20f9caea5be7beb08d692610`.
+**Species renumbering:** H SAF ASCAT MetOp-A/B/C moved from 57/58/59 to 56/57/58, and CYGNSS L1 moved
+from 56 to 59. All `templates/*/LDASsa_SPECIAL_inputs_ensupd.nml` were renumbered to `(59)`. The
+fixedop experiments were set up with the old numbering on the md5 `6a70b496` binary. A full copy of
+that install is in `install_backup_6a70b496_20261026/` in the same checkout. Don't run an
+old-numbering namelist on the new binary: it silently writes the L1 block over H SAF MetOp-A and
+leaves species 59 at its defaults.
+
 **Must** use this checkout's `install/bin/ldas_setup`. The shared
 `land_da/GEOSldas_develop` install doesn't have the CYGNSS L1 operator. After
 `ldas_setup`, check that `<EXP_ID>/build` points at
@@ -174,7 +185,7 @@ archived run each one came from, so copy the template and set those before `ldas
 | Template | From | Purpose |
 |---|---|---|
 | `OL_monitor_unscaled/` | `OLv8_M36_all_sensors_AZ` | Monitor-only, unscaled, all 13 species on the full `CYGNSS_L1` stream: the run to regenerate the L1 z-score clim from. |
-| `OL_monitor_paired/` | `OLv8_M36_AZ_paired_monitor_dense075obs` (never run) | Optional, reference only: a scaled OL on the thinned obs (clone of the L1 arm with species 56 `assim=.false.`). Not needed for scoring (see below). |
+| `OL_monitor_paired/` | `OLv8_M36_AZ_paired_monitor_dense075obs` (never run) | Optional, reference only: a scaled OL on the thinned obs (clone of the L1 arm with species 59 `assim=.false.`). Not needed for scoring (see below). |
 | `DA_L1_dense075_coh05/` | `DAv8_M36_AZ_paired_cygl1_dense075_coh05` | CYGNSS L1 assim (thinned dense075_coh05 obs, errstd 2.75 dB, xcorr/ycorr 0.625 deg). |
 | `DA_L3/` | `DAv8_M36_AZ_paired_cygl1_dense075_coh05_L3assim` | CYGNSS L3 (`CYGNSS_SM_6hr`) assim, L1 monitor-only. |
 | `DA_SMAP/` | `DAv8_M36_all_sensors_AZ_scaled_smapassim_6mo` | SMAP L1C Tb (31-34) assim, L1 monitor-only. |
