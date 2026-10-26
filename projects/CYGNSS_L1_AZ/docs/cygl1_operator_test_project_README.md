@@ -148,7 +148,8 @@ rebuilt with `make install`. `install/bin/GEOSldas.x` now has md5 `f0f9c7ab20f9c
 **Species renumbering:** H SAF ASCAT MetOp-A/B/C moved from 57/58/59 to 56/57/58, and CYGNSS L1 moved
 from 56 to 59. All `templates/*/LDASsa_SPECIAL_inputs_ensupd.nml` were renumbered to `(59)`. The
 fixedop experiments were set up with the old numbering on the md5 `6a70b496` binary. A full copy of
-that install is in `install_backup_6a70b496_20261026/` in the same checkout. Don't run an
+that install is in `install_backup_6a70b496_20261026/` in the same checkout, and the 5 `*_fixedop`
+experiments' `build` symlinks were relinked to it on 2026-10-26. New experiments use `install/`. Don't run an
 old-numbering namelist on the new binary: it silently writes the L1 block over H SAF MetOp-A and
 leaves species 59 at its defaults.
 
