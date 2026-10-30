@@ -1,0 +1,6 @@
+arm,system,monthly_mean_percent_da_minus_ol,months_improved_da_lt_ol,months_valid
+full_xc015_coh040216_fixedop,L1,-0.5379109034274449,33,36
+full_xc015_coh040216_fixedop,L3,-0.4025968259317134,21,36
+full_xc015_coh040216_fixedop,ASCAT,2.8432589675830595,5,36
+full_xc015_coh040216_fixedop,SMOS,-0.6121094693007328,23,36
+full_xc015_coh040216_fixedop,SMAP,-0.6085594999651032,24,36
