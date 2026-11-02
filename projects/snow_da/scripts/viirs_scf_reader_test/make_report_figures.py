@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # figures for docs/viirs_scf_reader_test_report.md
 #   fig01: obs SCF on one day from ObsFcstAna: MODIS Aqua, VIIRS JPSS-1 with cee4997 QC, VIIRS JPSS-1 with 5d4d636 QC
-#   fig02: forecast RMS reduction vs the open loop, per run and per sensor's obs (parsed from compare_vs_ol.py output)
+#   fig02: density of matched VIIRS vs MODIS Aqua obs SCF (same tile and cycle), all cycles, with binned mean
+#   fig03: forecast RMS reduction vs the open loop, per run and per sensor's obs (parsed from compare_vs_ol.py output)
 # usage: make_report_figures.py <exp_root> <compare_vs_ol_10d.txt> <out_dir> [day YYYYMMDD]
 #   exp_root holds the M21C_test_CF0360_jpss_* experiments (Discover: /discover/nobackup/projects/land_da/M21C_testing)
 # python: Discover GEOSpyD py3.13 (netCDF4, matplotlib, cartopy)
@@ -67,6 +68,67 @@ fig.savefig(os.path.join(out_dir, 'fig01_obs_scf_maps.png'), dpi=150)
 plt.close(fig)
 
 # ---------------------------------------------------------------- fig02
+from matplotlib.colors import LogNorm
+
+
+def cycle_obs(exp, descr):
+    # {cycle: (tilenum, obs)} of species descr over all cycles
+    out = {}
+    for fn in sorted(glob.glob(os.path.join(exp_root, exp, 'output/*/ana/ens_avg/Y*/M*/*.ldas_ObsFcstAna.*.nc4'))):
+        with nc.Dataset(fn) as d:
+            ids = [i for i, s in zip(d['obsparam_species_id'][:], d['obsparam_descr'][:]) if s == descr]
+            if not ids or d.dimensions['n_obs'].size == 0:
+                continue
+            k = d['species'][:] == ids[0]
+            out[fn.split('.')[-2]] = (d['tilenum'][:][k], np.ma.filled(d['obs'][:][k], np.nan))
+    return out
+
+
+modis = cycle_obs('M21C_test_CF0360_jpss_cee4997_A', 'MYD10C1')
+edges = np.linspace(0, 1, 21)
+edges[-1] = 1.0001                                    # obs SCF = 1 falls in the last bin
+centers = 0.5 * (edges[:-1] + np.minimum(edges[1:], 1))
+cmap_d = LinearSegmentedColormap.from_list('seq_blue', SEQ)
+fig, axs = plt.subplots(1, 2, figsize=(9, 4.3), constrained_layout=True)
+for ax, (exp, descr, name) in zip(axs, [('M21C_test_CF0360_jpss_5d4d636_B', 'VJ110C1', 'VIIRS JPSS-1'),
+                                        ('M21C_test_CF0360_jpss_5d4d636_C', 'VNP10C1', 'VIIRS S-NPP')]):
+    viirs = cycle_obs(exp, descr)
+    om, ov = [], []
+    for c in sorted(set(modis) & set(viirs)):
+        _, im, iv = np.intersect1d(modis[c][0], viirs[c][0], return_indices=True)
+        om.append(modis[c][1][im]); ov.append(viirs[c][1][iv])
+    om, ov = np.concatenate(om), np.concatenate(ov)
+    H, _, _ = np.histogram2d(om, ov, bins=[edges, edges])
+    H = np.ma.masked_equal(H, 0)
+    pc = ax.pcolormesh(edges[:-1].tolist() + [1.0], edges[:-1].tolist() + [1.0], H.T, cmap=cmap_d,
+                       norm=LogNorm(vmin=1, vmax=H.max()), rasterized=True)
+    ax.plot([0, 1], [0, 1], color=INK2, linewidth=1.0, label='1:1')
+    # binned means both ways: noise in the binning variable flattens either curve (regression dilution), so a
+    # pair of curves straddling 1:1 symmetrically means noise, and a shift of both to one side means bias
+    ib = np.digitize(om, edges) - 1
+    bmean = np.array([ov[ib == k].mean() if (ib == k).any() else np.nan for k in range(len(centers))])
+    ax.plot(centers, bmean, color=CAT[1], linewidth=2, marker='o', markersize=4,
+            label='mean %s per MODIS bin' % name.split()[-1])
+    jb = np.digitize(ov, edges) - 1
+    rmean = np.array([om[jb == k].mean() if (jb == k).any() else np.nan for k in range(len(centers))])
+    ax.plot(rmean, centers, color=CAT[2], linewidth=2, marker='s', markersize=4,
+            label='mean MODIS per %s bin' % name.split()[-1])
+    d = ov - om
+    ax.text(0.03, 0.97, '%s pairs\ncorrelation %.3f\nmean diff %+.3f' % (format(om.size, ','), np.corrcoef(om, ov)[0, 1],
+            d.mean()), transform=ax.transAxes, va='top', ha='left', fontsize=8.5, color=INK2)
+    ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.set_aspect('equal')
+    ax.set_xlabel('MODIS Aqua obs SCF'); ax.set_ylabel('%s obs SCF' % name)
+    ax.set_title('%s vs MODIS Aqua, same tile and cycle' % name, loc='left', fontsize=9.5)
+    ax.legend(loc='lower right', frameon=False, fontsize=8, labelcolor=INK2)
+    for side in ('top', 'right'):
+        ax.spines[side].set_visible(False)
+cb = fig.colorbar(pc, ax=axs, shrink=0.85, pad=0.02)
+cb.set_label('matched tile-cycles per 0.05 x 0.05 bin (log scale)', color=INK2)
+cb.outline.set_edgecolor(AXIS); cb.ax.tick_params(color=AXIS, labelcolor=INK2)
+fig.savefig(os.path.join(out_dir, 'fig02_viirs_vs_modis_density.png'), dpi=150)
+plt.close(fig)
+
+# ---------------------------------------------------------------- fig03
 # parse compare_vs_ol.py output: per sensor block, rows "run mean_fcst omf_mean omf_std rms rms_vs_ol%"
 txt = open(rms_txt).read()
 blocks = re.split(r'\n(?=MODIS|VIIRS)', txt)
@@ -98,6 +160,6 @@ for side in ('top', 'right', 'left'):
 ax.tick_params(axis='y', length=0)
 ax.legend(loc='lower right', frameon=False, fontsize=8, labelcolor=INK2)
 ax.set_title('Snow cover forecast error, 2020-01-01 to 01-11 (1.33M common tile-cycles)', loc='left', fontsize=9.5)
-fig.savefig(os.path.join(out_dir, 'fig02_forecast_rms_vs_ol.png'), dpi=150)
+fig.savefig(os.path.join(out_dir, 'fig03_forecast_rms_vs_ol.png'), dpi=150)
 plt.close(fig)
 print('wrote', out_dir)

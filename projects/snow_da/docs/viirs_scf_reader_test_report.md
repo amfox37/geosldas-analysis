@@ -16,9 +16,11 @@
   - Commit `5d4d636` keeps QA 0, 1 and 3 and caps obs SCF at 1. With it, VIIRS covers the same snow as MODIS Aqua.
 - **VIIRS agrees closely with MODIS Aqua.** Both pass at about 13:30 local time. Over 1.4M matched tile-cycles in 10 days:
   - the correlation is 0.96, and the mean difference is −0.007 (JPSS-1) and −0.010 (S-NPP);
-  - in partly snow-covered tiles the correlation is 0.80, and VIIRS sees slightly less snow (−0.017 and −0.028);
+  - in partly snow-covered tiles the correlation is 0.80, and VIIRS sees slightly less snow (−0.017 and −0.028); most of
+    the scatter there is noise in both sensors, with a small VIIRS-low bias that grows to about −0.04 at SCF 0.7–0.9
+    (figure 2);
   - no day exceeds a 0.05 bias in any snow class.
-- **Assimilating VIIRS improves the snow forecast.** Against an open loop (OL), on the same 1.33M tile-cycles (figure 2):
+- **Assimilating VIIRS improves the snow forecast.** Against an open loop (OL), on the same 1.33M tile-cycles (figure 3):
   - VIIRS-only DA reduces the forecast RMS error by 15–17%, and MODIS Aqua-only by 13–14%;
   - VIIRS-only gives the larger gain even when scored against MODIS Aqua obs, which it never assimilates;
   - our usual MODIS Aqua + Terra setup reduces it by 26%.
@@ -87,14 +89,28 @@ Obs of the same tile in the same cycle (`5d4d636` B and C vs A), by MODIS SCF cl
 - **Bias in partial snow:** the largest daily bias is −0.049 (S-NPP, 01-04). JPSS-1 ranges from −0.043 to +0.004.
 - **Classes 0 and 1:** the correlation is not given, because MODIS is nearly constant within them.
 
+![Density of matched VIIRS vs MODIS Aqua obs SCF, with binned means both ways](viirs_scf_reader_test_report_figures/fig02_viirs_vs_modis_density.png)
+
+*Figure 2. Matched obs SCF (same tile and cycle, 10 days): VIIRS JPSS-1 (left) and S-NPP (right) against MODIS Aqua. Shading:
+number of pairs per 0.05 bin (log scale). Orange: mean VIIRS SCF per MODIS bin. Green: mean MODIS SCF per VIIRS bin.*
+
+- **Most pairs agree.** About 60% agree exactly (both 0 or both 1), and 75% fall in the two corner bins.
+- **The S-shaped curves are mostly noise, not bias.** Binning on one sensor flattens the curve of the other (regression
+  dilution), even when neither is biased. The two curves straddle the 1:1 line almost symmetrically, and for pairs where
+  both sensors see partial snow the fitted slope is the same both ways (0.77 and 0.78, for both satellites), as is the
+  spread (std 0.34).
+- **A small real bias remains.** The orange curve sits further below the line than the green one sits above it at SCF
+  0.6–0.9. Averaging the two directions, VIIRS reads about 0.01 lower than MODIS at low SCF and about 0.04–0.05 lower at
+  SCF 0.7–0.9 (JPSS-1; S-NPP looks the same).
+
 ## 3. Effect on the snow forecast, vs open loop
 
 Each run's forecast SCF (before the analysis) is scored against each sensor's obs from the OL file. All runs use the same 1.33M
 tile-cycles (13:30 overpasses).
 
-![Forecast RMS reduction vs open loop, per run and per sensor's obs](viirs_scf_reader_test_report_figures/fig02_forecast_rms_vs_ol.png)
+![Forecast RMS reduction vs open loop, per run and per sensor's obs](viirs_scf_reader_test_report_figures/fig03_forecast_rms_vs_ol.png)
 
-*Figure 2. Reduction in the RMS of obs minus forecast SCF, relative to the open loop, 2020-01-01 to 01-11.*
+*Figure 3. Reduction in the RMS of obs minus forecast SCF, relative to the open loop, 2020-01-01 to 01-11.*
 
 | Run | vs MODIS Aqua obs | vs VIIRS JPSS-1 obs | vs VIIRS S-NPP obs |
 |---|---|---|---|
