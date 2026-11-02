@@ -1,0 +1,34 @@
+O-F of each run's forecast SCF vs each sensor's obs, on (tile, cycle) pairs common to all runs
+runs: OL=M21C_test_CF0360_jpss_5d4d636_OL, A=M21C_test_CF0360_jpss_cee4997_A, A2=M21C_test_CF0360_jpss_5d4d636_A2, B=M21C_test_CF0360_jpss_5d4d636_B, C=M21C_test_CF0360_jpss_5d4d636_C
+
+MODIS Aqua (MYD10C1): N common = 1331410   mean obs = 0.5697
+    run  mean fcst  O-F mean   O-F std       RMS  RMS vs OL
+    OL      0.5110   +0.0587    0.2621    0.2686      +0.0%
+    A       0.5190   +0.0508    0.2274    0.2330     -13.3%
+    A2      0.5242   +0.0455    0.1941    0.1994     -25.8%
+    B       0.5261   +0.0436    0.2234    0.2276     -15.3%
+    C       0.5257   +0.0440    0.2242    0.2285     -14.9%
+
+MODIS Terra (MOD10C1): N common = 5   mean obs = 0.9950
+    run  mean fcst  O-F mean   O-F std       RMS  RMS vs OL
+    OL      1.0000   -0.0050    0.0100    0.0112      +0.0%
+    A       1.0000   -0.0050    0.0100    0.0112      +0.0%
+    A2      1.0000   -0.0050    0.0100    0.0112      +0.0%
+    B       1.0000   -0.0050    0.0100    0.0112      +0.0%
+    C       1.0000   -0.0050    0.0100    0.0112      +0.0%
+
+VIIRS JPSS-1 (VJ110C1): N common = 1331410   mean obs = 0.5639
+    run  mean fcst  O-F mean   O-F std       RMS  RMS vs OL
+    OL      0.5110   +0.0529    0.2565    0.2619      +0.0%
+    A       0.5190   +0.0449    0.2215    0.2260     -13.7%
+    A2      0.5242   +0.0397    0.1890    0.1931     -26.3%
+    B       0.5261   +0.0378    0.2132    0.2166     -17.3%
+    C       0.5257   +0.0382    0.2141    0.2174     -17.0%
+
+VIIRS S-NPP (VNP10C1): N common = 1331410   mean obs = 0.5609
+    run  mean fcst  O-F mean   O-F std       RMS  RMS vs OL
+    OL      0.5110   +0.0499    0.2557    0.2605      +0.0%
+    A       0.5190   +0.0419    0.2212    0.2252     -13.6%
+    A2      0.5242   +0.0367    0.1895    0.1930     -25.9%
+    B       0.5261   +0.0348    0.2133    0.2161     -17.1%
+    C       0.5257   +0.0352    0.2138    0.2167     -16.8%

@@ -1,0 +1,59 @@
+A: M21C_test_CF0360_jpss_cee4997_A  80 ObsFcstAna files, species with obs: ['MYD10C1']
+B: M21C_test_CF0360_jpss_5d4d636_B  80 ObsFcstAna files, species with obs: ['VJ110C1']
+C: M21C_test_CF0360_jpss_5d4d636_C  80 ObsFcstAna files, species with obs: ['VNP10C1']
+
+== check 5: obs counts (total over all cycles) by latitude band
+run:species                 total    60-90N    40-60N    20-40N      <20N   share 60-90N  40-60N
+A:MYD10C1                 1497242     96886    948032    448266      4058         0.065   0.633
+B:VJ110C1                 2148790    159812   1442401    540997      5580         0.074   0.671
+C:VJ210C1                       0         0         0         0         0         0.000   0.000
+C:VNP10C1                 2151011    163583   1441263    540709      5456         0.076   0.670
+
+== check 6: value ranges and means
+A:MYD10C1              N= 1497242  obs min/mean/max 0.0000/0.5681/1.0000  N obs>1      0 | fcst 0.0000/0.5067/1.0000 | ana 0.0000/0.5241/1.0000 | NaN fcst/ana 0/0
+B:VJ110C1              N= 2148790  obs min/mean/max 0.0000/0.6414/1.0000  N obs>1      0 | fcst 0.0000/0.5876/1.0000 | ana 0.0000/0.6030/1.0000 | NaN fcst/ana 0/0
+C:VJ210C1              no obs
+C:VNP10C1              N= 2151011  obs min/mean/max 0.0000/0.6394/1.0000  N obs>1      0 | fcst 0.0000/0.5882/1.0000 | ana 0.0000/0.6031/1.0000 | NaN fcst/ana 0/0
+
+== check 7: VIIRS vs MODIS (same tile and cycle), overall and by MODIS SCF class
+B:VJ110C1 vs A:MYD10C1
+    all      N pairs =  1397362  corr =  0.9601  mean diff = -0.0068  std diff = 0.1304
+    0        N pairs =   392318  corr =  0.0464  mean diff = +0.0157  std diff = 0.0826
+    partial  N pairs =   357809  corr =  0.8036  mean diff = -0.0174  std diff = 0.2232
+    1        N pairs =   647235  corr =  0.1069  mean diff = -0.0145  std diff = 0.0679
+C:VNP10C1 vs A:MYD10C1
+    all      N pairs =  1401219  corr =  0.9604  mean diff = -0.0097  std diff = 0.1301
+    0        N pairs =   393782  corr =  0.0403  mean diff = +0.0145  std diff = 0.0799
+    partial  N pairs =   359326  corr =  0.8051  mean diff = -0.0283  std diff = 0.2227
+    1        N pairs =   648111  corr =  0.1008  mean diff = -0.0140  std diff = 0.0683
+
+== check 7b: VIIRS vs MODIS per day (analysis cycles 03z-00z labelled by cycle date)
+B:VJ110C1
+    day        N pairs  corr all  corr partial  bias all  bias 0   bias partial  bias 1
+    20200101   129296    0.9480        0.7603   -0.0101  +0.0163       -0.0296  -0.0193
+    20200102   118522    0.9585        0.8328   -0.0030  +0.0178       -0.0070  -0.0145
+    20200103   134603    0.9523        0.7781   -0.0092  +0.0187       -0.0310  -0.0127
+    20200104   129702    0.9403        0.7523   -0.0155  +0.0196       -0.0428  -0.0206
+    20200105   143403    0.9712        0.8564   -0.0090  +0.0112       -0.0227  -0.0142
+    20200106   148822    0.9680        0.8282   -0.0050  +0.0135       -0.0098  -0.0150
+    20200107   148833    0.9644        0.8180   -0.0019  +0.0152       +0.0040  -0.0145
+    20200108   153910    0.9746        0.8527   -0.0062  +0.0097       -0.0157  -0.0123
+    20200109   135149    0.9531        0.7699   -0.0036  +0.0212       -0.0038  -0.0136
+    20200110   151842    0.9583        0.7879   -0.0052  +0.0184       -0.0083  -0.0121
+    20200111     3280    0.2545        0.6613   -0.0122     +nan       +0.0020  -0.0132
+C:VNP10C1
+    day        N pairs  corr all  corr partial  bias all  bias 0   bias partial  bias 1
+    20200101   138512    0.9672        0.8457   -0.0155  +0.0083       -0.0439  -0.0144
+    20200102   112924    0.9428        0.7679   -0.0111  +0.0224       -0.0329  -0.0177
+    20200103   134836    0.9427        0.7339   -0.0134  +0.0194       -0.0409  -0.0161
+    20200104   135099    0.9622        0.8393   -0.0176  +0.0111       -0.0488  -0.0148
+    20200105   136796    0.9529        0.7722   -0.0078  +0.0156       -0.0179  -0.0176
+    20200106   152969    0.9736        0.8565   -0.0076  +0.0100       -0.0188  -0.0136
+    20200107   148649    0.9670        0.8322   -0.0043  +0.0155       -0.0113  -0.0125
+    20200108   149734    0.9610        0.7768   -0.0081  +0.0122       -0.0217  -0.0155
+    20200109   141834    0.9707        0.8456   -0.0081  +0.0109       -0.0217  -0.0103
+    20200110   146833    0.9525        0.7720   -0.0049  +0.0256       -0.0151  -0.0113
+    20200111     3033    0.2459        0.6873   -0.0098     +nan       +0.0159  -0.0115
+
+== check 8: map of obs SCF on 20200107
+wrote jpss_test/obs_scf_map_20200107_10d.png

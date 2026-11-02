@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `projects/snow_da`: VIIRS snow cover (SCF) reader test report, scripts, configs and results (`docs/viirs_scf_reader_test_report.md`).
 - Imported project directories: `projects/utils`, `ascat_da`, `cygnss_da`, `era5_land`, `snow_da`, `discover_JH`, `M21C_ls`, and `matlab2python` (calc/plot notebooks, helpers, scripts).
 - Added shared assets under `common/` (Matlab, Python, Fortran utilities) and lightweight `data/` scaffolding with gitignores.
 

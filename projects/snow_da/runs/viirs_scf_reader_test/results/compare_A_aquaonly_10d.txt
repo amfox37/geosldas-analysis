@@ -1,0 +1,16 @@
+# compare_a2.py run with run A (MODIS Aqua only) in the A2 slot; "A" labels and "(MODIS Aqua-only DA)" edited in by hand (the script hard-codes the A2 label)
+== 2. cross-check on common (tile, cycle): forecast of each run vs MODIS Aqua obs and vs VIIRS obs
+B (VJ110C1 DA) vs A (MODIS Aqua-only DA): N common = 1397362
+    MODIS Aqua obs  - A fcst   mean +0.0541  std 0.2327  RMS 0.2389  corr 0.8740
+    MODIS Aqua obs  - B fcst    mean +0.0469  std 0.2286  RMS 0.2334  corr 0.8775
+    VJ110C1 obs     - A fcst   mean +0.0473  std 0.2258  RMS 0.2307  corr 0.8805
+    VJ110C1 obs     - B fcst    mean +0.0401  std 0.2175  RMS 0.2211  corr 0.8884
+    fcst A - B: mean -0.0071  mean |diff| 0.0156
+C (VNP10C1 DA) vs A (MODIS Aqua-only DA): N common = 1401219
+    MODIS Aqua obs  - A fcst   mean +0.0543  std 0.2323  RMS 0.2386  corr 0.8744
+    MODIS Aqua obs  - C fcst    mean +0.0476  std 0.2291  RMS 0.2340  corr 0.8770
+    VNP10C1 obs     - A fcst   mean +0.0446  std 0.2256  RMS 0.2300  corr 0.8812
+    VNP10C1 obs     - C fcst    mean +0.0379  std 0.2182  RMS 0.2214  corr 0.8882
+    fcst A - C: mean -0.0067  mean |diff| 0.0155
+
+== 3. model snow state (catch_internal_rst): total SWE = sum WESNN1-3 [kg m-2]

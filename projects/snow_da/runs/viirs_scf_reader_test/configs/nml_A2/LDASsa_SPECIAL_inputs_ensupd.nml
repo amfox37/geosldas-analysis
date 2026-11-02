@@ -1,0 +1,16 @@
+! JPSS VIIRS SCF reader test (GEOSldas_GridComp 5d4d636), run A2 (MODIS Aqua + Terra)
+! all species assim/getinnov = .false. by default (cee4997 LDASsa_DEFAULT_inputs_ensupd.nml)
+
+&ens_upd_inputs
+
+update_type     = 11                ! 1d snow analysis (Toure et al. 2018)
+out_ObsFcstAna  = 2                 ! NC4
+
+obs_param_nml(59)%path           = '/gpfsm/dnb34/amfox/snow_cmg_obs/VJ110C1/'
+obs_param_nml(60)%path           = '/gpfsm/dnb34/amfox/snow_cmg_obs/VJ210C1/'
+obs_param_nml(61)%path           = '/gpfsm/dnb34/amfox/snow_cmg_obs/VNP10C1/'
+
+obs_param_nml(52)%assim          = .true.
+obs_param_nml(53)%assim          = .true.
+
+/

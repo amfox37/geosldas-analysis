@@ -1,0 +1,47 @@
+A: M21C_test_CF0360_jpss_cee4997_A  40 ObsFcstAna files, species with obs: ['MYD10C1']
+B_cee4997: M21C_test_CF0360_jpss_cee4997_B  40 ObsFcstAna files, species with obs: ['VJ110C1']
+B_5d4d636: M21C_test_CF0360_jpss_5d4d636_B  40 ObsFcstAna files, species with obs: ['VJ110C1']
+C_cee4997: M21C_test_CF0360_jpss_cee4997_C  40 ObsFcstAna files, species with obs: ['VNP10C1']
+C_5d4d636: M21C_test_CF0360_jpss_5d4d636_C  40 ObsFcstAna files, species with obs: ['VNP10C1']
+
+== check 5: obs counts (total over all cycles) by latitude band
+run:species                 total    60-90N    40-60N    20-40N      <20N   share 60-90N  40-60N
+A:MYD10C1                  711018     35546    458004    215878      1590         0.050   0.644
+B_cee4997:VJ110C1          531759      2815    267814    259139      1991         0.005   0.504
+B_5d4d636:VJ110C1         1015805     63307    687035    263426      2037         0.062   0.676
+C_cee4997:VNP10C1          528299      2321    267177    256741      2060         0.004   0.506
+C_5d4d636:VJ210C1               0         0         0         0         0         0.000   0.000
+C_5d4d636:VNP10C1         1018563     64267    690179    262032      2085         0.063   0.678
+
+== check 6: value ranges and means
+A:MYD10C1              N=  711018  obs min/mean/max 0.0000/0.5301/1.0000  N obs>1      0 | fcst 0.0000/0.4655/1.0000 | ana 0.0000/0.4856/1.0000 | NaN fcst/ana 0/0
+B_cee4997:VJ110C1      N=  531759  obs min/mean/max 0.0000/0.3709/1.0476  N obs>1  52048 | fcst 0.0000/0.2871/1.0000 | ana 0.0000/0.3116/1.0000 | NaN fcst/ana 0/0
+B_5d4d636:VJ110C1      N= 1015805  obs min/mean/max 0.0000/0.6072/1.0000  N obs>1      0 | fcst 0.0000/0.5510/1.0000 | ana 0.0000/0.5686/1.0000 | NaN fcst/ana 0/0
+C_cee4997:VNP10C1      N=  528299  obs min/mean/max 0.0000/0.3669/1.0476  N obs>1  51851 | fcst 0.0000/0.2846/1.0000 | ana 0.0000/0.3087/1.0000 | NaN fcst/ana 0/0
+C_5d4d636:VJ210C1      no obs
+C_5d4d636:VNP10C1      N= 1018563  obs min/mean/max 0.0000/0.6052/1.0000  N obs>1      0 | fcst 0.0000/0.5512/1.0000 | ana 0.0000/0.5685/1.0000 | NaN fcst/ana 0/0
+
+== check 7: VIIRS vs MODIS (same tile and cycle), overall and by MODIS SCF class
+B_cee4997:VJ110C1 vs A:MYD10C1
+    all      N pairs =   386478  corr =  0.9395  mean diff = +0.0010  std diff = 0.1431
+    0        N pairs =   181629  corr =  0.0572  mean diff = +0.0145  std diff = 0.0732
+    partial  N pairs =   129168  corr =  0.7565  mean diff = -0.0086  std diff = 0.2207
+    1        N pairs =    75681  corr =  0.0704  mean diff = -0.0153  std diff = 0.0880
+B_5d4d636:VJ110C1 vs A:MYD10C1
+    all      N pairs =   658312  corr =  0.9546  mean diff = -0.0095  std diff = 0.1389
+    0        N pairs =   195861  corr =  0.0466  mean diff = +0.0166  std diff = 0.0835
+    partial  N pairs =   190516  corr =  0.7961  mean diff = -0.0268  std diff = 0.2255
+    1        N pairs =   271935  corr =  0.1123  mean diff = -0.0161  std diff = 0.0732
+C_cee4997:VNP10C1 vs A:MYD10C1
+    all      N pairs =   385622  corr =  0.9400  mean diff = -0.0024  std diff = 0.1426
+    0        N pairs =   181914  corr =  0.0476  mean diff = +0.0130  std diff = 0.0699
+    partial  N pairs =   127891  corr =  0.7550  mean diff = -0.0164  std diff = 0.2212
+    1        N pairs =    75817  corr =  0.0776  mean diff = -0.0157  std diff = 0.0903
+C_5d4d636:VNP10C1 vs A:MYD10C1
+    all      N pairs =   660944  corr =  0.9543  mean diff = -0.0131  std diff = 0.1396
+    0        N pairs =   196346  corr =  0.0396  mean diff = +0.0148  std diff = 0.0793
+    partial  N pairs =   191994  corr =  0.7945  mean diff = -0.0375  std diff = 0.2266
+    1        N pairs =   272604  corr =  0.1051  mean diff = -0.0161  std diff = 0.0746
+
+== check 8: map of obs SCF on 20200102
+wrote jpss_test/obs_scf_map_20200102_5d4d636.png

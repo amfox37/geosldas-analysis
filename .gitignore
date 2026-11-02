@@ -20,6 +20,8 @@ __pycache__/
 !projects/CYGNSS_L1_AZ/paper/figures/*.png
 !projects/CYGNSS_L1_AZ/docs/cygl1_operator_skill_report_figures/
 !projects/CYGNSS_L1_AZ/docs/cygl1_operator_skill_report_figures/*.png
+!projects/snow_da/docs/viirs_scf_reader_test_report_figures/
+!projects/snow_da/docs/viirs_scf_reader_test_report_figures/*.png
 
 
 # Ignore possible symlinked build and install directories

@@ -1,0 +1,6 @@
+account: g0610
+walltime: 0:59:00
+ntasks_model: 120
+qos: debug
+ntasks-per-node: 40
+constraint: mil
