@@ -17,8 +17,8 @@
 - **VIIRS agrees closely with MODIS Aqua.** Both pass at about 13:30 local time. Over 1.4M matched tile-cycles in 10 days:
   - the correlation is 0.96, and the mean difference is −0.007 (JPSS-1) and −0.010 (S-NPP);
   - in partly snow-covered tiles the correlation is 0.80, and VIIRS sees slightly less snow (−0.017 and −0.028); most of
-    the scatter there is noise in both sensors, with a small VIIRS-low bias that grows to about −0.04 at SCF 0.7–0.9
-    (figure 2);
+    the scatter there is noise in both sensors (figure 2), with a VIIRS-low bias that grows to 0.06–0.08 at SCF 0.7–0.9
+    (figure 5);
   - no day exceeds a 0.05 bias in any snow class.
 - **Assimilating VIIRS improves the snow forecast.** Against an open loop (OL), on the same 1.33M tile-cycles (figure 3):
   - VIIRS-only DA reduces the forecast RMS error by 15–17%, and MODIS Aqua-only by 13–14%;
@@ -99,9 +99,9 @@ number of pairs per 0.05 bin (log scale). Orange: mean VIIRS SCF per MODIS bin. 
   dilution), even when neither is biased. The two curves straddle the 1:1 line almost symmetrically, and for pairs where
   both sensors see partial snow the fitted slope is the same both ways (0.77 and 0.78, for both satellites), as is the
   spread (std 0.34).
-- **A small real bias remains.** The orange curve sits further below the line than the green one sits above it at SCF
-  0.6–0.9. Averaging the two directions, VIIRS reads about 0.01 lower than MODIS at low SCF and about 0.04–0.05 lower at
-  SCF 0.7–0.9 (JPSS-1; S-NPP looks the same).
+- **A real bias remains.** The orange curve sits further below the line than the green one sits above it at SCF 0.6–0.9,
+  so VIIRS reads lower than MODIS there. Figure 5, which bins on the pair mean, puts the size at 0.03–0.08, largest at
+  SCF 0.7–0.9.
 
 ## 3. Effect on the snow forecast, vs open loop
 
@@ -156,8 +156,7 @@ It does **not** show which sensor is correct, and it does not remove the effects
 - **Both ends agree.** In the lowest and highest bins (pair mean below 0.05 or above 0.95; 78% of pairs) the mean
   difference is within ±0.004.
 - **VIIRS is lower at high partial snow cover.** At pair mean 0.60–0.95, VIIRS is 0.03–0.07 lower than MODIS for JPSS-1 and
-  0.05–0.08 lower for S-NPP, largest at 0.75–0.90 (JPSS-1) and 0.70–0.90 (S-NPP). That is somewhat more than the rough
-  two-direction estimate under figure 2 (0.04–0.05 at SCF 0.7–0.9), which used a different binning.
+  0.05–0.08 lower for S-NPP, largest at 0.75–0.90 (JPSS-1) and 0.70–0.90 (S-NPP).
 - **At low partial snow cover the difference is small:** −0.01 to −0.015 for JPSS-1 and −0.02 to −0.03 for S-NPP at pair
   mean 0.05–0.25.
 - **The kink at pair mean 0.50–0.55** comes from hard disagreements, where one sensor reports 0 and the other 1 (pair mean
