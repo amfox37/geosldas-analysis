@@ -17,7 +17,7 @@
 - **VIIRS agrees closely with MODIS Aqua.** Both pass at about 13:30 local time. Over 1.4M matched tile-cycles in 10 days:
   - the correlation is 0.96, and the mean difference is −0.007 (JPSS-1) and −0.010 (S-NPP);
   - in partly snow-covered tiles the correlation is 0.80, and VIIRS sees slightly less snow (−0.017 and −0.028); most of
-    the scatter there is noise in both sensors (figure 2), with a VIIRS-low bias that grows to 0.06–0.08 at SCF 0.7–0.9
+    the scatter there is noise in both sensors (figure 2), with a VIIRS-low bias that grows to 0.04–0.08 at SCF 0.7–0.9
     (figure 5);
   - no day exceeds a 0.05 bias in any snow class.
 - **Assimilating VIIRS improves the snow forecast.** Against an open loop (OL), on the same 1.33M tile-cycles (figure 3):
