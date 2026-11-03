@@ -127,6 +127,43 @@ tile-cycles (13:30 overpasses).
 - **Why A2 is best:** probably Terra's second daily look (10:30) about 3 hours before the 13:30 cycle, and more obs. This is
   not tested.
 
+## 4. VIIRS vs MODIS Aqua obs: density and symmetric binning
+
+These two figures use the same matched tile-cycles and the same 10 days as figure 2 (1,397,362 pairs for JPSS-1 and
+1,401,219 for S-NPP). MODIS Aqua is on the x-axis and VIIRS on the y-axis.
+
+![Hexbin density of matched VIIRS vs MODIS Aqua obs SCF](viirs_scf_reader_test_report_figures/fig04_viirs_vs_modis_hexbin.png)
+
+*Figure 4. Matched obs SCF as hexagonal bins in SCF space (not geographic bins): 40 hexagons across SCF 0–1 horizontally
+(`gridsize = 40`, centre spacing 0.025 SCF). Colour: matched tile-cycles per hexagon, on one logarithmic scale for both
+satellites. Empty hexagons would be blank; in this sample every hexagon holds at least one pair.*
+
+- **Agreement:** 86% of pairs differ by no more than 0.1 SCF, and 8% by more than 0.2.
+- **Large disagreements are rare, and slightly more often VIIRS-low.** Pairs with VIIRS more than 0.2 below MODIS outnumber
+  those with VIIRS more than 0.2 above: 62,790 against 49,353 (JPSS-1) and 66,766 against 45,417 (S-NPP). Beyond ±0.5
+  (about 1.9% of pairs) the two sides are closer: 13,612 against 12,222 (JPSS-1) and 14,447 against 11,669 (S-NPP).
+
+![Mean MODIS Aqua vs mean VIIRS obs SCF in bins of the pair mean](viirs_scf_reader_test_report_figures/fig05_pair_mean_binned_means.png)
+
+*Figure 5. Pairs grouped by their mean SCF, (MODIS + VIIRS) / 2, in 20 bins of width 0.05 (the last bin includes 1). Each
+point is the mean MODIS SCF (x) and the mean VIIRS SCF (y) of the same pairs in one bin, connected in bin order. Bin values:
+[`fig05_pair_mean_bins.csv`](viirs_scf_reader_test_report_figures/fig05_pair_mean_bins.csv).*
+
+Figure 5 bins on the pair mean, so neither sensor is chosen as the reference. Figure 2 bins on one sensor at a time, which
+flattens the other sensor's curve. Figure 5 shows how the two sensors agree on average within groups of similar snow cover.
+It does **not** show which sensor is correct, and it does not remove the effects of measurement error.
+
+- **Both ends agree.** In the lowest and highest bins (pair mean below 0.05 or above 0.95; 78% of pairs) the mean
+  difference is within ±0.004.
+- **VIIRS is lower at high partial snow cover.** At pair mean 0.60–0.95, VIIRS is 0.03–0.07 lower than MODIS for JPSS-1 and
+  0.05–0.08 lower for S-NPP, largest at 0.75–0.90 (JPSS-1) and 0.70–0.90 (S-NPP). That is somewhat more than the rough
+  two-direction estimate under figure 2 (0.04–0.05 at SCF 0.7–0.9), which used a different binning.
+- **At low partial snow cover the difference is small:** −0.01 to −0.015 for JPSS-1 and −0.02 to −0.03 for S-NPP at pair
+  mean 0.05–0.25.
+- **The kink at pair mean 0.50–0.55** comes from hard disagreements, where one sensor reports 0 and the other 1 (pair mean
+  exactly 0.5). They are about 6% of that bin, mostly VIIRS = 1 and MODIS = 0: 542 against 145 (JPSS-1) and 467 against 178
+  (S-NPP). Without them, the bin's mean difference is −0.021 (JPSS-1) and −0.031 (S-NPP), in line with its neighbours.
+
 ## Caveats and open items
 
 - **Short and simple test:** 1 member, 10 days, one January, and a rule-based snow update. The DA results show the reader is fit

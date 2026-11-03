@@ -3,6 +3,8 @@
 #   fig01: obs SCF on one day from ObsFcstAna: MODIS Aqua, VIIRS JPSS-1 with cee4997 QC, VIIRS JPSS-1 with 5d4d636 QC
 #   fig02: density of matched VIIRS vs MODIS Aqua obs SCF (same tile and cycle), all cycles, with binned mean
 #   fig03: forecast RMS reduction vs the open loop, per run and per sensor's obs (parsed from compare_vs_ol.py output)
+#   fig04: hexbin density of the same matched pairs as fig02 (shared log color scale, no binned means)
+#   fig05: mean MODIS vs mean VIIRS within bins of the pair mean (MODIS+VIIRS)/2, + CSV of the bins
 # usage: make_report_figures.py <exp_root> <compare_vs_ol_10d.txt> <out_dir> [day YYYYMMDD]
 #   exp_root holds the M21C_test_CF0360_jpss_* experiments (Discover: /discover/nobackup/projects/land_da/M21C_testing)
 # python: Discover GEOSpyD py3.13 (netCDF4, matplotlib, cartopy)
@@ -85,6 +87,7 @@ def cycle_obs(exp, descr):
 
 
 modis = cycle_obs('M21C_test_CF0360_jpss_cee4997_A', 'MYD10C1')
+matched = {}                                          # VIIRS name -> (MODIS obs, VIIRS obs) of matched pairs
 edges = np.linspace(0, 1, 21)
 edges[-1] = 1.0001                                    # obs SCF = 1 falls in the last bin
 centers = 0.5 * (edges[:-1] + np.minimum(edges[1:], 1))
@@ -98,6 +101,7 @@ for ax, (exp, descr, name) in zip(axs, [('M21C_test_CF0360_jpss_5d4d636_B', 'VJ1
         _, im, iv = np.intersect1d(modis[c][0], viirs[c][0], return_indices=True)
         om.append(modis[c][1][im]); ov.append(viirs[c][1][iv])
     om, ov = np.concatenate(om), np.concatenate(ov)
+    matched[name] = (om, ov)                          # reused by fig04 and fig05
     H, _, _ = np.histogram2d(om, ov, bins=[edges, edges])
     H = np.ma.masked_equal(H, 0)
     pc = ax.pcolormesh(edges[:-1].tolist() + [1.0], edges[:-1].tolist() + [1.0], H.T, cmap=cmap_d,
@@ -162,4 +166,70 @@ ax.legend(loc='lower right', frameon=False, fontsize=8, labelcolor=INK2)
 ax.set_title('Snow cover forecast error, 2020-01-01 to 01-11 (1.33M common tile-cycles)', loc='left', fontsize=9.5)
 fig.savefig(os.path.join(out_dir, 'fig03_forecast_rms_vs_ol.png'), dpi=150)
 plt.close(fig)
+# ---------------------------------------------------------------- fig04
+# hexbin density of the fig02 matched pairs; gridsize = hexagons across SCF 0-1 in x (SCF-space bins, not geographic)
+HEX_GRIDSIZE = 40
+names = ['VIIRS JPSS-1', 'VIIRS S-NPP']
+fig, axs = plt.subplots(1, 2, figsize=(9, 4.3), constrained_layout=True)
+hbs = []
+for ax, name in zip(axs, names):
+    om, ov = matched[name]
+    hb = ax.hexbin(om, ov, gridsize=HEX_GRIDSIZE, extent=(0, 1, 0, 1), mincnt=1, cmap=cmap_d,
+                   linewidths=0, rasterized=True)
+    assert int(hb.get_array().sum()) == om.size, 'hexbin counts do not add up to the matched pairs'
+    hbs.append(hb)
+    ax.plot([0, 1], [0, 1], color=INK2, linewidth=1.0, label='1:1')
+    ax.text(0.03, 0.97, '%s pairs' % format(om.size, ','), transform=ax.transAxes, va='top', ha='left',
+            fontsize=8.5, color=INK2)
+    ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.set_aspect('equal')
+    ax.set_xlabel('MODIS Aqua obs SCF'); ax.set_ylabel('%s obs SCF' % name)
+    ax.set_title('%s vs MODIS Aqua, same tile and cycle' % name, loc='left', fontsize=9.5)
+    ax.legend(loc='lower right', frameon=False, fontsize=8, labelcolor=INK2)
+    for side in ('top', 'right'):
+        ax.spines[side].set_visible(False)
+hex_norm = LogNorm(vmin=1, vmax=max(hb.get_array().max() for hb in hbs))   # shared color scale
+for hb in hbs:
+    hb.set_norm(hex_norm)
+cb = fig.colorbar(hbs[0], ax=axs, shrink=0.85, pad=0.02)
+cb.set_label('Matched tile-cycles per hexagon', color=INK2)
+cb.outline.set_edgecolor(AXIS); cb.ax.tick_params(color=AXIS, labelcolor=INK2)
+fig.savefig(os.path.join(out_dir, 'fig04_viirs_vs_modis_hexbin.png'), dpi=150)
+plt.close(fig)
+
+# ---------------------------------------------------------------- fig05
+# symmetric binning: group pairs by pair_mean = (MODIS + VIIRS)/2 in 0.05 bins, [lo, hi) except last [0.95, 1];
+# within each bin, mean MODIS and mean VIIRS of exactly the same pairs
+pm_edges = np.round(np.linspace(0, 1, 21), 2)
+rows = []
+fig, axs = plt.subplots(1, 2, figsize=(9, 4.3), constrained_layout=True)
+for ax, name in zip(axs, names):
+    om, ov = matched[name]
+    pm = 0.5 * (om + ov)
+    ib = np.digitize(pm, pm_edges[1:-1])              # 0..19; pair_mean = 1 -> last bin
+    mm, mv = [], []
+    for k in range(len(pm_edges) - 1):
+        i = ib == k
+        mm.append(om[i].mean()); mv.append(ov[i].mean())
+        rows.append((name, pm_edges[k], pm_edges[k + 1], int(i.sum()), om[i].mean(), ov[i].mean(), (ov[i] - om[i]).mean()))
+    assert sum(r[3] for r in rows if r[0] == name) == om.size, 'pair-mean bins do not add up to the matched pairs'
+    ax.plot([0, 1], [0, 1], color=INK2, linewidth=1.0, label='1:1')
+    ax.plot(mm, mv, color=CAT[0], linewidth=2, marker='o', markersize=4,
+            label='bin means (bins of (MODIS + %s) / 2)' % name.split()[-1])
+    ax.text(0.03, 0.97, '%s pairs, 20 bins of width 0.05' % format(om.size, ','), transform=ax.transAxes,
+            va='top', ha='left', fontsize=8.5, color=INK2)
+    ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.set_aspect('equal')
+    ax.set_xlabel('mean MODIS Aqua obs SCF in bin'); ax.set_ylabel('mean %s obs SCF in bin' % name)
+    ax.set_title('%s vs MODIS Aqua, binned by pair mean' % name, loc='left', fontsize=9.5)
+    ax.legend(loc='lower right', frameon=False, fontsize=8, labelcolor=INK2)
+    for side in ('top', 'right'):
+        ax.spines[side].set_visible(False)
+fig.savefig(os.path.join(out_dir, 'fig05_pair_mean_binned_means.png'), dpi=150)
+plt.close(fig)
+with open(os.path.join(out_dir, 'fig05_pair_mean_bins.csv'), 'w') as f:
+    f.write('satellite,bin_lo,bin_hi,n_pairs,mean_modis_aqua,mean_viirs,mean_viirs_minus_modis\n')
+    for r in rows:
+        f.write('%s,%.2f,%.2f,%d,%.5f,%.5f,%+.5f\n' % r)
+
+for name in names:
+    print('%s: matched pairs %d (fig02, fig04 and fig05 use the same arrays)' % (name, matched[name][0].size))
 print('wrote', out_dir)

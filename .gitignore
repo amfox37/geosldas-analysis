@@ -49,6 +49,7 @@ spack*.log
 *.npz
 *.double
 *.csv
+!projects/snow_da/docs/viirs_scf_reader_test_report_figures/*.csv
 
 # Archives
 *.tar.gz
