@@ -1,7 +1,6 @@
 # VIIRS snow cover obs study: plan
 
-Status: **plan; QC mirror done and checked; periods and decision thresholds to be confirmed before any results are
-looked at.** Started 2026-11-04 (amfox). Code: `scripts/viirs_obs_study/`, `lib/scf_qc.py`.
+Status: **plan confirmed by amfox 2026-11-04 (periods and decision rule); QC mirror done and checked; downloads started.** Started 2026-11-04 (amfox). Code: `scripts/viirs_obs_study/`, `lib/scf_qc.py`.
 
 This study supports two decisions for the GEOSldas VIIRS snow cover fraction (SCF) reader
 (`read_obs_JPSS_SCF` / `read_JPSS_SCF_hdf`, GEOSldas_GridComp branch `feature/amfox/jpss_hdf5_reader`, species 59
@@ -50,7 +49,7 @@ at 1 for VIIRS). It is checked against the Fortran readers themselves (`check_qc
 order, bit-identical SCF; last run GridComp `6d0ed32`, 9 files, all OK). For Q1, VIIRS cells are kept by all reader
 tests except `Basic_QA`, and the QA class is kept as a label (`viirs_qc_without_qa`).
 
-## Periods (proposed — to confirm)
+## Periods (confirmed 2026-11-04)
 
 Seven consecutive days per period, chosen to cover accumulation, mid-winter, melt and the Southern Hemisphere winter,
 and two years. 2024 has all three VIIRS satellites, so it serves Q1 and Q2 with the same downloads.
@@ -81,7 +80,7 @@ About 49 days × 5 products ≈ 1.5 GB, plus IMS.
    update between add / remove / no change, using the forecast `asnow` of the January 2020 CF0360 ObsFcstAna files
    (Discover, `M21C_test_CF0360_jpss_*`; copy a few days).
 
-**Decision rule — fix before looking at the results** (suggested): drop class 1 if its RMSD vs MODIS Aqua is more
+**Decision rule** (confirmed 2026-11-04, before any results were looked at): drop class 1 if its RMSD vs MODIS Aqua is more
 than 1.5× that of class 3 in most periods, unless dropping it removes obs from more than 2% of snowy tiles.
 
 ## Part B — Q2 (a, b), J1 vs J2 (Mac)
@@ -113,4 +112,5 @@ season, with day-to-day spread.
 
 | Date | What |
 |---|---|
+| 2026-11-04 | Periods and decision rule confirmed (amfox); obs downloads started. |
 | 2026-11-04 | Plan written. `lib/scf_qc.py` + unit tests; `check_qc_vs_fortran.py` against GridComp `6d0ed32`: 9/9 files identical. |
