@@ -49,6 +49,22 @@ at 1 for VIIRS). It is checked against the Fortran readers themselves (`check_qc
 order, bit-identical SCF; last run GridComp `6d0ed32`, 9 files, all OK). For Q1, VIIRS cells are kept by all reader
 tests except `Basic_QA`, and the QA class is kept as a label (`viirs_qc_without_qa`).
 
+## Obs-to-tile mapping used for tile coverage
+
+As in GEOSldas (`get_tile_num_for_obs` → `get_tile_num_from_latlon`, `LDAS_TileCoordRoutines.F90`; called from
+`read_obs_*_SCF` with the grid built in `clsm_ensupd_enkf_update.F90`): the search grid is the perturbation grid
+`pert_grid_f` (`get_pert_grid`, `LDAS_PertRoutines.F90`).
+
+- **EASEv2 M36:** the pert grid is the M36 grid itself; an obs goes to the single tile of the M36 cell that contains
+  it (none if the cell has no land tile).
+- **CF0360:** the pert grid is a global lat/lon grid of 4·360 × 3·360 = 1440 × 1080 cells ("DE001440xPE001080",
+  0.25° × 1/6°). Each tile is listed in the cell that contains its center (`pert_i_indg`, `pert_j_indg`); an obs goes
+  to the tile of its cell with the smallest |Δlon| + |Δlat| to the tile center.
+- In both cases the obs is dropped if it lies outside the chosen tile's bounding box (`min/max_lon/lat`), because
+  the SCF species have FOV = 0.
+
+Tile coords and grids come from the runs' `rc_out/*.ldas_tilecoord.bin` and `*.ldas_tilegrids.bin`.
+
 ## Periods (confirmed 2026-11-04)
 
 Seven consecutive days per period, chosen to cover accumulation, mid-winter, melt and the Southern Hemisphere winter,
@@ -112,5 +128,6 @@ season, with day-to-day spread.
 
 | Date | What |
 |---|---|
+| 2026-11-04 | Obs downloaded (`get_obs.py`, 1.2 GB): 228 of 231 files; manifest in `data/viirs_obs_study/cmg/manifest.txt`. Missing: VNP10C1 2024-07-13..15 (P6) — not in the NSIDC catalog (CMR); VNP10C1 2024-07-16 is about half the usual size (likely a partial day). |
 | 2026-11-04 | Periods and decision rule confirmed (amfox); obs downloads started. |
 | 2026-11-04 | Plan written. `lib/scf_qc.py` + unit tests; `check_qc_vs_fortran.py` against GridComp `6d0ed32`: 9/9 files identical. |
