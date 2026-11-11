@@ -14,8 +14,54 @@ Python: `/Users/amfox/mamba/envs/regrid/bin/python` (numpy, netCDF4 with HDF4 an
 | `../../lib/test_scf_qc.py` | unit tests of `scf_qc.py` on synthetic cells |
 | `check_qc_vs_fortran.py` | checks `scf_qc.py` against the Fortran readers on real files |
 | `fortran_check/` | builds a small driver around the two Fortran reader routines, copied verbatim from a GridComp checkout |
+| `periods.py` | study periods P1–P7, products, file paths (shared by all scripts) |
+| `get_obs.py` | downloads the VIIRS + MODIS files of all periods; writes `manifest.txt` |
+| `../../lib/obs2tile.py` | CMG cell → GEOSldas tile (M36, CF0360) as `get_tile_num_for_obs`; cached maps in `data/viirs_obs_study/tilemap/` |
+| `check_tile_map.py` | builds and checks the tile maps (M36 end to end against local ObsFcstAna; CF0360 counts) |
+| `coverage.py` | Part A1: cells and tiles with / without QA class 1, per day; writes `data/viirs_obs_study/out/coverage/` |
+| `coverage_report.py` | Part A1 tables (stdout) and figures A1-1, A1-2 for the report |
+| `agreement.py` | Part A2: VIIRS vs MODIS Aqua and Terra, same day and cell, per QA class, band and MODIS SCF class; writes `data/viirs_obs_study/out/agreement/` |
+| `agreement_report.py` | Part A2 tables (stdout) and figures A2-1..3 for the report (needs `coverage.py` output) |
 
-Analysis scripts for Parts A and B will be added here as they are written.
+Results go into [`../../docs/viirs_obs_study_report.md`](../../docs/viirs_obs_study_report.md); figures into
+`../../docs/viirs_obs_study_report_figures/`. Outputs under `data/` are git-ignored.
+
+## Part A1, coverage
+
+```bash
+cd /Users/amfox/Desktop/geosldas-analysis/projects/snow_da
+PY=/Users/amfox/mamba/envs/regrid/bin/python
+$PY scripts/viirs_obs_study/check_tile_map.py         # tile maps: build once (~10 s) and check
+$PY scripts/viirs_obs_study/coverage.py --workers 4    # ~1 min for all 130 VIIRS files
+$PY scripts/viirs_obs_study/coverage_report.py         # tables + figures
+```
+
+`check_tile_map.py` reproduces the SCF obs of GEOSldas ObsFcstAna files from the raw CMG files. It needs, under
+`data/viirs_obs_study/`:
+
+- `validation_m36/MYD10C1/2020/`: MYD10C1 2020-05-05..07
+  (`../viirs_scf_reader_test/get_snow_cmg_obs.py <dir> 2020-05-05 2020-05-07 MYD10C1`); the M36 run
+  `LS_DAv8_M36_as_test3` is local on the Desktop.
+- `validation_cf0360/`: ObsFcstAna and rc_out of the `M21C_test_CF0360_jpss_*` runs (copied from Discover,
+  `CF0360_scf_ObsFcstAna_202001.tar.gz`); `tiles/` with the runs' tilecoord/tilegrids (from
+  `CF0360_tilecoord_tilegrids.tar.gz`, MD5s in `MD5SUMS_tiles.txt`); `cmg/` with VJ110C1, VNP10C1, MYD10C1,
+  MOD10C1 2020-01-08..11.
+
+Last run 2026-11-04: M36 17827/17827 MYD10C1 obs; CF0360 (run `5d4d636_OL`, 2020-01-09..10) 307578/307579 MYD10C1,
+392970/392971 MOD10C1, 455427/455428 VJ110C1, 450102/450103 VNP10C1. Prints ALL OK at >= 99.99%.
+
+Things that matter for the exact match (details in `lib/obs2tile.py` and the report): use the run's own tilecoord
+(the older local `M21C_test_CF0360.ldas_tilecoord.bin` has other tile boxes), only its land tiles (typ 100), and
+real*4 CMG cell centers with a fused multiply-add, as the Discover build computes them.
+
+## Part A2, agreement with MODIS
+
+```bash
+cd /Users/amfox/Desktop/geosldas-analysis/projects/snow_da
+PY=/Users/amfox/mamba/envs/regrid/bin/python
+$PY scripts/viirs_obs_study/agreement.py --workers 4    # ~1.5 min (49 days, 130 VIIRS + 98 MODIS files)
+$PY scripts/viirs_obs_study/agreement_report.py         # tables + figures; run coverage.py first
+```
 
 ## Checking the QC mirror against the Fortran readers
 

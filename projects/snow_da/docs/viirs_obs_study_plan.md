@@ -1,6 +1,6 @@
 # VIIRS snow cover obs study: plan
 
-Status: **plan confirmed by amfox 2026-11-04 (periods and decision rule); QC mirror done and checked; downloads started.** Started 2026-11-04 (amfox). Code: `scripts/viirs_obs_study/`, `lib/scf_qc.py`.
+Status: **plan confirmed by amfox 2026-11-04 (periods and decision rule); QC mirror done and checked; obs downloaded; Parts A1 and A2 done (results: `viirs_obs_study_report.md`).** Started 2026-11-04 (amfox). Code: `scripts/viirs_obs_study/`, `lib/scf_qc.py`.
 
 This study supports two decisions for the GEOSldas VIIRS snow cover fraction (SCF) reader
 (`read_obs_JPSS_SCF` / `read_JPSS_SCF_hdf`, GEOSldas_GridComp branch `feature/amfox/jpss_hdf5_reader`, species 59
@@ -63,7 +63,8 @@ As in GEOSldas (`get_tile_num_for_obs` → `get_tile_num_from_latlon`, `LDAS_Til
 - In both cases the obs is dropped if it lies outside the chosen tile's bounding box (`min/max_lon/lat`), because
   the SCF species have FOV = 0.
 
-Tile coords and grids come from the runs' `rc_out/*.ldas_tilecoord.bin` and `*.ldas_tilegrids.bin`.
+Tile coords and grids come from the runs' `rc_out/*.ldas_tilecoord.bin` and `*.ldas_tilegrids.bin`. Implemented in
+`lib/obs2tile.py`; checks and the CF0360 cell-loss finding in the report ("Obs-to-tile mapping").
 
 ## Periods (confirmed 2026-11-04)
 
@@ -97,7 +98,8 @@ About 49 days × 5 products ≈ 1.5 GB, plus IMS.
    (Discover, `M21C_test_CF0360_jpss_*`; copy a few days).
 
 **Decision rule** (confirmed 2026-11-04, before any results were looked at): drop class 1 if its RMSD vs MODIS Aqua is more
-than 1.5× that of class 3 in most periods, unless dropping it removes obs from more than 2% of snowy tiles.
+than 1.5× that of class 3 in most periods, unless dropping it removes obs from more than 2% of snowy tiles. The 2% is
+per period, i.e. snowy tile-days pooled over the period's 7 days (amfox, 2026-11-05).
 
 ## Part B — Q2 (a, b), J1 vs J2 (Mac)
 
@@ -128,6 +130,11 @@ season, with day-to-day spread.
 
 | Date | What |
 |---|---|
+| 2026-11-04 | **Obs-to-tile mapping confirmed against GEOSldas output.** CF0360 ObsFcstAna of `M21C_test_CF0360_jpss_5d4d636_OL` (2020-01-09..10, MYD10C1, MOD10C1, VJ110C1, VNP10C1) and M36 reproduced exactly (all but 1 obs per product). Needed: the runs' own tilecoord (copied from run A2; the local `M21C_test_CF0360` file has other tile boxes), land tiles only, and real*4 cell centers with fused multiply-add. CF0360 cell-loss finding confirmed: 54.5% of land CMG cells get a tile, 17.5% of land tiles never get an obs. A1 rerun with the runs' tilecoord: results unchanged to ≤0.02 points. |
+| 2026-11-04 | **A1 coverage done** (`coverage.py`, `coverage_report.py`; report section A1). Class 1 = 0.24–1.1% of kept cells, 0.8–2.8% of snowy cells. Snowy tile-days with obs only via class 1: CF0360 0.9–2.0%, M36 0.5–1.0% per period (max single day 2.45%, CF0360). Coverage leg of the decision rule not met in any period (pooled over 7 days); 2% read per period (confirmed by amfox 2026-11-05). |
+| 2026-11-05 | **A2 agreement with MODIS done** (`agreement.py`, `agreement_report.py`; report section A2). Class-1 RMSD vs MODIS Aqua 0.34–0.44, 1.5–29× class 3 in 19/19 period-satellites (snowy subset 15/19), 4.6–8× class 0; Terra the same. Bias +0.15..+0.25: class 1 sees snow MODIS does not (30% on the snowy side of 0.55 where MODIS is not, 1% the reverse). Only 11–25% of class-1 cells have a usable MODIS cell. **Both legs of the decision rule point to dropping class 1**; amfox decides. Next: A3 (IMS check of the disagreements). |
+| 2026-11-05 | amfox: the 2% coverage threshold is per period (7 days pooled), not per day. With it, the coverage leg is not met in any period (max 1.96%, S-NPP P1, CF0360), so the rule's outcome is to drop class 1. |
+| 2026-11-04 | `lib/obs2tile.py` (CMG cell → tile as GEOSldas) + `check_tile_map.py`. M36 checked end to end against `LS_DAv8_M36_as_test3` ObsFcstAna (MYD10C1, 2020-05-06): 17,783/17,827 tile obs reproduced. Finding: for CF0360 with FOV = 0 only 56% of land CMG cells get a tile (42% north of 60°N); not yet checked against CF0360 ObsFcstAna. |
 | 2026-11-04 | Obs downloaded (`get_obs.py`, 1.2 GB): 228 of 231 files; manifest in `data/viirs_obs_study/cmg/manifest.txt`. Missing: VNP10C1 2024-07-13..15 (P6) — not in the NSIDC catalog (CMR); VNP10C1 2024-07-16 is about half the usual size (likely a partial day). |
 | 2026-11-04 | Periods and decision rule confirmed (amfox); obs downloads started. |
 | 2026-11-04 | Plan written. `lib/scf_qc.py` + unit tests; `check_qc_vs_fortran.py` against GridComp `6d0ed32`: 9/9 files identical. |

@@ -12,13 +12,17 @@ adds the current state, the next steps, and context that is not in the plan.
 | `lib/scf_qc.py` (Python mirror of the GEOSldas VIIRS + MODIS SCF reader QC) | done; 7 unit tests pass; bit-identical to the Fortran readers on 9 files (GridComp `6d0ed32`) |
 | Obs download (`scripts/viirs_obs_study/get_obs.py`) | done: 228/231 files, 1.2 GB in `data/viirs_obs_study/cmg/` (git-ignored); `manifest.txt` there. Missing VNP10C1 2024-07-13..15 (not at NSIDC) |
 | Obs-to-tile mapping | worked out from the GEOSldas code; documented in the plan ("Obs-to-tile mapping") |
-| Part A (QA class 1), Part B (J1 vs J2) | **not started** |
+| Part A1 (coverage of QA class 1) | **done 2026-11-04**; results in `viirs_obs_study_report.md` |
+| Part A2 (agreement with MODIS Aqua and Terra) | **done 2026-11-05**; both legs of the decision rule point to dropping class 1 (2% threshold per period, amfox 2026-11-05) |
+| Part A3–A4, Part B (J1 vs J2) | **not started** |
+| Obs-to-tile mapping (`lib/obs2tile.py`) | done; reproduces M36 and CF0360 ObsFcstAna SCF obs exactly (2026-11-04). Use the runs' CF0360 tilecoord in `data/viirs_obs_study/validation_cf0360/tiles/`, not the older local one |
 | Part C (DA runs on Discover) | after A, B and the QA decision |
 | Git | commits `f52c48e`, `a1d079b`, `b1c4448` (+ this note) are **local only**; amfox pushes (`git push origin main`) |
 
 ## Next steps
 
-1. **Part A1, coverage** (`scripts/viirs_obs_study/coverage.py`, to write): per day and period, VIIRS cells kept
+1. **Part A1, coverage — done 2026-11-04** (see the report; the rest of this item is the original brief)
+   (`scripts/viirs_obs_study/coverage.py`): per day and period, VIIRS cells kept
    with `Basic_QA` {0,3} vs {0,1,3}, by latitude band and SCF class; share of class 1 among kept and snowy cells;
    tiles that get obs only through class-1 cells; monthly maps of class-1 cells. Use
    `scf_qc.viirs_qc_without_qa()` (all reader tests except QA) and the QA grid.
@@ -31,7 +35,7 @@ adds the current state, the next steps, and context that is not in the plan.
      the obs-mapping grid is the hard-wired 1440 × 1080 lat/lon pert grid (see plan), so no tilegrids file is
      strictly needed. Ask amfox for `ldas_tilegrids.bin` from a `M21C_test_CF0360_jpss_*` run on Discover if you want
      to confirm.
-2. **Part A2–A3, agreement with MODIS** (Aqua main, Terra second) by QA class, latitude band, month, SCF class; snow /
+2. **Part A2 done 2026-11-05 (A3 open): agreement with MODIS** (Aqua main, Terra second) by QA class, latitude band, month, SCF class; snow /
    no-snow agreement at the snow-update thresholds (`SCF_ANA_ALPHA`, `SCF_ANA_BETA`, in the GEOSldas
    `LDASsa_DEFAULT_inputs_ensupd.nml` / snow analysis code); then IMS for cells where VIIRS class 1 and MODIS disagree
    (reuse `projects/IMS/scripts/download_ims_ascii_to_nc.py`; new nearest regrid IMS → 0.05° CMG).
