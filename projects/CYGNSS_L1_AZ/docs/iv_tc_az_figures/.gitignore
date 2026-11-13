@@ -1,0 +1,3 @@
+# Keep the figure and summary-table snapshots embedded by the companion report.
+!*.png
+!*.csv
