@@ -11,6 +11,29 @@
 | A4 effect on the snow update | not started |
 | B J1 vs J2 (Q2 a, b; class 1 dropped) | **done** (2026-11-16) |
 
+## Study periods
+
+Seven periods of seven consecutive days (49 days), chosen before any results were looked at (plan, 2026-11-04) to
+cover accumulation, mid-winter, melt and the Southern Hemisphere winter, in two years. 2024 has all three VIIRS
+satellites, so it serves both questions (QA class 1; J1 vs J2) with the same downloads.
+
+| Period | Dates | Season | VIIRS products | Used in |
+|---|---|---|---|---|
+| P1 | 2020-01-13 to 01-19 | Northern Hemisphere mid-winter (overlaps the CF0360 reader-test runs) | J1, S-NPP | A1, A2, A3 |
+| P2 | 2020-04-11 to 04-17 | spring melt | J1, S-NPP | A1, A2, A3 |
+| P3 | 2024-01-13 to 01-19 | mid-winter | J1, J2, S-NPP | A1, A2, A3, B |
+| P4 | 2024-03-23 to 03-29 | early melt | J1, J2, S-NPP | A1, A2, A3, B |
+| P5 | 2024-05-18 to 05-24 | late melt (high latitudes, mountains) | J1, J2, S-NPP | A1, A2, A3, B |
+| P6 | 2024-07-13 to 07-19 | Southern Hemisphere winter (Andes, Australian Alps, New Zealand) | J1, J2, S-NPP (4 days: 13-15 July missing at NSIDC) | A1, A2, A3 (northern cells only), B |
+| P7 | 2024-11-09 to 11-15 | early accumulation | J1, J2, S-NPP | A1, A2, A3, B |
+
+- J1 = JPSS-1 / NOAA-20 (VJ110C1), J2 = JPSS-2 / NOAA-21 (VJ210C1, data from 2023-02-10, so none in 2020), S-NPP = VNP10C1.
+  MODIS Aqua (MYD10C1) is the main reference, Terra (MOD10C1) the second, IMS (A3) the independent check.
+- Part B (J1 vs J2) therefore uses P3 to P7 only.
+- Pooled numbers weight the periods by their cells, so the snowy periods (P1, P3, P7 in the north; P6 in the south)
+  dominate the snowy statistics. Seven days is a short sample of each season: one period is not a season.
+- The periods are defined in `scripts/viirs_obs_study/periods.py`, shared by all scripts.
+
 ## Summary so far
 
 - **Class 1 is a small share of the obs.** 0.24–1.1% of the cells the reader keeps, and 0.8–2.8% of the snowy cells
