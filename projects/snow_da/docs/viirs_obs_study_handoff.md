@@ -15,7 +15,9 @@ adds the current state, the next steps, and context that is not in the plan.
 | Part A1 (coverage of QA class 1) | **done 2026-11-04**; results in `viirs_obs_study_report.md` |
 | Part A2 (agreement with MODIS Aqua and Terra) | **done 2026-11-05**; both legs of the decision rule point to dropping class 1 (2% threshold per period, amfox 2026-11-05) |
 | Part A3 (IMS check) | **done 2026-11-16**; supports dropping class 1 (IMS sides with MODIS in 76% of the class-1 disagreements; class 1 accuracy 75–80% vs ~97%) |
-| Part A4, Part B (J1 vs J2) | **not started** |
+| Part B (J1 vs J2), class 1 dropped | **done 2026-11-16**: J1, J2 agree closely (RMSD 0.057); J2 adds 5–10% tile-days; 1.6–1.8% of snowy tile-days change side at 0.55 |
+| Part A4 (effect on the update) | **not started**; optional (decision already made: drop class 1) |
+| GridComp reader change for dropping class 1 | **not made** (`basic_qa_keep` stays (0, 1, 3) in `lib/scf_qc.py`; analyses use an override) |
 | Obs-to-tile mapping (`lib/obs2tile.py`) | M36: reproduces ObsFcstAna exactly (2026-11-04). **CF0360 rewritten 2026-11-16 for GridComp PR #252** (equal to the PR's Fortran harness on 6.1 M points); the old CF0360 A1 results were rerun 2026-11-16 (outcome unchanged); A2 does not use the mapping and is unaffected. Use the runs' CF0360 tilecoord in `data/viirs_obs_study/validation_cf0360/tiles/`, not the older local one |
 | Part C (DA runs on Discover) | after A, B and the QA decision |
 | Git | commits `f52c48e`, `a1d079b`, `b1c4448` (+ this note) are **local only**; amfox pushes (`git push origin main`) |

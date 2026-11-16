@@ -1,6 +1,6 @@
 # VIIRS snow cover obs study: plan
 
-Status: **plan confirmed by amfox 2026-11-04 (periods and decision rule); QC mirror done and checked; obs downloaded; Parts A1, A2 and A3 done (results: `viirs_obs_study_report.md`).** Started 2026-11-04 (amfox). Code: `scripts/viirs_obs_study/`, `lib/scf_qc.py`.
+Status: **plan confirmed by amfox 2026-11-04 (periods and decision rule); QC mirror done and checked; obs downloaded; Parts A1, A2, A3 and B done (results: `viirs_obs_study_report.md`).** Started 2026-11-04 (amfox). Code: `scripts/viirs_obs_study/`, `lib/scf_qc.py`.
 
 This study supports two decisions for the GEOSldas VIIRS snow cover fraction (SCF) reader
 (`read_obs_JPSS_SCF` / `read_JPSS_SCF_hdf`, GEOSldas_GridComp branch `feature/amfox/jpss_hdf5_reader`, species 59
@@ -130,6 +130,8 @@ season, with day-to-day spread.
 
 | Date | What |
 |---|---|
+| 2026-11-16 | **Part B done** (`jpss_compare.py`, `jpss_report.py`; report section B; class 1 dropped, P3–P7). J1 vs J2 RMSD 0.057, bias +0.003, r 0.990 (each vs Aqua 0.069–0.071; neither clearly better). J2 adds 8.5% (CF0360) / 4.8% (M36) tile-days over J1 (snowy 10.0% / 5.0%); snowy tiles: mean days with an obs per week 4.66 → 5.15 (CF0360). J1+J2 average changes the side of the 0.55 threshold in 1.6–1.8% of snowy tile-days with both. Part C is testing a small effect. |
+| 2026-11-16 | **amfox: drop QA class 1** (decision rule outcome, supported by A2 and A3). Part B uses `basic_qa_keep = (0, 3)` (`scf_qc` override; the GridComp reader change is separate and not yet made). |
 | 2026-11-16 | **A3 IMS check done** (`get_ims.py`, `ims_check.py`, `ims_report.py`; IMS 4 km, 49 days, NH only; report section A3). Class 1 vs IMS: accuracy 75–80% (classes 0, 3: ~97%), false snow 20–26% (class 0: 4%, class 3: 2%, MODIS Aqua 4.7%). Where VIIRS class 1 has snow and MODIS Aqua does not, IMS has snow in 24% of the cells (classes 0, 3: 63–65%): IMS sides with MODIS. Robust to a 1-day IMS shift. **A3 supports dropping class 1**; amfox decides. Caveats: NH only, IMS not fully independent of MODIS/VIIRS. |
 | 2026-11-16 | **CF0360 obs-to-tile mapping rewritten for GridComp PR #252** (`lib/obs2tile.py`, cache v5; the pert-grid code is removed). Equal to the PR's Fortran (`c3_offline_harness/offline_map.x`) on 6,109,513 CMG centers: 0 differences. Land CMG cells with a tile 61.9% → 100%. **A1/A2 for CF0360 must be rerun** (M36 unchanged). |
 | 2026-11-16 | **A1 rerun with the PR #252 CF0360 mapping** (`coverage.py`, `coverage_report.py`; report A1 tables and figure A1-1 updated). Snowy tile-days with obs only via class 1, CF0360: 0.8–1.8% per period (was 0.9–2.0%; max S-NPP P1 1.78%); single days over 2%: P1 S-NPP, P3 S-NPP, P5 JPSS-2. M36 unchanged. Coverage leg still not met in any period; decision-rule outcome (drop class 1) unchanged. A2 rerun the same day: `stats.csv` byte-identical (A2 is per CMG cell, no tile mapping). |

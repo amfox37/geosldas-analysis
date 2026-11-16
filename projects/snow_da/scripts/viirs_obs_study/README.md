@@ -24,6 +24,8 @@ Python: `/Users/amfox/mamba/envs/regrid/bin/python` (numpy, netCDF4 with HDF4 an
 | `get_ims.py` | downloads the IMS 4 km daily files of all periods (public NSIDC G02156) and the 4 km lat/lon grids |
 | `ims_check.py` | Part A3: VIIRS and MODIS vs IMS, per QA class and band; where VIIRS and MODIS Aqua disagree, which one IMS supports; writes `data/viirs_obs_study/out/ims/` |
 | `ims_report.py` | Part A3 tables (stdout) |
+| `jpss_compare.py` | Part B: JPSS-1 vs JPSS-2 (class 1 dropped): cell agreement, added tile coverage (M36, CF0360), update-side changes; writes `data/viirs_obs_study/out/jpss/` |
+| `jpss_report.py` | Part B tables (stdout) |
 | `agreement_report.py` | Part A2 tables (stdout) and figures A2-1..3 for the report (needs `coverage.py` output) |
 
 Results go into [`../../docs/viirs_obs_study_report.md`](../../docs/viirs_obs_study_report.md); figures into

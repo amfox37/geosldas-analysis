@@ -9,7 +9,7 @@
 | A2 agreement with MODIS (Aqua, Terra) | **done** (2026-11-05) |
 | A3 IMS check | **done** (2026-11-16) |
 | A4 effect on the snow update | not started |
-| B J1 vs J2 | not started |
+| B J1 vs J2 (Q2 a, b; class 1 dropped) | **done** (2026-11-16) |
 
 ## Summary so far
 
@@ -41,6 +41,12 @@
   mapping of GridComp PR #252 (they were first computed with develop's lat/lon pert-grid mapping, which dropped 38%
   of the land CMG cells; the decision-rule outcome did not change: the largest per-period share went from 1.96% to
   1.78%). Details under "Obs-to-tile mapping" below.
+
+- **Part B, J1 vs J2 (class 1 dropped, 2026-11-16):** the two satellites agree closely (RMSD 0.057, bias +0.003,
+  r 0.990; at SCF ≥ 0.55 they differ in 0.8% of matched cells), closer to each other than either is to MODIS Aqua
+  (0.069–0.071), and neither is clearly better against Aqua (J2 slightly closer in P3–P5, J1 in P6–P7). J2 adds
+  5–10% tile-days over J1 (CF0360 8.5%, M36 4.8%; snowy 10.0% and 5.0%), and averaging the two moves a tile to the
+  other side of the 0.55 threshold in 1.6–1.8% of the snowy tile-days where both have an obs. Details in section B.
 
 ## Method notes (A1)
 
@@ -481,4 +487,80 @@ $PY scripts/viirs_obs_study/get_ims.py                    # 49 IMS 4 km files + 
 $PY scripts/viirs_obs_study/ims_check.py --workers 4      # ~1.5 min, writes data/viirs_obs_study/out/ims/
 $PY scripts/viirs_obs_study/ims_check.py --shift 1        # sensitivity: IMS file of day + 1 (out/ims_shift1/)
 $PY scripts/viirs_obs_study/ims_report.py                 # tables (stdout); --dir ims_shift1 for the sensitivity run
+```
+
+## B. JPSS-1 vs JPSS-2
+
+QA class 1 is dropped here (amfox, 2026-11-16): VIIRS cells are kept with `Basic_QA` in {0, 3}, and every other
+reader test as before (`scf_qc.viirs_qc_without_qa`). Periods P3–P7 (J2 data start 2023-02-10); J1 = VJ110C1
+(NOAA-20), J2 = VJ210C1 (NOAA-21); MODIS Aqua as the reference. Tile spaces M36 and CF0360 with the PR #252 mapping.
+Tile obs of J1+J2 is what the update gets: the average of the two species' tile means.
+
+### B1. Agreement
+
+P3–P7 pooled; "snowy" = either value > 0. The Aqua comparison uses the cells where J1, J2 and Aqua are all kept, so
+J1 and J2 are scored on the same cells.
+
+| Comparison | Cells (M) | Bias | RMSD | r | Snowy cells (M) | Snowy bias | Snowy RMSD | Snowy r |
+|---|---|---|---|---|---|---|---|---|
+| J1 vs J2 | 107.8 | +0.003 | 0.057 | 0.990 | 31.8 | +0.011 | 0.105 | 0.963 |
+| J1 vs Aqua | 83.4 | −0.004 | 0.069 | 0.983 | 20.9 | −0.015 | 0.138 | 0.945 |
+| J2 vs Aqua | 83.4 | −0.007 | 0.071 | 0.982 | 20.1 | −0.027 | 0.145 | 0.938 |
+
+- J1 and J2 agree better with each other than with MODIS, and J1 is slightly higher than J2 (+0.003; +0.011 on snowy cells).
+- **Snow / no snow:** at SCF ≥ 0.55 they differ in 0.81% of the matched cells (J1 only 562k, J2 only 315k), 3.5% of the
+  snow cells; at SCF > 0, 3.3% and 11.2% (small SCF values).
+- **Against Aqua neither wins.** Pooled, J1 is closer by 0.002 RMSD (snowy 0.138 vs 0.145), but by period J2 is
+  closer in P3–P5 (by 0.0003–0.0011) and J1 in P6 (0.0012) and P7 (0.009: J2 is lower than J1 by 0.005 more). By band the
+  RMSD of J1 vs J2 is largest at 45–60°N among the bands with many cells (0.091, snowy 0.119).
+- The differences between J1 and J2 are small against the error of either against MODIS.
+
+### B2. Added coverage
+
+Tile-days (a tile has an obs on a day if at least one kept cell maps to it; P3–P7 pooled):
+
+| Grid | J1 only | J2 only | Both | J2 adds, % of J1 tile-days | Snowy: J2 adds, % of J1 |
+|---|---|---|---|---|---|
+| CF0360 | 2.23M | 1.92M | 20.38M | 8.5 | 10.0 |
+| M36 | 0.19M | 0.15M | 2.88M | 4.8 | 5.0 |
+
+- J1 alone is slightly better than J2 alone: J1 adds 10.0% (CF0360) and 6.3% (M36) over J2.
+- J2 adds 3.5–16% by band and period on CF0360 (largest at 45–60°N in P7, 16%; up to 23% at 45–60°S, few tiles) and 2.0–10% on M36 (up to 12% at 45–60°S).
+- **Over a 7-day period, in tiles that are snowy on at least one day:** the mean number of days with an obs rises from
+  4.66 to 5.15 on CF0360 and from 5.58 to 5.90 on M36; tiles with an obs on all 7 days from 14.8% to 22.8% (CF0360)
+  and from 33.1% to 42.9% (M36). On CF0360 no snowy tile is left without an obs for the whole week with J1 or J2
+  (0.6% with J1 alone).
+- CF0360 gains more than M36 because its tiles are small and a swath gap or a cloud hits a whole tile.
+
+### B3. Effect on the update side
+
+Tile-days where J1 and J2 both have an obs: how often the J1+J2 average is on the other side of a threshold than
+J1 alone (snowy tile-days = either > 0; SCF ≥ 0.55 is the removal threshold, SCF > 0 adds snow):
+
+| Grid | Snowy tile-days (M) | J1+J2 vs J1 changes side at 0.55 | at > 0 | J1 vs J2 differ at 0.55 | at > 0 | Mean abs(J1+J2 − J1) |
+|---|---|---|---|---|---|---|
+| CF0360 | 5.46 | 1.75% | 4.26% | 3.35% | 19.5% | 0.023 |
+| M36 | 1.11 | 1.59% | 3.51% | 3.02% | 17.4% | 0.020 |
+
+- At the removal threshold the second satellite changes the side in about 1.6–1.8% of the snowy tile-days where both
+  have an obs (by period 0.9–2.5%). At SCF > 0 it is 3.5–4.3% (by period 1.4–12%; P6 has little snow and the
+  differences are small SCF values).
+- This is the obs side only: the update also depends on the forecast `asnow` (add if `asnow < 0.60 × obs`).
+- Together with B2: the second satellite adds 5–10% tile-days and moves a small share of the obs across a threshold.
+  Part C would be testing a small effect; the largest relative gain in coverage is at 45–60°N in P7 (16% on CF0360).
+
+### Caveats
+
+- A tile "has an obs on a day" if the day's file has a kept cell in it, as in A1 (exact except at the date line).
+- B3 averages the species' tile means as GEOSldas does; it does not test the update itself.
+- Aqua is a reference, not truth; B1 compares J1 and J2 with it on the same cells.
+- Southern Hemisphere is included (no IMS needed); P6 (Southern Hemisphere winter) is in all numbers.
+
+### Reproduce
+
+```bash
+cd /Users/amfox/Desktop/geosldas-analysis/projects/snow_da
+PY=/Users/amfox/mamba/envs/regrid/bin/python
+$PY scripts/viirs_obs_study/jpss_compare.py        # ~1 min, writes data/viirs_obs_study/out/jpss/ (one worker per period)
+$PY scripts/viirs_obs_study/jpss_report.py         # tables (stdout)
 ```
