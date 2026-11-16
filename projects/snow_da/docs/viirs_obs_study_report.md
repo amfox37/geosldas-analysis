@@ -7,7 +7,7 @@
 |---|---|
 | A1 coverage of VIIRS `Basic_QA` class 1 | **done** (2026-11-04) |
 | A2 agreement with MODIS (Aqua, Terra) | **done** (2026-11-05) |
-| A3 IMS check | not started |
+| A3 IMS check | **done** (2026-11-16) |
 | A4 effect on the snow update | not started |
 | B J1 vs J2 | not started |
 
@@ -23,8 +23,12 @@
   P3 (S-NPP) and P5 (JPSS-2). So by itself, coverage would not keep class 1; the decision now rests on its error vs MODIS (A2).
 - **Error leg of the decision rule: met (A2).** Against MODIS Aqua, the class-1 RMSD is 1.5–29× the class-3 RMSD
   in all 19 period-satellite cases (0.34–0.44 vs 0.01–0.29), and 4.6–8× the class-0 RMSD. Against Terra it is the
-  same (1.6–39× class 3). **With both legs (2% per period, confirmed by amfox 2026-11-05), the rule says: drop class 1.** A3 (IMS) is still
-  to come.
+  same (1.6–39× class 3). **With both legs (2% per period, confirmed by amfox 2026-11-05), the rule says: drop class 1.** A3 (IMS) agrees (next bullet).
+- **IMS agrees with MODIS about class 1 (A3).** Against IMS, VIIRS class-1 cells are 75–80% accurate (classes 0 and 3:
+  ~97%): where class 1 reports SCF ≥ 0.55, IMS has no snow in 20–26% of the cells (class 0: 4%, class 3: 2%, MODIS
+  Aqua: 4.7%). Where VIIRS class 1 has snow and MODIS Aqua does not, IMS sides with MODIS in 76% of the cells (IMS has
+  snow in 24%; for classes 0 and 3 IMS sides with VIIRS in 63–65%). This covers all NH class-1 cells, not just the
+  11–25% that MODIS also sees. Northern Hemisphere only; IMS is not fully independent of MODIS and VIIRS.
 - **Class 1 errs one way: it sees snow that MODIS does not.** Bias +0.15 to +0.25. Where MODIS Aqua has SCF = 0,
   class-1 VIIRS has mean SCF 0.43. At the snow-removal threshold (0.55), 30% of class-1 cells are on the snowy
   side while MODIS is on the other, against 1% the other way (class 0: 0.4% and 0.6%). Where MODIS sees full
@@ -67,8 +71,8 @@
   wins; if there is none, the cells of the 8 points at ±½ cell are searched the same way. Otherwise no tile.
 - **Superseded (2026-11-16):** until PR #252, develop searched a lat/lon pert grid (1440 × 1080) for the nearest tile
   center and then dropped the obs outside that tile's bounding box. That lost 38% of land CMG cells (61.9% got a
-  tile). The PR maps 100%. **A1 was rerun with the new mapping on 2026-11-16 (outcome unchanged); the CF0360 tile-level parts of A2 must
-  still be rerun** (the M36 numbers are unaffected).
+  tile). The PR maps 100%. **A1 was rerun with the new mapping on 2026-11-16 (outcome unchanged). A2 works per CMG cell, not per tile, so
+  the mapping does not touch it; rerun the same day, `stats.csv` is byte-identical.**
 
 The map depends only on the tile space and is cached once per tilecoord file (`data/viirs_obs_study/tilemap/`).
 Three details matter for an exact match:
@@ -385,4 +389,96 @@ cd /Users/amfox/Desktop/geosldas-analysis/projects/snow_da
 PY=/Users/amfox/mamba/envs/regrid/bin/python
 $PY scripts/viirs_obs_study/agreement.py --workers 4      # ~1.5 min, writes data/viirs_obs_study/out/agreement/
 $PY scripts/viirs_obs_study/agreement_report.py           # tables (stdout) + figures A2-1..3 (needs coverage.py output)
+```
+
+## A3. IMS check
+
+### Method
+
+IMS (NOAA/NIC Interactive Multisensor Snow and Ice, 4 km, Northern Hemisphere, categories sea / land / sea ice /
+snow) is used as a snow / no-snow reference for the cells of A1 and A2. It is an analyst product that draws on many
+sources, among them MODIS and VIIRS imagery, so it is not fully independent of the obs tested here; its errors are
+those of an analysis (snow line, shallow and patchy snow, mountains).
+
+- **Data:** `ims<YYYY><DDD>_00UTC_4km_v1.3.asc.gz` for the 49 study days (`get_ims.py`, public NSIDC G02156, 247 MB
+  with the 4 km lat/lon grids). Paired by file name with the obs day, as in `projects/IMS`. The header of a file says
+  "Julian day of IMS data log" is the day before, so a one-day offset is possible; the results with the file of
+  day + 1 (6 of 7 days per period) are the same to within 1 point (below).
+- **IMS to CMG:** the IMS pixel nearest to each 0.05° cell center (polar stereographic, true at 60°N, central
+  meridian −80°; pixel centers reproduce the IMS lat/lon file to 4 m). Only land and snow pixels are used. Two IMS
+  states: *nearest* (nearest pixel is snow) and *decisive* (the 3×3 window around it is all snow or all no snow;
+  this drops the snow-line edge, where a 4 km and a 5 km pixel cannot be expected to agree). Both give the same
+  picture; *nearest* is quoted, *decisive* is in the tables of `ims_report.py`.
+- **Cells:** north of the equator only (IMS covers the Northern Hemisphere). P6 (Southern Hemisphere winter) therefore
+  has no reference for the Andes, Australia and New Zealand; its northern cells are mostly snow-free.
+- **Snow definitions** as in A2: SCF ≥ 0.55 (below it the update removes snow) and SCF > 0 (adds snow). The 0.55
+  results are quoted; the SCF > 0 results are the same in sign.
+- **Two checks:** (1) every kept cell of each product against IMS (no MODIS needed), per QA class; (2) the cells where
+  VIIRS and MODIS Aqua are both kept, split into both snow / VIIRS only / MODIS only / neither, with the share of
+  these cells where IMS has snow.
+
+### Result 1: VIIRS classes against IMS
+
+SCF ≥ 0.55, nearest pixel, all periods, all kept NH cells (`false snow`: obs has snow, IMS has none; `missed
+snow`: IMS has snow, obs has none):
+
+| Product, class | Cells (M) | Accuracy % | False snow % of obs snow | Missed snow % of IMS snow |
+|---|---|---|---|---|
+| JPSS-1 class 0 | 117.2 | 96.8 | 4.2 | 8.6 |
+| **JPSS-1 class 1** | 0.90 | **75.4** | **26.2** | 0.8 |
+| JPSS-1 class 3 | 18.0 | 96.5 | 2.2 | 1.5 |
+| JPSS-2 class 0 | 83.5 | 97.1 | 3.8 | 9.7 |
+| **JPSS-2 class 1** | 0.62 | **80.5** | **20.1** | 0.4 |
+| JPSS-2 class 3 | 11.0 | 95.8 | 2.3 | 2.2 |
+| S-NPP class 0 | 106.1 | 96.5 | 4.0 | 9.0 |
+| **S-NPP class 1** | 0.94 | **78.7** | **22.2** | 0.4 |
+| S-NPP class 3 | 17.2 | 96.1 | 2.2 | 2.0 |
+| MODIS Aqua (benchmark) | 107.6 | 96.7 | 4.7 | 7.6 |
+| MODIS Terra (benchmark) | 115.2 | 96.9 | 3.9 | 6.7 |
+
+- Class 1 has five to twelve times the false-snow rate of classes 0 and 3 and of MODIS, and almost never misses snow
+  (0.4–0.8%): the same one-sided bias as in A2. Classes 0 and 3 and MODIS miss 1.5–10% of IMS snow instead.
+- **By latitude (all VIIRS products, 0.55):** north of 45°N class 1 is 91–93% accurate with 6.5–9% false snow (class 3:
+  1.7–2.7%, class 0: 1.0–5.3%), so it is better there but still worse than the other classes. The damage is at
+  30–45°N (accuracy 39%, false snow 65%; the band with the Tibetan Plateau, Himalaya and Rockies; not broken down by month or region here) and in the
+  subtropics (0–30°N: 75%, false snow 81%, 147k cells).
+- **By period:** class-1 false snow is 16–29% in P1–P5 and P7 and 57% in P6 (July, northern mountains); class 0 is
+  2–8% (P7: 25%) and class 3 0–6%, except P6 (70%, but only 0.2M cells, mostly snow-free).
+
+### Result 2: who is right where VIIRS and MODIS disagree
+
+Cells where VIIRS and MODIS Aqua are both kept, SCF ≥ 0.55, all VIIRS products and periods; share of the cells where
+IMS has snow:
+
+| QA class | VIIRS snow only: cells | IMS has snow | MODIS snow only: cells | IMS has snow | Both snow: IMS has snow | Neither: IMS has snow |
+|---|---|---|---|---|---|---|
+| 0 | 1,030,857 | 62.6% | 1,519,301 | 45.8% | 97.8% | 2.3% |
+| **1** | **113,356** | **23.7%** | 3,284 | 35.7% | 79.6% | 3.8% |
+| 3 | 164,476 | 64.6% | 624,524 | 46.2% | 98.0% | 13.6% |
+
+- In the cells where class 1 has snow and MODIS does not, IMS has snow in 24%: IMS sides with MODIS in 76%. For
+  classes 0 and 3 the split is about 2:1 for VIIRS. The decisive-window version is 18% for class 1.
+- Class 1 has 34 times as many VIIRS-only as MODIS-only cells (113k vs 3.3k; class 0: 0.7, class 3: 0.3). Where both
+  have snow, IMS confirms it in 80% of class-1 cells (98% for classes 0 and 3).
+- By period, the share of class-1 VIIRS-only cells where IMS has snow is 12–43% (P1 43%, P6 12%, P7 17%).
+- The disagreement cells are 11–25% of all class-1 cells; Result 1 covers all of them.
+
+### Checks and caveats
+
+- **IMS day offset:** with the IMS file of day + 1 (6 of 7 days per period), class-1 false snow is 26.3% (JPSS-1; 26.2%
+  with day 0) and the VIIRS-only cells with IMS snow 23.1% (23.7%).
+- **SCF > 0:** class-1 false snow is 21–27% (class 3: 4.5–5.1%, class 0: 17–22%, where tiny SCF values count as snow); where VIIRS class 1 has any snow and MODIS has none, IMS has snow in 8% (class 0: 19%).
+- IMS is a coarser, analyst-based reference. It does not prove that class 1 is wrong in each cell, but the two
+  independent-ish references (MODIS in A2, IMS here) agree on the direction and size of the error.
+- Not checked: Southern Hemisphere, and class 1 where neither IMS nor MODIS has a usable cell.
+
+### Reproduce
+
+```bash
+cd /Users/amfox/Desktop/geosldas-analysis/projects/snow_da
+PY=/Users/amfox/mamba/envs/regrid/bin/python
+$PY scripts/viirs_obs_study/get_ims.py                    # 49 IMS 4 km files + lat/lon, 247 MB, data/viirs_obs_study/ims/
+$PY scripts/viirs_obs_study/ims_check.py --workers 4      # ~1.5 min, writes data/viirs_obs_study/out/ims/
+$PY scripts/viirs_obs_study/ims_check.py --shift 1        # sensitivity: IMS file of day + 1 (out/ims_shift1/)
+$PY scripts/viirs_obs_study/ims_report.py                 # tables (stdout); --dir ims_shift1 for the sensitivity run
 ```
