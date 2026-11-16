@@ -16,7 +16,7 @@ Python: `/Users/amfox/mamba/envs/regrid/bin/python` (numpy, netCDF4 with HDF4 an
 | `fortran_check/` | builds a small driver around the two Fortran reader routines, copied verbatim from a GridComp checkout |
 | `periods.py` | study periods P1–P7, products, file paths (shared by all scripts) |
 | `get_obs.py` | downloads the VIIRS + MODIS files of all periods; writes `manifest.txt` |
-| `../../lib/obs2tile.py` | CMG cell → GEOSldas tile (M36, CF0360) as `get_tile_num_for_obs`; cached maps in `data/viirs_obs_study/tilemap/` |
+| `../../lib/obs2tile.py` | CMG cell → GEOSldas tile (M36; CF0360 as GridComp PR #252) as `get_tile_num_for_obs`; cached maps in `data/viirs_obs_study/tilemap/` |
 | `check_tile_map.py` | builds and checks the tile maps (M36 end to end against local ObsFcstAna; CF0360 counts) |
 | `coverage.py` | Part A1: cells and tiles with / without QA class 1, per day; writes `data/viirs_obs_study/out/coverage/` |
 | `coverage_report.py` | Part A1 tables (stdout) and figures A1-1, A1-2 for the report |
@@ -47,8 +47,8 @@ $PY scripts/viirs_obs_study/coverage_report.py         # tables + figures
   `CF0360_tilecoord_tilegrids.tar.gz`, MD5s in `MD5SUMS_tiles.txt`); `cmg/` with VJ110C1, VNP10C1, MYD10C1,
   MOD10C1 2020-01-08..11.
 
-Last run 2026-11-04: M36 17827/17827 MYD10C1 obs; CF0360 (run `5d4d636_OL`, 2020-01-09..10) 307578/307579 MYD10C1,
-392970/392971 MOD10C1, 455427/455428 VJ110C1, 450102/450103 VNP10C1. Prints ALL OK at >= 99.99%.
+Last run 2026-11-04: M36 17827/17827 MYD10C1 obs. The CF0360 check of that date tested the old pert-grid mapping
+(void); CF0360 is now checked against the PR #252 Fortran harness (see the report). Prints ALL OK at >= 99.99%.
 
 Things that matter for the exact match (details in `lib/obs2tile.py` and the report): use the run's own tilecoord
 (the older local `M21C_test_CF0360.ldas_tilecoord.bin` has other tile boxes), only its land tiles (typ 100), and

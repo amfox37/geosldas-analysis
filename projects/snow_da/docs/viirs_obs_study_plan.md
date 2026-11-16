@@ -57,11 +57,11 @@ As in GEOSldas (`get_tile_num_for_obs` → `get_tile_num_from_latlon`, `LDAS_Til
 
 - **EASEv2 M36:** the pert grid is the M36 grid itself; an obs goes to the single tile of the M36 cell that contains
   it (none if the cell has no land tile).
-- **CF0360:** the pert grid is a global lat/lon grid of 4·360 × 3·360 = 1440 × 1080 cells ("DE001440xPE001080",
-  0.25° × 1/6°). Each tile is listed in the cell that contains its center (`pert_i_indg`, `pert_j_indg`); an obs goes
-  to the tile of its cell with the smallest |Δlon| + |Δlat| to the tile center.
-- In both cases the obs is dropped if it lies outside the chosen tile's bounding box (`min/max_lon/lat`), because
-  the SCF species have FOV = 0.
+- **CF0360:** as GEOSldas_GridComp PR #252 (`get_tile_num_from_latlon_c3`): cube-sphere cell of the obs from
+  `MAPL_GetGlobalHorzIJIndex`; among the tiles of that cell (`i_indg`, `j_indg`) whose bounding box contains the obs,
+  the smallest `(dx/hx)² + (dy/hy)²`; if none, the same over the cells of 8 points at ±½ cell. (Until #252, develop
+  used the 1440 × 1080 lat/lon pert grid and the nearest tile center, which lost 38% of land CMG cells.)
+- With FOV = 0 an obs is dropped when no tile bounding box contains it (M36: when its EASE cell has no land tile).
 
 Tile coords and grids come from the runs' `rc_out/*.ldas_tilecoord.bin` and `*.ldas_tilegrids.bin`. Implemented in
 `lib/obs2tile.py`; checks and the CF0360 cell-loss finding in the report ("Obs-to-tile mapping").
@@ -130,7 +130,9 @@ season, with day-to-day spread.
 
 | Date | What |
 |---|---|
-| 2026-11-04 | **Obs-to-tile mapping confirmed against GEOSldas output.** CF0360 ObsFcstAna of `M21C_test_CF0360_jpss_5d4d636_OL` (2020-01-09..10, MYD10C1, MOD10C1, VJ110C1, VNP10C1) and M36 reproduced exactly (all but 1 obs per product). Needed: the runs' own tilecoord (copied from run A2; the local `M21C_test_CF0360` file has other tile boxes), land tiles only, and real*4 cell centers with fused multiply-add. CF0360 cell-loss finding confirmed: 54.5% of land CMG cells get a tile, 17.5% of land tiles never get an obs. A1 rerun with the runs' tilecoord: results unchanged to ≤0.02 points. |
+| 2026-11-16 | **CF0360 obs-to-tile mapping rewritten for GridComp PR #252** (`lib/obs2tile.py`, cache v5; the pert-grid code is removed). Equal to the PR's Fortran (`c3_offline_harness/offline_map.x`) on 6,109,513 CMG centers: 0 differences. Land CMG cells with a tile 61.9% → 100%. **A1/A2 for CF0360 must be rerun** (M36 unchanged). |
+| 2026-11-16 | **A1 rerun with the PR #252 CF0360 mapping** (`coverage.py`, `coverage_report.py`; report A1 tables and figure A1-1 updated). Snowy tile-days with obs only via class 1, CF0360: 0.8–1.8% per period (was 0.9–2.0%; max S-NPP P1 1.78%); single days over 2%: P1 S-NPP, P3 S-NPP, P5 JPSS-2. M36 unchanged. Coverage leg still not met in any period; decision-rule outcome (drop class 1) unchanged. A2 tile-level parts for CF0360 still to rerun. |
+| 2026-11-04 | **Obs-to-tile mapping confirmed against GEOSldas output (old CF0360 pert-grid mapping, superseded 2026-11-16).** CF0360 ObsFcstAna of `M21C_test_CF0360_jpss_5d4d636_OL` (2020-01-09..10, MYD10C1, MOD10C1, VJ110C1, VNP10C1) and M36 reproduced exactly (all but 1 obs per product). Needed: the runs' own tilecoord (copied from run A2; the local `M21C_test_CF0360` file has other tile boxes), land tiles only, and real*4 cell centers with fused multiply-add. CF0360 cell-loss finding confirmed: 54.5% of land CMG cells get a tile, 17.5% of land tiles never get an obs. A1 rerun with the runs' tilecoord: results unchanged to ≤0.02 points. |
 | 2026-11-04 | **A1 coverage done** (`coverage.py`, `coverage_report.py`; report section A1). Class 1 = 0.24–1.1% of kept cells, 0.8–2.8% of snowy cells. Snowy tile-days with obs only via class 1: CF0360 0.9–2.0%, M36 0.5–1.0% per period (max single day 2.45%, CF0360). Coverage leg of the decision rule not met in any period (pooled over 7 days); 2% read per period (confirmed by amfox 2026-11-05). |
 | 2026-11-05 | **A2 agreement with MODIS done** (`agreement.py`, `agreement_report.py`; report section A2). Class-1 RMSD vs MODIS Aqua 0.34–0.44, 1.5–29× class 3 in 19/19 period-satellites (snowy subset 15/19), 4.6–8× class 0; Terra the same. Bias +0.15..+0.25: class 1 sees snow MODIS does not (30% on the snowy side of 0.55 where MODIS is not, 1% the reverse). Only 11–25% of class-1 cells have a usable MODIS cell. **Both legs of the decision rule point to dropping class 1**; amfox decides. Next: A3 (IMS check of the disagreements). |
 | 2026-11-05 | amfox: the 2% coverage threshold is per period (7 days pooled), not per day. With it, the coverage leg is not met in any period (max 1.96%, S-NPP P1, CF0360), so the rule's outcome is to drop class 1. |

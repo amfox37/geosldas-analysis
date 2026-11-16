@@ -15,7 +15,7 @@ adds the current state, the next steps, and context that is not in the plan.
 | Part A1 (coverage of QA class 1) | **done 2026-11-04**; results in `viirs_obs_study_report.md` |
 | Part A2 (agreement with MODIS Aqua and Terra) | **done 2026-11-05**; both legs of the decision rule point to dropping class 1 (2% threshold per period, amfox 2026-11-05) |
 | Part A3–A4, Part B (J1 vs J2) | **not started** |
-| Obs-to-tile mapping (`lib/obs2tile.py`) | done; reproduces M36 and CF0360 ObsFcstAna SCF obs exactly (2026-11-04). Use the runs' CF0360 tilecoord in `data/viirs_obs_study/validation_cf0360/tiles/`, not the older local one |
+| Obs-to-tile mapping (`lib/obs2tile.py`) | M36: reproduces ObsFcstAna exactly (2026-11-04). **CF0360 rewritten 2026-11-16 for GridComp PR #252** (equal to the PR's Fortran harness on 6.1 M points); the old CF0360 results (A1, A2) are void until rerun. Use the runs' CF0360 tilecoord in `data/viirs_obs_study/validation_cf0360/tiles/`, not the older local one |
 | Part C (DA runs on Discover) | after A, B and the QA decision |
 | Git | commits `f52c48e`, `a1d079b`, `b1c4448` (+ this note) are **local only**; amfox pushes (`git push origin main`) |
 

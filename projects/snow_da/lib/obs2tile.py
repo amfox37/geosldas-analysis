@@ -2,20 +2,17 @@
 Map 0.05 deg CMG cells to GEOSldas tiles, as the SCF obs readers do.
 
 Mirrors ``get_tile_num_for_obs`` -> ``get_tile_num_from_latlon``
-(GEOSldas_GridComp, ``LDAS_TileCoordRoutines.F90``; checked at commit 6d0ed32), with
-FOV = 0 as for the SCF species:
+(GEOSldas_GridComp, ``LDAS_TileCoordRoutines.F90``; M36 checked at 6d0ed32, cube-sphere
+follows PR #252 at e36655c), with FOV = 0 as for the SCF species:
 
-- the search grid is the perturbation grid (``get_pert_grid``, ``LDAS_PertRoutines.F90``);
-- **EASEv2 (M36):** the pert grid is the EASE grid; an obs goes to the single tile of
-  the EASE cell that contains it (nint of the 0-based EASE row/column), none if the
-  cell has no land tile;
-- **cube-sphere (CF0360):** the pert grid is the global lat/lon grid
-  ``DE001440xPE001080`` (4N x 3N cells for CF N; 0.25 x 1/6 deg; edges at -180/-90);
-  each tile is listed in the pert cell that contains its center; an obs goes to the
-  tile of its pert cell with the smallest |dlon| + |dlat| to the tile center (first
-  tile wins a tie);
-- in both cases the obs is dropped if it lies outside the bounding box
-  (``min/max_lon/lat``) of the chosen tile.
+- **EASEv2 (M36):** an obs goes to the single tile of the EASE cell that contains it (nint of
+  the 0-based EASE row/column), none if the cell has no land tile;
+- **cube-sphere (CF0360):** as GEOSldas_GridComp PR #252 (``get_tile_num_from_latlon_c3``):
+  the cube-sphere cell of the obs (``MAPL_GetGlobalHorzIJIndex``, reimplemented in ``cs_ij``)
+  and, if no tile bounding box in it contains the obs, the cells of 8 points at +/- half a
+  cell; among the tiles whose bounding box contains the obs, the smallest normalized
+  distance (dx/hx)**2 + (dy/hy)**2 wins. FOV = 0 only. (The earlier lat/lon pert-grid
+  search, which lost ~45% of land CMG cells, is gone.)
 
 The readers then average all kept obs of a tile (one obs per tile and window).
 
@@ -121,54 +118,126 @@ def build_map_ease(tc, grid=EASE2_M36):
     return out
 
 
-# ── cube-sphere: lat/lon pert grid ────────────────────────────────────────────
+# ── cube-sphere: cube-sphere grid cells (GEOSldas_GridComp PR #252) ───────────
 
-def pert_grid_cs(n_cs):
-    """Global lat/lon pert grid of a CF<n_cs> tile space (get_pert_grid + LDAS_create_grid_g)."""
-    n_lon, n_lat = 4 * n_cs, 3 * n_cs
-    return dict(name=f'DE{n_lon:06d}xPE{n_lat:06d}', n_lon=n_lon, n_lat=n_lat,
-                ll_lon=np.float32(-180.), ll_lat=np.float32(-90.),
-                dlon=np.float32(360.) / np.float32(n_lon), dlat=np.float32(180.) / np.float32(n_lat))
+_SQR2 = 1.41421356237310
+_ALPHA = 0.615479708670387          # asin(1/sqrt(3))
+_SHIFT = 0.174532925199433          # pi/18, the "Fuji" shift of the GEOS cube-sphere grid
+_EPS = 2.220446049250313e-16        # epsilon(1.0d0)
 
 
-def _pert_ij(pg, lon32, lat32):
-    """1-based pert-grid indices, as get_ij_ind_from_latlon for LatLon (i_dir = j_dir = +1)."""
-    i = np.ceil((lon32 - pg['ll_lon']) / pg['dlon']).astype(np.int64)
-    j = np.ceil((lat32 - pg['ll_lat']) / pg['dlat']).astype(np.int64)
-    return i, j
+def cs_ij(lon_deg, lat_deg, n_cs):
+    """
+    1-based global cube-sphere cell (i, j) of lon/lat [deg]: i = 1..N, j = 1..6N (six faces
+    stacked in j), as MAPL_GetGlobalHorzIJIndex (unstretched gnomonic equiangular grid).
+    lon/lat are converted to radians in float64, as get_ij_ind_from_latlon_c3 does.
+    """
+    lon = np.asarray(lon_deg, dtype=np.float64) * (np.pi / 180.) + _SHIFT
+    lat = np.asarray(lat_deg, dtype=np.float64) * (np.pi / 180.)
+    xyz = np.stack([np.cos(lat) * np.cos(lon), np.cos(lat) * np.sin(lon), np.sin(lat)])
+    xyz = xyz / np.abs(xyz).max(axis=0)
+    x, y, z = xyz
+    dalpha = 2. * _ALPHA / n_cs
+
+    def idx(u, v):
+        return (np.ceil((np.arctan(u / _SQR2) + _ALPHA) / dalpha).astype(np.int64),
+                np.ceil((np.arctan(v / _SQR2) + _ALPHA) / dalpha).astype(np.int64))
+
+    # faces tested in MAPL's order, so edge points go to the lowest face
+    tests = [(np.abs(x - 1) <= _EPS, y, z), (np.abs(y - 1) <= _EPS, -x, z),
+             (np.abs(z - 1) <= _EPS, -x, -y), (np.abs(x + 1) <= _EPS, -z, -y),
+             (np.abs(y + 1) <= _EPS, -z, x), (np.abs(z + 1) <= _EPS, y, x)]
+    ii = np.full(lon.shape, -1, dtype=np.int64)
+    jj = np.full(lon.shape, -1, dtype=np.int64)
+    done = np.zeros(lon.shape, dtype=bool)
+    for face, (m, u, v) in enumerate(tests):
+        m = m & ~done
+        if m.any():
+            i, j = idx(u[m], v[m])
+            j = np.where(j == 0, 1, j)
+            j = np.where(j == n_cs + 1, n_cs, j)
+            ii[m], jj[m] = i, j + n_cs * face
+            done |= m
+    ii = np.where(ii == 0, 1, ii)
+    ii = np.where(ii == n_cs + 1, n_cs, ii)
+    return ii, jj
+
+
+def _cs_tile_lists(tc, n_cs):
+    """CSR lists of the tiles of each cube-sphere cell (tile order), from tilecoord i/j_indg."""
+    key = (tc['j_indg'].astype(np.int64) - 1) * n_cs + (tc['i_indg'].astype(np.int64) - 1)
+    order = np.argsort(key, kind='stable')
+    count = np.bincount(key, minlength=n_cs * 6 * n_cs)
+    start = np.concatenate([[0], np.cumsum(count)[:-1]])
+    return order, count, start
+
+
+def _best_in_cells(lon, lat, ci, cj, tc, lists, n_cs, best, dmin):
+    """
+    get_tile_num_in_bbox_c3 for one cell per point: among the tiles of the cell whose bounding
+    box contains the point, keep the one with the smallest (dx/hx)^2 + (dy/hy)^2 (strictly
+    smaller than dmin). Updates best, dmin in place.
+    """
+    order, count, start = lists
+    key = (cj - 1) * n_cs + (ci - 1)
+    cnt, st = count[key], start[key]
+    f = np.float32
+    for k in range(int(cnt.max()) if cnt.size else 0):
+        has = np.flatnonzero(cnt > k)
+        t = order[st[has] + k]
+        lo, la = lon[has], lat[has]
+        inside = ((tc['min_lon'][t] <= lo) & (tc['max_lon'][t] >= lo) &
+                  (tc['min_lat'][t] <= la) & (tc['max_lat'][t] >= la))
+        hx = np.maximum(f(0.5) * (tc['max_lon'][t] - tc['min_lon'][t]), f(1e-6))
+        hy = np.maximum(f(0.5) * (tc['max_lat'][t] - tc['min_lat'][t]), f(1e-6))
+        d = ((np.abs(lo - tc['com_lon'][t]) / hx) ** 2 + (np.abs(la - tc['com_lat'][t]) / hy) ** 2).astype(f)
+        better = inside & (d < dmin[has])
+        idx = has[better]
+        dmin[idx] = d[better]
+        best[idx] = t[better]
 
 
 def build_map_cs(tc, n_cs=360):
-    """CMG cell -> 0-based tile index for a cube-sphere tile space (via the lat/lon pert grid)."""
-    pg = pert_grid_cs(n_cs)
-    ti, tj = _pert_ij(pg, tc['com_lon'], tc['com_lat'])
-    tkey = (tj - 1) * pg['n_lon'] + (ti - 1)
-    order = np.argsort(tkey, kind='stable')          # tiles of a cell in tile order
-    n_cell = pg['n_lon'] * pg['n_lat']
-    count = np.bincount(tkey, minlength=n_cell)
-    start = np.concatenate([[0], np.cumsum(count)[:-1]])
+    """
+    CMG cell -> 0-based tile index for a cube-sphere tile space, FOV = 0
+    (get_tile_num_from_latlon_c3, GEOSldas_GridComp PR #252):
 
+    1. tiles in the cube-sphere cell that contains the obs: among those whose bounding box
+       contains it, the smallest (dx/hx)^2 + (dy/hy)^2;
+    2. if none: the same over the cells of the 8 points at +/- half a cell (0.5*dlon, dlon =
+       360/(4N); lon offset divided by max(cos(lat), 0.1)); the max_dist lattice and the
+       nearest-center fallback (step 3) need max_dist > 0 and do nothing for FOV = 0.
+    No tile if both fail. The bounding-box/max_dist drop is then satisfied by construction.
+    """
+    f = np.float32
+    lists = _cs_tile_lists(tc, n_cs)
     lon32, lat32 = _cmg_lonlat32()
+    dlon = f(360.) / f(4 * n_cs)
     out = np.full((CMG_N_LAT, CMG_N_LON), NO_TILE, dtype=np.int32)
-    ci, _ = _pert_ij(pg, lon32, np.zeros(1, np.float32))
-    ci = np.clip(ci, 1, pg['n_lon'])
     for j in range(CMG_N_LAT):
-        lat = lat32[j]
-        cj = int(np.clip(np.ceil((lat - pg['ll_lat']) / pg['dlat']), 1, pg['n_lat']))
-        key = (cj - 1) * pg['n_lon'] + (ci - 1)
-        cnt, st = count[key], start[key]
+        lat = np.full(CMG_N_LON, lat32[j], dtype=f)
         best = np.full(CMG_N_LON, NO_TILE, dtype=np.int64)
-        dmin = np.full(CMG_N_LON, np.float32(1e10), dtype=np.float32)
-        for k in range(int(cnt.max()) if cnt.size else 0):
-            has = cnt > k
-            t = order[st[has] + k]
-            d = (np.abs(lon32[has] - tc['com_lon'][t]) + np.abs(lat - tc['com_lat'][t])).astype(np.float32)
-            better = d < dmin[has]
-            idx = np.flatnonzero(has)[better]
-            dmin[idx] = d[better]
-            best[idx] = t[better]
+        dmin = np.full(CMG_N_LON, f(1e10), dtype=f)
+        ci, cj = cs_ij(lon32, lat, n_cs)
+        _best_in_cells(lon32, lat, ci, cj, tc, lists, n_cs, best, dmin)
+        todo = np.flatnonzero(best < 0)
+        if todo.size:
+            lo, la = lon32[todo], lat[todo]
+            dlat8 = f(0.5) * dlon
+            dlon8 = dlat8 / np.maximum(np.cos(f(np.pi) / f(180.) * la), f(0.1))
+            bt = np.full(todo.size, NO_TILE, dtype=np.int64)
+            dm = np.full(todo.size, f(1e10), dtype=f)
+            for di in (-1, 0, 1):
+                for dj in (-1, 0, 1):
+                    if di == 0 and dj == 0:
+                        continue
+                    nlo = (lo + f(di) * dlon8).astype(f)
+                    nla = (la + f(dj) * dlat8).astype(f)
+                    ni, nj = cs_ij(nlo, nla, n_cs)
+                    # search cells of the neighbor points, test the bounding box at the obs
+                    _best_in_cells(lo, la, ni, nj, tc, lists, n_cs, bt, dm)
+            best[todo] = bt
         out[j] = best
-    _bbox_check(out, tc, lon32, lat32)
     return out
 
 
@@ -209,10 +278,10 @@ def cmg_tile_map(tilecoord_file, kind, cache_dir):
     Returns (map int32 (3600, 7200), land tilecoord dict); map values index the land tiles.
     """
     tc = land_tiles(read_tilecoord(tilecoord_file))
-    cache = Path(cache_dir) / f'cmg2tile_v4_{kind}_{Path(tilecoord_file).stem}.npy'   # v4: FMA real*4 centers, land tiles
+    cache = Path(cache_dir) / f'cmg2tile_v5_{kind}_{Path(tilecoord_file).stem}.npy'   # v5: CF via cube-sphere cells (PR #252); v4 was the old pert-grid search
     if cache.exists():
         return np.load(cache), tc
-    m = build_map_ease(tc) if kind == 'M36' else build_map_cs(tc, 360)
+    m = build_map_ease(tc) if kind == 'M36' else build_map_cs(tc, int(kind[2:]))
     cache.parent.mkdir(parents=True, exist_ok=True)
     np.save(cache, m)
     return m, tc

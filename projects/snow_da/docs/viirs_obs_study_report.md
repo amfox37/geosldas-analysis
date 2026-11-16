@@ -17,10 +17,10 @@
   (SCF > 0), across 7 periods, 2 years and 3 satellites. The share is highest in mid-winter north of 30°N (~2% of
   kept cells) and among the few snowy cells of the tropics and subtropics (6–8%; candidates for false snow, to check
   in A2).
-- **Coverage leg of the decision rule: not met in any period.** Dropping class 1 removes the obs from 0.9–2.0% of
+- **Coverage leg of the decision rule: not met in any period.** Dropping class 1 removes the obs from 0.8–1.8% of
   snowy CF0360 tile-days and 0.5–1.0% of snowy M36 tile-days (per period, 7 days pooled). Closest to the 2% line:
-  S-NPP P1 (1.96%), S-NPP P3 (1.88%), JPSS-2 P5 (1.86%). On single days it reaches 2.0–2.4% on CF0360 in P1, P3,
-  P5 and P7. So by itself, coverage would not keep class 1; the decision now rests on its error vs MODIS (A2).
+  S-NPP P1 (1.78%), S-NPP P3 (1.69%), JPSS-2 P5 (1.67%). On single days it reaches 2.1–2.3% on CF0360 in P1 (S-NPP),
+  P3 (S-NPP) and P5 (JPSS-2). So by itself, coverage would not keep class 1; the decision now rests on its error vs MODIS (A2).
 - **Error leg of the decision rule: met (A2).** Against MODIS Aqua, the class-1 RMSD is 1.5–29× the class-3 RMSD
   in all 19 period-satellite cases (0.34–0.44 vs 0.01–0.29), and 4.6–8× the class-0 RMSD. Against Terra it is the
   same (1.6–39× class 3). **With both legs (2% per period, confirmed by amfox 2026-11-05), the rule says: drop class 1.** A3 (IMS) is still
@@ -33,11 +33,10 @@
   day (class 0: 60–81%). The A2 statistics rest on that part. Together with where the disagreements are (Tibetan
   Plateau, Andes, western US mountains in July), this points to cloud or cloud shadow over high terrain taken as
   snow, but MODIS is a reference, not truth: A3 checks the disagreements against IMS.
-- **Side finding on the obs-to-tile mapping for CF0360 (confirmed against GEOSldas output):** with FOV = 0,
-  GEOSldas assigns only 54.5% of the land CMG cells (41% north of 60°N) to a CF0360 tile; the rest are dropped, and
-  17.5% of the CF0360 land tiles can never get an SCF obs. This affects MODIS and VIIRS alike and is not related to
-  the QA question. The mapping code reproduces the SCF obs of CF0360 and M36 ObsFcstAna files exactly (all but 1
-  obs per product in 2 days). Details under "Obs-to-tile mapping" below.
+- **Obs-to-tile mapping for CF0360 (updated 2026-11-16).** The CF0360 coverage numbers above use the cube-sphere
+  mapping of GridComp PR #252 (they were first computed with develop's lat/lon pert-grid mapping, which dropped 38%
+  of the land CMG cells; the decision-rule outcome did not change: the largest per-period share went from 1.96% to
+  1.78%). Details under "Obs-to-tile mapping" below.
 
 ## Method notes (A1)
 
@@ -58,14 +57,18 @@
 
 ## Obs-to-tile mapping
 
-`lib/obs2tile.py` follows `get_tile_num_for_obs` → `get_tile_num_from_latlon` (`LDAS_TileCoordRoutines.F90`) with the
-pert grid of `get_pert_grid` and FOV = 0 (the SCF species in `LDASsa_DEFAULT_inputs_ensupd.nml`):
+`lib/obs2tile.py` follows `get_tile_num_for_obs` → `get_tile_num_from_latlon` (`LDAS_TileCoordRoutines.F90`) with FOV = 0
+(the SCF species in `LDASsa_DEFAULT_inputs_ensupd.nml`):
 
 - **M36:** an obs goes to the tile of the EASEv2 M36 cell that contains it.
-- **CF0360:** the search grid is the global 1440 × 1080 lat/lon pert grid (0.25° × 1/6°). Each tile is listed only in
-  the pert cell that contains its center (`get_number_of_tiles_in_cell_ij`, keyed on `pert_i_indg`, `pert_j_indg`).
-  An obs goes to the tile of its pert cell with the nearest center (|Δlon| + |Δlat|).
-- In both, the obs is dropped if it is outside that tile's bounding box (with FOV = 0, `max_dist` = 0).
+- **CF0360:** as GEOSldas_GridComp **PR #252** (`get_tile_num_from_latlon_c3`, head `e36655c`). The cube-sphere cell of
+  the obs comes from `MAPL_GetGlobalHorzIJIndex` (reimplemented in `cs_ij`: gnomonic equiangular, π/18 shift).
+  Among the tiles of that cell whose bounding box contains the obs, the one with the smallest `(dx/hx)² + (dy/hy)²`
+  wins; if there is none, the cells of the 8 points at ±½ cell are searched the same way. Otherwise no tile.
+- **Superseded (2026-11-16):** until PR #252, develop searched a lat/lon pert grid (1440 × 1080) for the nearest tile
+  center and then dropped the obs outside that tile's bounding box. That lost 38% of land CMG cells (61.9% got a
+  tile). The PR maps 100%. **A1 was rerun with the new mapping on 2026-11-16 (outcome unchanged); the CF0360 tile-level parts of A2 must
+  still be rerun** (the M36 numbers are unaffected).
 
 The map depends only on the tile space and is cached once per tilecoord file (`data/viirs_obs_study/tilemap/`).
 Three details matter for an exact match:
@@ -81,7 +84,7 @@ Three details matter for an exact match:
   test depends on the last bit. The Discover build fuses the multiply-add (`c + k*0.05`, one rounding); mirroring
   that gives the exact match, while two roundings give 95.6% and float64 centers 97.9%.
 
-**Check** (`check_tile_map.py`; SCF to 1e-5 and averaged obs lon/lat to 1e-3°, which checks the exact cell set of
+**Check, M36** (`check_tile_map.py`; SCF to 1e-5 and averaged obs lon/lat to 1e-3°, which checks the exact cell set of
 each tile; each obs compared with the raw files of the day before, of and after its window):
 
 | Tile space, run, days | Product | ObsFcstAna obs reproduced |
@@ -92,33 +95,25 @@ each tile; each obs compared with the raw files of the day before, of and after 
 | | VJ110C1 | 455,427 / 455,428 |
 | | VNP10C1 | 450,102 / 450,103 |
 
-M36 tile centers also all fall in their own EASE cell (112,573 / 112,573).
+M36 tile centers also all fall in their own EASE cell (112,573 / 112,573). The CF0360 rows above validate the
+**old** pert-grid mapping (the old Python reproduced develop exactly).
 
-**CF0360, cells that get no tile.** Of the 6.78M land CMG cells (those with an M36 tile), the CF0360 map assigns
-3.70M (54.5%):
+**Check, CF0360 (PR #252).** The Python map equals the PR's Fortran on all 6,109,513 CMG cell centers near land
+(offline harness `GEOSldas_develop/GEOSldas/c3_offline_harness/offline_map.x`, built from the PR's
+`LDAS_TileCoordRoutines.F90`; tile space of run A2): 0 differences, none mapped by only one of them. The harness
+queries must use the readers' fused-multiply-add centers (`_cmg_lonlat32`); plain real*4 centers differ in 38,504
+points. As a control, the old Python equals develop's code in the same harness on all points. Also, all but 23 of
+the 1,188,020 tile centers lie in their own `i_indg`/`j_indg` cube-sphere cell (the PR also reports 23).
+Not yet checked against ObsFcstAna of a #252 CF0360 run (the Discover runs `M21C_test_CF0360_c3esmf_S_esmf`, set S,
+exist only on Discover).
 
-| Latitude | assigned to a tile | pert cell has no tile center | outside the nearest tile's box |
-|---|---|---|---|
-| 60–90°N | 40.9% | 36.2% | 22.9% |
-| 45–60°N | 61.1% | 6.5% | 32.4% |
-| 30–45°N | 60.2% | 4.2% | 35.6% |
-| 0–30°N | 58.2% | 5.2% | 36.6% |
-| 0–30°S | 58.5% | 5.3% | 36.2% |
-| 30–45°S | 58.3% | 6.9% | 34.7% |
-| 45–60°S | 47.3% | 26.9% | 25.8% |
-
-On 15 Jan 2024, 3.13M VIIRS JPSS-1 cells pass the reader QC; 1.99M of them map to a CF0360 tile, and 3.13M to an M36
-tile. 208k CF0360 land tiles (17.5%) can never get an obs because no CMG cell maps to them. Two mechanisms cause the
-loss: (1) north of 60°N, the 0.25° pert cells are narrower than the cube-sphere cells, so many have no tile center, and
-their obs are lost; (2) at all latitudes, the tile with the nearest center is often not the tile whose box contains
-the obs (several catchment tiles share a cube cell), and with FOV = 0 the obs is then dropped instead of going to the
-neighbouring tile. Because the obs-to-tile code reproduces GEOSldas exactly, this is what GEOSldas does: on CF0360 the
-SCF DA discards ~45% of the obs, most of all in the snowy north. This matters more for the SCF DA on CF0360 than the QA
-class-1 question. Possible fixes, on the GridComp side: a small positive FOV for the SCF species, or listing each tile
-in every pert cell its bounding box overlaps (not tested here).
-
-For A1 these losses affect both QA groups equally, so the class-1 shares on CF0360 are still valid. They are the
-shares of the obs GEOSldas actually uses.
+**CF0360, old mapping (superseded).** Before PR #252, GEOSldas assigned only 54.5% of the land CMG cells (41% north
+of 60°N) to a CF0360 tile (61.9% on the dominant-tile land mask used for the PR check), and 17.5% of the CF0360 land
+tiles could never get an SCF obs. Two mechanisms: north of 60°N the 0.25° pert cells are narrower than the cube-sphere
+cells, so many had no tile center; at all latitudes the tile with the nearest center was often not the tile whose box
+contains the obs, and with FOV = 0 the obs was dropped. With the PR mapping every land CMG cell gets a tile, and
+about 20% of the land tiles still get no obs from a 0.05° cell (many tiles are smaller than a CMG cell). The A1
+CF0360 tables below use the PR mapping.
 
 ## A1. Coverage of class 1
 
@@ -180,32 +175,32 @@ obs. Dot: 7 days pooled; bar: range of the single days. Dashed: the 2% of the de
 
 | Period, satellite | CF0360: snowy, only via class 1 (%) | CF0360: max day (%) | CF0360: all tile-days, only via class 1 (%) | M36: snowy, only via class 1 (%) | M36: max day (%) | M36: snowy, mixed (%) |
 |---|---|---|---|---|---|---|
-| P1 JPSS-1 | 1.70 | 2.08 | 0.66 | 0.77 | 0.99 | 13.7 |
-| P1 S-NPP | 1.96 | 2.36 | 0.71 | 0.78 | 1.11 | 14.9 |
-| P2 JPSS-1 | 0.88 | 1.17 | 0.31 | 0.46 | 0.60 | 9.3 |
-| P2 S-NPP | 1.01 | 1.23 | 0.33 | 0.57 | 0.74 | 9.9 |
-| P3 JPSS-1 | 1.53 | 1.90 | 0.58 | 0.55 | 0.73 | 13.7 |
-| P3 JPSS-2 | 1.61 | 1.84 | 0.57 | 0.54 | 0.86 | 14.7 |
-| P3 S-NPP | 1.88 | 2.44 | 0.68 | 0.65 | 1.09 | 15.0 |
-| P4 JPSS-1 | 1.00 | 1.34 | 0.43 | 0.60 | 0.82 | 9.8 |
-| P4 JPSS-2 | 1.06 | 1.38 | 0.40 | 0.67 | 1.08 | 10.2 |
-| P4 S-NPP | 1.18 | 1.53 | 0.45 | 0.71 | 0.91 | 10.2 |
-| P5 JPSS-1 | 1.46 | 2.12 | 0.33 | 0.77 | 1.46 | 11.0 |
-| P5 JPSS-2 | 1.86 | 2.39 | 0.32 | 0.98 | 1.28 | 12.4 |
-| P5 S-NPP | 1.58 | 2.16 | 0.28 | 0.78 | 1.00 | 11.6 |
-| P6 JPSS-1 | 1.29 | 1.56 | 0.22 | 0.60 | 0.91 | 9.7 |
-| P6 JPSS-2 | 1.48 | 1.95 | 0.15 | 0.61 | 0.88 | 9.6 |
-| P6 S-NPP (4 days) | 1.33 | 1.56 | 0.16 | 0.55 | 0.73 | 8.7 |
-| P7 JPSS-1 | 1.40 | 1.58 | 0.40 | 0.51 | 0.61 | 12.7 |
-| P7 JPSS-2 | 1.34 | 1.63 | 0.34 | 0.53 | 0.76 | 12.5 |
-| P7 S-NPP | 1.71 | 2.02 | 0.43 | 0.55 | 0.73 | 13.6 |
+| P1 JPSS-1 | 1.54 | 1.88 | 0.62 | 0.77 | 0.99 | 13.7 |
+| P1 S-NPP | 1.78 | 2.19 | 0.67 | 0.78 | 1.11 | 14.9 |
+| P2 JPSS-1 | 0.81 | 1.08 | 0.30 | 0.46 | 0.60 | 9.3 |
+| P2 S-NPP | 0.95 | 1.15 | 0.32 | 0.57 | 0.74 | 9.9 |
+| P3 JPSS-1 | 1.37 | 1.72 | 0.54 | 0.55 | 0.73 | 13.7 |
+| P3 JPSS-2 | 1.44 | 1.59 | 0.53 | 0.54 | 0.86 | 14.7 |
+| P3 S-NPP | 1.69 | 2.29 | 0.64 | 0.65 | 1.09 | 15.0 |
+| P4 JPSS-1 | 0.93 | 1.23 | 0.42 | 0.60 | 0.82 | 9.8 |
+| P4 JPSS-2 | 1.00 | 1.31 | 0.39 | 0.67 | 1.08 | 10.2 |
+| P4 S-NPP | 1.10 | 1.40 | 0.44 | 0.71 | 0.91 | 10.2 |
+| P5 JPSS-1 | 1.34 | 1.95 | 0.33 | 0.77 | 1.46 | 11.0 |
+| P5 JPSS-2 | 1.67 | 2.14 | 0.32 | 0.98 | 1.28 | 12.4 |
+| P5 S-NPP | 1.43 | 1.91 | 0.28 | 0.78 | 1.00 | 11.6 |
+| P6 JPSS-1 | 1.10 | 1.37 | 0.22 | 0.60 | 0.91 | 9.7 |
+| P6 JPSS-2 | 1.25 | 1.63 | 0.15 | 0.61 | 0.88 | 9.6 |
+| P6 S-NPP (4 days) | 1.13 | 1.27 | 0.17 | 0.55 | 0.73 | 8.7 |
+| P7 JPSS-1 | 1.24 | 1.46 | 0.38 | 0.51 | 0.61 | 12.7 |
+| P7 JPSS-2 | 1.19 | 1.43 | 0.33 | 0.53 | 0.76 | 12.5 |
+| P7 S-NPP | 1.49 | 1.79 | 0.40 | 0.55 | 0.73 | 13.6 |
 
 - CF0360 tiles are small (median 3 CMG cells), so a tile more often depends on its class-1 cells alone: about twice the
   M36 share. M36 tiles hold ~60 cells, so class 1 rarely decides whether a tile has an obs (0.5–1%), but it is part of
-  the tile mean in 9–15% of snowy M36 tile-days (CF0360: 1.5–3%). That is where A4 (the effect on the update) matters.
+  the tile mean in 9–15% of snowy M36 tile-days (CF0360: 2.4–4.4%). That is where A4 (the effect on the update) matters.
 - **Against the decision rule** ("…unless dropping it removes obs from more than 2% of snowy tiles"): no period
-  exceeds 2% on either tile space when the 7 days are pooled. On single days, CF0360 goes over 2% in P1 (JPSS-1, S-NPP),
-  P3 (S-NPP), P5 (all three) and P7 (S-NPP). The 2% is per period (amfox, 2026-11-05), so
+  exceeds 2% on either tile space when the 7 days are pooled. On single days, CF0360 goes over 2% in P1 (S-NPP),
+  P3 (S-NPP) and P5 (JPSS-2). The 2% is per period (amfox, 2026-11-05), so
   the single days over 2% do not count against dropping class 1.
 
 ### Reproduce
