@@ -26,6 +26,7 @@ Python: `/Users/amfox/mamba/envs/regrid/bin/python` (numpy, netCDF4 with HDF4 an
 | `ims_report.py` | Part A3 tables (stdout) |
 | `jpss_compare.py` | Part B: JPSS-1 vs JPSS-2 (class 1 dropped): cell agreement, added tile coverage (M36, CF0360), update-side changes; writes `data/viirs_obs_study/out/jpss/` |
 | `jpss_report.py` | Part B tables (stdout) |
+| `jpss_average_check.py` | Part B4: the average of J1 and J2 vs MODIS Aqua and IMS, against J1 and J2 alone (stdout) |
 | `agreement_report.py` | Part A2 tables (stdout) and figures A2-1..3 for the report (needs `coverage.py` output) |
 
 Results go into [`../../docs/viirs_obs_study_report.md`](../../docs/viirs_obs_study_report.md); figures into

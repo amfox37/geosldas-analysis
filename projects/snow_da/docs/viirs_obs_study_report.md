@@ -69,7 +69,8 @@ satellites, so it serves both questions (QA class 1; J1 vs J2) with the same dow
   r 0.990; at SCF ≥ 0.55 they differ in 0.8% of matched cells), closer to each other than either is to MODIS Aqua
   (0.069–0.071), and neither is clearly better against Aqua (J2 slightly closer in P3–P5, J1 in P6–P7). J2 adds
   5–10% tile-days over J1 (CF0360 8.5%, M36 4.8%; snowy 10.0% and 5.0%), and averaging the two moves a tile to the
-  other side of the 0.55 threshold in 1.6–1.8% of the snowy tile-days where both have an obs. Details in section B.
+  other side of the 0.55 threshold in 1.6–1.8% of the snowy tile-days where both have an obs. The average fits MODIS
+  Aqua slightly better than either alone (RMSD 0.065 vs 0.069 and 0.071) and ties against IMS. Details in section B.
 
 ## Method notes (A1)
 
@@ -572,6 +573,28 @@ J1 alone (snowy tile-days = either > 0; SCF ≥ 0.55 is the removal threshold, S
 - Together with B2: the second satellite adds 5–10% tile-days and moves a small share of the obs across a threshold.
   Part C would be testing a small effect; the largest relative gain in coverage is at 45–60°N in P7 (16% on CF0360).
 
+### B4. Does the average fit MODIS and IMS better?
+
+GEOSldas gives the update the average of the species' tile obs (B3), so I also scored the average itself. On the
+cells where J1 and J2 are both kept (and Aqua too for the Aqua comparison, so J1, J2 and the average are scored on the
+same cells), the cell-level average 0.5 × (J1 + J2) against J1 and J2 alone, P3–P7 (`jpss_average_check.py`):
+
+| Obs | RMSD vs Aqua | Snowy RMSD vs Aqua | Bias vs Aqua | IMS accuracy % | IMS false snow % | IMS missed snow % |
+|---|---|---|---|---|---|---|
+| J1 | 0.0689 | 0.1378 | −0.004 | 97.22 | 2.94 | 6.58 |
+| J2 | 0.0709 | 0.1445 | −0.007 | 97.18 | 2.54 | 7.11 |
+| **Average** | **0.0651** | **0.1287** | −0.005 | **97.30** | 2.55 | 6.70 |
+
+(83.4 M cells for Aqua; 83.1 M Northern Hemisphere cells for IMS; SCF ≥ 0.55, nearest IMS pixel; the decisive-window
+IMS version gives the same ordering.)
+
+- **MODIS:** the average has 5–8% lower RMSD than J1 or J2 alone (6% against J1; snowy cells 0.129 vs 0.138 and
+  0.145), as expected from averaging two noisy estimates of the same scene. The bias lies between the two.
+- **IMS:** a tie. The average is marginally best on accuracy (about 0.1 point), with the false-snow rate of J2 and a
+  missed-snow rate close to J1's.
+- GEOSldas averages per tile (the species' tile means), the same idea one step later; this tests the obs, not the
+  update.
+
 ### Caveats
 
 - A tile "has an obs on a day" if the day's file has a kept cell in it, as in A1 (exact except at the date line).
@@ -586,4 +609,5 @@ cd /Users/amfox/Desktop/geosldas-analysis/projects/snow_da
 PY=/Users/amfox/mamba/envs/regrid/bin/python
 $PY scripts/viirs_obs_study/jpss_compare.py        # ~1 min, writes data/viirs_obs_study/out/jpss/ (one worker per period)
 $PY scripts/viirs_obs_study/jpss_report.py         # tables (stdout)
+$PY scripts/viirs_obs_study/jpss_average_check.py  # B4: average of J1 and J2 vs Aqua and IMS (~2 min; needs the IMS files of get_ims.py)
 ```

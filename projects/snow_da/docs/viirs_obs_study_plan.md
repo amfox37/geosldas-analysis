@@ -130,6 +130,7 @@ season, with day-to-day spread.
 
 | Date | What |
 |---|---|
+| 2026-11-17 | **B4: the J1+J2 average vs Aqua and IMS** (`jpss_average_check.py`; report section B4). Average RMSD vs Aqua 0.0651 vs 0.0689 (J1) and 0.0709 (J2); IMS accuracy 97.30% vs 97.22% / 97.18% (a tie). Cell-level average; not a test of the update. |
 | 2026-11-16 | **Part B done** (`jpss_compare.py`, `jpss_report.py`; report section B; class 1 dropped, P3–P7). J1 vs J2 RMSD 0.057, bias +0.003, r 0.990 (each vs Aqua 0.069–0.071; neither clearly better). J2 adds 8.5% (CF0360) / 4.8% (M36) tile-days over J1 (snowy 10.0% / 5.0%); snowy tiles: mean days with an obs per week 4.66 → 5.15 (CF0360). J1+J2 average changes the side of the 0.55 threshold in 1.6–1.8% of snowy tile-days with both. Part C is testing a small effect. |
 | 2026-11-16 | **amfox: drop QA class 1** (decision rule outcome, supported by A2 and A3). Part B uses `basic_qa_keep = (0, 3)` (`scf_qc` override; the GridComp reader change is separate and not yet made). |
 | 2026-11-16 | **A3 IMS check done** (`get_ims.py`, `ims_check.py`, `ims_report.py`; IMS 4 km, 49 days, NH only; report section A3). Class 1 vs IMS: accuracy 75–80% (classes 0, 3: ~97%), false snow 20–26% (class 0: 4%, class 3: 2%, MODIS Aqua 4.7%). Where VIIRS class 1 has snow and MODIS Aqua does not, IMS has snow in 24% of the cells (classes 0, 3: 63–65%): IMS sides with MODIS. Robust to a 1-day IMS shift. **A3 supports dropping class 1**; amfox decides. Caveats: NH only, IMS not fully independent of MODIS/VIIRS. |
