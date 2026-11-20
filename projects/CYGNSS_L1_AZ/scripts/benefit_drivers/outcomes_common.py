@@ -67,22 +67,43 @@ def boot_stat(df, fn, nboot=1000, seed=2):
     vals = np.array(vals, float)
     return fn(d), np.nanpercentile(vals, 2.5), np.nanpercentile(vals, 97.5)
 
-def tile_map(ax, a, col, title, mask_col='in_l1_mask', cmap='RdBu', sym=True, vmin=None, vmax=None, s=22, cat=None):
+_X0, _Y0, _CS, _NX = -17367530.45, 7314540.83, 36032.22, 964   # EASEv2 M36 corner and cell size (EPSG:6933)
+
+def cell_mesh(a):
+    """Cell-edge lon/lat meshes and (j, i) indices for the tiles in `a` (one tile per M36 cell, idx0 = j*964 + i)."""
+    from pyproj import Transformer
+    i, j = (a.idx0 % _NX).astype(int).values, (a.idx0 // _NX).astype(int).values
+    i0, i1, j0, j1 = i.min(), i.max(), j.min(), j.max()
+    X, Y = np.meshgrid(_X0 + np.arange(i0, i1 + 2) * _CS, _Y0 - np.arange(j0, j1 + 2) * _CS)
+    lon, lat = Transformer.from_crs(6933, 4326, always_xy=True).transform(X, Y)
+    return lon, lat, j - j0, i - i0
+
+def tile_map(ax, a, col, title, mask_col='in_l1_mask', cmap='RdBu', sym=True, vmin=None, vmax=None, s=None, cat=None):
+    """Draw tiles as filled M36 cells (pcolormesh, no gaps). Grey = outside the mask or no valid value."""
     import cartopy.crs as ccrs, cartopy.feature as cfeature
-    inm = a[mask_col].astype(bool)
-    bad = a[~(inm & a[col].notna())] if cat is None else a[~inm]
-    ax.scatter(bad.com_lon, bad.com_lat, s=s, marker='s', c='0.8', lw=0, transform=ccrs.PlateCarree())
-    g = a[inm & a[col].notna()]
+    from matplotlib.colors import ListedColormap
+    from matplotlib.patches import Patch
+    lon, lat, jj, ii = cell_mesh(a)
+    shp = (lon.shape[0] - 1, lon.shape[1] - 1)
+    inm = a[mask_col].astype(bool).values
+    ok = (inm & a[col].notna().values) if cat is None else (inm & a[col].isin(list(cat)).values)
+    kw = dict(transform=ccrs.PlateCarree(), shading='flat', edgecolors='face', linewidth=0.2, rasterized=True)
+    grey = np.full(shp, np.nan); grey[jj[~ok], ii[~ok]] = 1
+    ax.pcolormesh(lon, lat, np.ma.masked_invalid(grey), cmap=ListedColormap(['0.82']), **kw)
+    v = np.full(shp, np.nan)
     if cat is None:
+        x = a[col].values
+        v[jj[ok], ii[ok]] = x[ok]
         if sym and vmin is None:
-            vmax = np.nanpercentile(np.abs(g[col]), 95); vmin = -vmax
-        sc = ax.scatter(g.com_lon, g.com_lat, s=s, marker='s', c=g[col], cmap=cmap, vmin=vmin, vmax=vmax, lw=0, transform=ccrs.PlateCarree())
-        plt.colorbar(sc, ax=ax, shrink=0.75, pad=0.02)
+            vmax = np.nanpercentile(np.abs(x[ok]), 95); vmin = -vmax
+        pc = ax.pcolormesh(lon, lat, np.ma.masked_invalid(v), cmap=cmap, vmin=vmin, vmax=vmax, **kw)
+        plt.colorbar(pc, ax=ax, shrink=0.75, pad=0.02)
     else:
-        for k, (c, v) in cat.items():
-            gg = g[g[col] == k]
-            ax.scatter(gg.com_lon, gg.com_lat, s=s, marker='s', c=c, lw=0, label=f'{k} ({len(gg)})', transform=ccrs.PlateCarree())
-        ax.legend(fontsize=6, loc='lower left')
+        keys = list(cat)
+        code = {k: n for n, k in enumerate(keys)}
+        v[jj[ok], ii[ok]] = [code[k] for k in a[col].values[ok]]
+        ax.pcolormesh(lon, lat, np.ma.masked_invalid(v), cmap=ListedColormap([cat[k][0] for k in keys]), vmin=-0.5, vmax=len(keys) - 0.5, **kw)
+        ax.legend(handles=[Patch(color=cat[k][0], label=f'{k} ({int((a[col].values[ok] == k).sum())})') for k in keys], fontsize=6, loc='lower left')
     ax.add_feature(cfeature.STATES, lw=0.4, edgecolor='0.3')
     ax.set_title(title, fontsize=8)
     ax.set_extent([a.com_lon.min() - .3, a.com_lon.max() + .3, a.com_lat.min() - .3, a.com_lat.max() + .3])
