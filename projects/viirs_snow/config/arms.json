@@ -1,0 +1,144 @@
+{
+  "description": "Registry of the MODIS-to-VIIRS transition experiments (single member, M36, snow-only DA). Scripts read this instead of hard-coding arms, dates, species or paths. Plan: docs/viirs_transition_plan.md. Verified 2026-11-21 against the runs' LDASsa_SPECIAL_inputs_ensupd.nml, the exeinp files and the output tree.",
+
+  "project_dir": "/discover/nobackup/projects/land_da/VIIRS_testing/main_run",
+  "build": {
+    "install": "/gpfsm/dnb06/projects/p284/VIIRS_testing/GEOSldas_viirs/GEOSldas/install-viirs-f87aa3f",
+    "gridcomp_commit": "f87aa3f",
+    "note": "all five arms; VIIRS reader keeps Basic_QA 0 and 3; window-boundary double-assimilation fixes (8c778e4 VIIRS, 86afd34 + 8fbcc61 MODIS) are included"
+  },
+  "domain": "SMAP_EASEv2_M36_GLOBAL",
+  "n_tiles": 112573,
+  "n_members": 1,
+  "update_type": 11,
+  "assim_step_hours": 3,
+  "assim_step_note": "inferred from 3-hourly output; LANDASSIM_DT not found in the run files [CHECK]",
+
+  "species": {
+    "52": {"name": "Aqua",  "product": "MYD10C1", "overpass_local_hour": 13.5},
+    "53": {"name": "Terra", "product": "MOD10C1", "overpass_local_hour": 10.5},
+    "59": {"name": "J1",    "product": "VJ110C1", "overpass_local_hour": 13.5},
+    "60": {"name": "J2",    "product": "VJ210C1", "overpass_local_hour": 13.5},
+    "61": {"name": "S-NPP", "product": "VNP10C1", "overpass_local_hour": 13.5, "assimilated_in_any_arm": false}
+  },
+  "obsfcstana_species_ids": {
+    "1": {"namelist_index": 52, "name": "Aqua"},
+    "2": {"namelist_index": 53, "name": "Terra"},
+    "3": {"namelist_index": 59, "name": "J1"},
+    "4": {"namelist_index": 60, "name": "J2"},
+    "note": "inside ObsFcstAna files the species id is the local 1-4 index above; filter 'assimilated' with assim_flag and map via obsparam_descr"
+  },
+  "getinnov_species": [52, 53, 59, 60],
+  "getinnov_note": "getinnov is true for all four species in every segment of every arm; only assim differs",
+
+  "start": "2020-08-01",
+  "switch": "2023-08-01",
+  "end": "2026-08-01",
+  "start_restart": {
+    "restart_id": "LS_DAv8_M36",
+    "restart_path": "/discover/nobackup/projects/land_da/VIIRS_testing/restarts",
+    "note": "all five arms start from the same restart"
+  },
+
+  "periods": {
+    "pre_switch":  {"beg": "2020-08-01", "end": "2023-07-31"},
+    "post_switch": {"beg": "2023-08-01", "end": "2026-07-31"}
+  },
+  "snow_years": [
+    {"id": "SY1", "beg": "2020-08-01", "end": "2021-07-31", "period": "pre_switch"},
+    {"id": "SY2", "beg": "2021-08-01", "end": "2022-07-31", "period": "pre_switch"},
+    {"id": "SY3", "beg": "2022-08-01", "end": "2023-07-31", "period": "pre_switch"},
+    {"id": "SY4", "beg": "2023-08-01", "end": "2024-07-31", "period": "post_switch"},
+    {"id": "SY5", "beg": "2024-08-01", "end": "2025-07-31", "period": "post_switch"},
+    {"id": "SY6", "beg": "2025-08-01", "end": "2026-07-31", "period": "post_switch"}
+  ],
+
+  "output_layout": {
+    "root": "<project_dir>/<exp_id>/output/<domain>",
+    "obsfcstana": "ana/ens_avg/Y<yyyy>/M<mm>/<exp_id>.ens_avg.ldas_ObsFcstAna.<yyyymmdd>_<hh>00z.nc4  (3-hourly; fields incl. species, assim_flag, tilenum, obs; ~250 files and ~160 MB per arm-month)",
+    "catch_progn_incr": "cat/ens0000/Y<yyyy>/M<mm>/<exp_id>.catch_progn_incr.<yyyymmdd>.nc4  (one file per day with 8 instantaneous 3-hourly steps at 00,03,...,21 UTC; ~34 MB/day; also a monthly file; single member so no ens_avg directory)",
+    "daily_means": "cat/ens0000/Y<yyyy>/M<mm>/<exp_id>.tavg24_1d_lnd_Nt.<yyyymmdd>.nc4",
+    "restarts": "rs/ens0000/Y<yyyy>/M<mm>/<exp_id>.catch_internal_rst.<yyyymmdd>_0000"
+  },
+
+  "arms": {
+    "OL": {
+      "exp_id": "viirs_OL",
+      "role": "open loop (getinnov only)",
+      "chain": null,
+      "beg": "2020-08-01", "end": "2026-08-01",
+      "restart": {"restart_id": "LS_DAv8_M36", "restart_path": "/discover/nobackup/projects/land_da/VIIRS_testing/restarts"},
+      "segments": [
+        {"beg": "2020-08-01", "end": "2026-08-01", "namelists": "nml_OLa", "assim_species": []}
+      ]
+    },
+    "T_to_J2": {
+      "exp_id": "viirs_T_to_J2",
+      "role": "Terra then J2 only",
+      "chain": "T",
+      "beg": "2020-08-01", "end": "2026-08-01",
+      "restart": {"restart_id": "LS_DAv8_M36", "restart_path": "/discover/nobackup/projects/land_da/VIIRS_testing/restarts"},
+      "segments": [
+        {"beg": "2020-08-01", "end": "2023-08-01", "namelists": "nml_E1a", "assim_species": [53]},
+        {"beg": "2023-08-01", "end": "2026-08-01", "namelists": "nml_E1b", "assim_species": [60]}
+      ]
+    },
+    "TA_to_J1J2": {
+      "exp_id": "viirs_TA_to_J1J2",
+      "role": "Terra+Aqua then J1+J2",
+      "chain": "TA",
+      "beg": "2020-08-01", "end": "2026-08-01",
+      "restart": {"restart_id": "LS_DAv8_M36", "restart_path": "/discover/nobackup/projects/land_da/VIIRS_testing/restarts"},
+      "segments": [
+        {"beg": "2020-08-01", "end": "2023-08-01", "namelists": "nml_E2a", "assim_species": [52, 53]},
+        {"beg": "2023-08-01", "end": "2026-08-01", "namelists": "nml_E2b", "assim_species": [59, 60]}
+      ]
+    },
+    "T_control": {
+      "exp_id": "viirs_T_control",
+      "role": "Terra only, no switch (MODIS control; continues T_to_J2's state at the switch)",
+      "chain": "T",
+      "beg": "2023-08-01", "end": "2026-08-01",
+      "restart": {"restart_id": "viirs_T_to_J2", "restart_path": "/discover/nobackup/projects/land_da/VIIRS_testing/main_run", "date": "2023-08-01"},
+      "continues": "T_to_J2",
+      "segments": [
+        {"beg": "2023-08-01", "end": "2026-08-01", "namelists": "nml_E1a_cont", "assim_species": [53],
+         "modis_obs_dir": "/discover/nobackup/projects/land_da/VIIRS_testing/MODIS_obs"}
+      ]
+    },
+    "TA_control": {
+      "exp_id": "viirs_TA_control",
+      "role": "Terra+Aqua, no switch (MODIS control; continues TA_to_J1J2's state at the switch)",
+      "chain": "TA",
+      "beg": "2023-08-01", "end": "2026-08-01",
+      "restart": {"restart_id": "viirs_TA_to_J1J2", "restart_path": "/discover/nobackup/projects/land_da/VIIRS_testing/main_run", "date": "2023-08-01"},
+      "continues": "TA_to_J1J2",
+      "segments": [
+        {"beg": "2023-08-01", "end": "2026-08-01", "namelists": "nml_E2a_cont", "assim_species": [52, 53],
+         "modis_obs_dir": "/discover/nobackup/projects/land_da/VIIRS_testing/MODIS_obs"}
+      ]
+    }
+  },
+
+  "continuous_series": {
+    "MODIS_T":  {"description": "Terra-only MODIS, 2020-08-01 to 2026-08-01", "parts": [["T_to_J2", "2020-08-01", "2023-07-31"], ["T_control", "2023-08-01", "2026-07-31"]]},
+    "MODIS_TA": {"description": "Terra+Aqua MODIS, 2020-08-01 to 2026-08-01", "parts": [["TA_to_J1J2", "2020-08-01", "2023-07-31"], ["TA_control", "2023-08-01", "2026-07-31"]]},
+    "VIIRS_J2":   {"description": "Terra then J2: T_to_J2 over the whole record", "parts": [["T_to_J2", "2020-08-01", "2026-07-31"]]},
+    "VIIRS_J1J2": {"description": "Terra+Aqua then J1+J2: TA_to_J1J2 over the whole record", "parts": [["TA_to_J1J2", "2020-08-01", "2026-07-31"]]}
+  },
+
+  "contrasts": {
+    "C1": {"a": "T_control",  "b": "T_to_J2",    "window": ["SY4", "SY6"], "same_start_state": true,  "isolates": "Terra vs J2 (sensor and overpass time)"},
+    "C2": {"a": "TA_control", "b": "TA_to_J1J2", "window": ["SY4", "SY6"], "same_start_state": true,  "isolates": "Terra+Aqua vs J1+J2"},
+    "C3": {"a": "MODIS_T",    "b": "MODIS_TA",   "window": ["SY1", "SY6"], "same_start_state": true,  "isolates": "Terra vs Terra+Aqua, MODIS, six years", "type": "continuous_series"},
+    "C4": {"a": "T_to_J2",    "b": "TA_to_J1J2", "window": ["SY4", "SY6"], "same_start_state": false, "isolates": "J2 vs J1+J2; treat as a coverage comparison"},
+    "C0": {"a": "<each DA arm>", "b": "OL",      "window": ["SY1", "SY6"], "same_start_state": true,  "isolates": "DA impact (DA - OL)"}
+  },
+
+  "constraints_for_scripts": [
+    "Take arm dates, species and paths from this file; do not hard-code them.",
+    "The MODIS controls exist only from 2023-08-01; before that use T_to_J2 / TA_to_J1J2 (see continuous_series).",
+    "Within-day analysis needs the 3-hourly catch_progn_incr steps and ObsFcstAna; the monthly and tavg24 files lose it.",
+    "land_da file quota was ~91% on 2026-11-19: write compact summaries, do not copy or unpack the raw output."
+  ]
+}
