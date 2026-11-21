@@ -1,6 +1,6 @@
 # MODIS-to-VIIRS transition and Terra vs Terra+Aqua: analysis plan
 
-Status: **draft, 2026-11-21 (amfox + Claude). Nothing below has been run.** Items marked **[CHECK]** are not verified.
+Status: **draft, 2026-11-21 (amfox + Claude). Analysis A has been run (`scripts/viirs_transition/`, figures and tables in `docs/viirs_transition_report_figures/`); nothing else has.** Items marked **[CHECK]** are not verified.
 Runs: `/discover/nobackup/projects/land_da/VIIRS_testing/main_run/` (README there has the run history).
 Related: `viirs_obs_study_plan.md` (reader QC, QA class 1, J1 vs J2 obs agreement). This plan is its Part C,
 on M36 and for three years instead of one CF0360 snow season.
@@ -91,6 +91,10 @@ single member, so there is no `ens_avg`) per tile-day:
   `SCF_ANA_MAXINCRSWE = 5 kg m-2` per update (alpha 0.60, beta 0.55);
 - from `getinnov`: innovation of the second sensor in the same arm vs in the OL (how much the first update already
   moved the state toward the second obs); the same for J1 vs J2.
+Analysis A found that the VIIRS union covers about 6–7% fewer tiles than MODIS T+A, and that some sensors had days
+with no obs at all (see "Code and data facts"). Interpret differences in increment counts and sizes against these
+coverage differences, and exclude or flag the no-obs days in every contrast (e.g. `T_control` assimilated nothing on
+2025-05-11 to 05-14).
 Mechanism (read in the code, both checkouts): obs in the same update window are averaged per tile
 (`clsm_ensupd_upd_routines.F90`, "average in case there are multiple asnow obs"); the increment depends on the
 forecast SCF, so a second update acts on the already-updated state.
@@ -163,6 +167,19 @@ whether to exclude a short window from the contrasts.
   (downloaded, `.061.hdf`). `gmao_ops` itself lacks 4 days in 2025.
 - Species ids inside `ObsFcstAna` (1 Aqua, 2 Terra, 3 J1, 4 J2) were checked in 35 files: all five arms, before and
   after the switch, 2021 to 2026. Only `assim_flag` changes at 2023-08-01, as intended.
+- **Obs coverage (analysis A, domain totals per day, SY4):** Terra about 21.9k tiles, Aqua about 18.2k; both on the
+  same day at about 15.5k tiles (about 63% of the 24.5k tiles with any MODIS obs); Terra only 6.4k, Aqua only 2.6k.
+  J1 about 21.2k, J2 about 20.9k; both at about 19.2k tiles (about 84% of the 22.8k with any VIIRS obs); J2 adds about
+  1.6k tiles beyond J1 (about 7%). The VIIRS union (22.8k) is about 6–7% smaller than MODIS T+A (24.5k; SY5 23.6k vs
+  25.2k), and J2 alone is about 5% below Terra alone. Coverage is almost all north of 30°N. J2 only starts 2023-02-10,
+  so in SY3 it has about 10k tiles per day. Source: `docs/viirs_transition_report_figures/obs_availability_summary.md`
+  and `output/obs_availability/` (git-ignored).
+- **Input data gaps (days with no obs from a sensor that was being assimilated; no assimilation from it on those
+  days, `zero_obs_days.csv`):** Aqua 2022-04-02 to 04-16 (15 days); Terra 2022-10-11 to 10-22 (12 days); Terra
+  2025-05-11 to 05-14 (4 days; this leaves `T_control`, which assimilates Terra only, with no assimilation at all);
+  J2 2024-02-28 (1 day). The cause has not been checked (missing or empty input files vs a reader or QC effect).
+  Also, 2023-08-01 is skipped in analysis A because its 00z file still carries the old segment's final analysis
+  (it assimilates Terra, e.g. 1221 Terra and 4144 J2 obs in `T_to_J2`).
 - Output volume: `ObsFcstAna` is ~160 MB and ~250 files per arm-month; `catch_progn_incr` is ~34 MB per daily file
   (~1 GB and 31 files per arm-month). `land_da` was at ~91% of its file quota on
   2026-11-19, so extract compact per-day or per-month summaries rather than copying or unpacking files, and check
@@ -203,9 +220,11 @@ Still open:
 
 1. `LANDASSIM_DT` / `LANDASSIM_T0` as an explicit setting (the 3 h step itself is confirmed from the data, see above;
    optional).
-2. Data for analysis C: extend SNOTEL to 2026-07, rebuild GHCN snow depth through 2026, fetch IMS 2020-08 to 2026-07
-   (see analysis C; needs network access, probably a login node; ask before downloading), and generalise the IMS /
-   SNOTEL / GHCN scoring scripts from an OL/DA pair to the five arms.
+2. Analysis C scoring: the data are now in place (fetched and verified 2026-11-21, see the log and
+   `scripts/validation_data/README.md`), but the IMS / SNOTEL / GHCN scoring scripts are still OL/DA-pair specific and
+   need generalising to the five arms (driven by `arms.json`). Rescale the GHCN selection thresholds for a 6-year
+   window (the old `min_valid_days` 1500 and `min_avg_snow_days_per_year` 5 came from a 25-year record), and convert
+   units before comparing (SNOTEL inches, GHCN mm, model snow depth in m, SWE in kg m-2).
 3. Confirm the decision rule in "How results will be read".
 4. Whether the real Terra and Aqua overpass times drifted (affects interpretation of the time-of-day confound only).
 5. Availability of `PEATCLSM_FSWCHANGE` in the daily output and of restarts at the budget endpoints (analysis D).
@@ -218,3 +237,6 @@ Still open:
 | 2026-11-21 | Plan drafted from the run configuration and the GEOSldas source (reader overpass hours, per-tile obs averaging, SCF update parameters). |
 | 2026-11-21 | `config/arms.json` written. Open items updated: species/assim flags confirmed, all five arms reached `END_DATE 20260801`, `ObsFcstAna` carries fcst/ana for non-assimilated species (local species ids 1-4). Increment path corrected to `cat/ens0000/` (daily files, 8 steps). |
 | 2026-11-21 | After review: no sixth arm (VIIRS constellation answered as a difference of differences); IMS kept but flagged as not independent; per-year reporting and a proposed decision rule added; 3 h step confirmed from `ObsFcstAna` longitude spans; MODIS monitoring gap in 2026 for the OL and VIIRS arms recorded; species ids verified in 35 files; data status and run locations added. |
+| 2026-11-21 | **Analysis A run** (SLURM array 59362332, all five arms; 11 min for the 6-year arms): obs coverage per sensor and constellation overlap, input data-gap days found, 2026 MODIS gap confirmed in the OL and VIIRS arms. Plan updated with the coverage numbers and gap days. |
+| 2026-11-21 | `.gitignore` now un-ignores `docs/viirs_transition_report_figures/*.png`; `obs_availability.j` walltime set to 15 min. |
+| 2026-11-21 | **Validation data fetched and verified** (`scripts/validation_data/`, data in `land_da/VIIRS_testing/validation_data/`, 28 files, 145 MB). SNOTEL 2025-10-01 to 2026-07-31 (304/304 days, 913 stations, inches; the existing parquet covers to 2025-09-30; recent values are NRCS provisional); GHCN SNWD per-year parquet 2020-08-01 to 2026-07-31 (2191/2191 days, 29,284 stations, mm); IMS 2025 and 2026 (365/365 and 212/212 days) plus M36 nearest-neighbour versions, 2020 to 2024 already in `projects/IMS/output/`. Spot checks: IMS byte-identical to the existing 2024 raw files; SNOTEL overlap differences small (10 values, consistent with NRCS revisions); GHCN vs the old OL/DA product 0.004% of shared station-days differ, with some station-days present in only one product (likely NOAA revisions; not investigated). |
