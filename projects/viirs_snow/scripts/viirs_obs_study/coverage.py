@@ -16,7 +16,7 @@ maps_<period>_<product>.npz
             cells, snowy kept cells, snowy class-1 cells
 
 A tile "has an obs" on a day if at least one kept CMG cell of that day's file maps to
-it (lib/obs2tile.py, as GEOSldas). The reader picks the daily file per window by the
+it (viirs_snow_lib/obs2tile.py, as GEOSldas). The reader picks the daily file per window by the
 13:30 local overpass, so each tile gets its obs from one daily file per day; treating
 the daily file as the tile's obs for that day is exact up to the tiles at the date line.
 
@@ -36,7 +36,7 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1]))
 sys.path.insert(0, str(HERE))
-from lib import obs2tile, scf_qc  # noqa: E402
+from viirs_snow_lib import obs2tile, scf_qc  # noqa: E402
 from periods import DATA_DIR, PERIODS, VIIRS, cmg_file, days, products  # noqa: E402
 
 TILECOORD = {

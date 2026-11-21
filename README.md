@@ -6,7 +6,7 @@ This repository now contains the curated code extracted from the historical `GEO
 | --- | --- |
 | `common/python/{io,plotting,stats}` | Shared Python helpers (readers, plotting utilities, statistical functions). |
 | `common/matlab`, `common/fortran` | Core Matlab/FORTRAN processing utilities reused by multiple projects. |
-| `projects/<name>` | Domain-specific workspaces (e.g., `cygnss_da`, `ascat_da`, `M21C_ls`, `snow_da`, `era5_land`, `matlab2python`, `utils`). Each contains `notebooks`, `scripts`, and language-specific subfolders as needed. |
+| `projects/<name>` | Domain-specific workspaces (e.g., `cygnss_da`, `ascat_da`, `M21C_ls`, `snow_da`, `viirs_snow`, `era5_land`, `matlab2python`, `utils`). Each contains `notebooks`, `scripts`, and language-specific subfolders as needed. |
 | `data/` | Documentation on how to access the archived data. No large datasets live in this repo. |
 
 ## Data handling

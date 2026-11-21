@@ -1,6 +1,6 @@
 # VIIRS snow cover obs study: plan
 
-Status: **plan confirmed by amfox 2026-11-04 (periods and decision rule); QC mirror done and checked; obs downloaded; Parts A1, A2, A3 and B done (results: `viirs_obs_study_report.md`).** Started 2026-11-04 (amfox). Code: `scripts/viirs_obs_study/`, `lib/scf_qc.py`.
+Status: **plan confirmed by amfox 2026-11-04 (periods and decision rule); QC mirror done and checked; obs downloaded; Parts A1, A2, A3 and B done (results: `viirs_obs_study_report.md`).** Started 2026-11-04 (amfox). Code: `scripts/viirs_obs_study/`, `viirs_snow_lib/scf_qc.py`.
 
 This study supports two decisions for the GEOSldas VIIRS snow cover fraction (SCF) reader
 (`read_obs_JPSS_SCF` / `read_JPSS_SCF_hdf`, GEOSldas_GridComp branch `feature/amfox/jpss_hdf5_reader`, species 59
@@ -44,7 +44,7 @@ Data go under `data/` (git-ignored), not in the repo.
 
 ## QC used in the study
 
-`lib/scf_qc.py` is a Python mirror of the two readers' QC (thresholds, SCF = Snow_Cover/Clear_Index in real*4, cap
+`viirs_snow_lib/scf_qc.py` is a Python mirror of the two readers' QC (thresholds, SCF = Snow_Cover/Clear_Index in real*4, cap
 at 1 for VIIRS). It is checked against the Fortran readers themselves (`check_qc_vs_fortran.py`: same cells, same
 order, bit-identical SCF; last run GridComp `6d0ed32`, 9 files, all OK). For Q1, VIIRS cells are kept by all reader
 tests except `Basic_QA`, and the QA class is kept as a label (`viirs_qc_without_qa`).
@@ -64,7 +64,7 @@ As in GEOSldas (`get_tile_num_for_obs` → `get_tile_num_from_latlon`, `LDAS_Til
 - With FOV = 0 an obs is dropped when no tile bounding box contains it (M36: when its EASE cell has no land tile).
 
 Tile coords and grids come from the runs' `rc_out/*.ldas_tilecoord.bin` and `*.ldas_tilegrids.bin`. Implemented in
-`lib/obs2tile.py`; checks and the CF0360 cell-loss finding in the report ("Obs-to-tile mapping").
+`viirs_snow_lib/obs2tile.py`; checks and the CF0360 cell-loss finding in the report ("Obs-to-tile mapping").
 
 ## Periods (confirmed 2026-11-04)
 
@@ -134,13 +134,13 @@ season, with day-to-day spread.
 | 2026-11-16 | **Part B done** (`jpss_compare.py`, `jpss_report.py`; report section B; class 1 dropped, P3–P7). J1 vs J2 RMSD 0.057, bias +0.003, r 0.990 (each vs Aqua 0.069–0.071; neither clearly better). J2 adds 8.5% (CF0360) / 4.8% (M36) tile-days over J1 (snowy 10.0% / 5.0%); snowy tiles: mean days with an obs per week 4.66 → 5.15 (CF0360). J1+J2 average changes the side of the 0.55 threshold in 1.6–1.8% of snowy tile-days with both. Part C is testing a small effect. |
 | 2026-11-16 | **amfox: drop QA class 1** (decision rule outcome, supported by A2 and A3). Part B uses `basic_qa_keep = (0, 3)` (`scf_qc` override; the GridComp reader change is separate and not yet made). |
 | 2026-11-16 | **A3 IMS check done** (`get_ims.py`, `ims_check.py`, `ims_report.py`; IMS 4 km, 49 days, NH only; report section A3). Class 1 vs IMS: accuracy 75–80% (classes 0, 3: ~97%), false snow 20–26% (class 0: 4%, class 3: 2%, MODIS Aqua 4.7%). Where VIIRS class 1 has snow and MODIS Aqua does not, IMS has snow in 24% of the cells (classes 0, 3: 63–65%): IMS sides with MODIS. Robust to a 1-day IMS shift. **A3 supports dropping class 1**; amfox decides. Caveats: NH only, IMS not fully independent of MODIS/VIIRS. |
-| 2026-11-16 | **CF0360 obs-to-tile mapping rewritten for GridComp PR #252** (`lib/obs2tile.py`, cache v5; the pert-grid code is removed). Equal to the PR's Fortran (`c3_offline_harness/offline_map.x`) on 6,109,513 CMG centers: 0 differences. Land CMG cells with a tile 61.9% → 100%. **A1/A2 for CF0360 must be rerun** (M36 unchanged). |
+| 2026-11-16 | **CF0360 obs-to-tile mapping rewritten for GridComp PR #252** (`viirs_snow_lib/obs2tile.py`, cache v5; the pert-grid code is removed). Equal to the PR's Fortran (`c3_offline_harness/offline_map.x`) on 6,109,513 CMG centers: 0 differences. Land CMG cells with a tile 61.9% → 100%. **A1/A2 for CF0360 must be rerun** (M36 unchanged). |
 | 2026-11-16 | **A1 rerun with the PR #252 CF0360 mapping** (`coverage.py`, `coverage_report.py`; report A1 tables and figure A1-1 updated). Snowy tile-days with obs only via class 1, CF0360: 0.8–1.8% per period (was 0.9–2.0%; max S-NPP P1 1.78%); single days over 2%: P1 S-NPP, P3 S-NPP, P5 JPSS-2. M36 unchanged. Coverage leg still not met in any period; decision-rule outcome (drop class 1) unchanged. A2 rerun the same day: `stats.csv` byte-identical (A2 is per CMG cell, no tile mapping). |
 | 2026-11-04 | **Obs-to-tile mapping confirmed against GEOSldas output (old CF0360 pert-grid mapping, superseded 2026-11-16).** CF0360 ObsFcstAna of `M21C_test_CF0360_jpss_5d4d636_OL` (2020-01-09..10, MYD10C1, MOD10C1, VJ110C1, VNP10C1) and M36 reproduced exactly (all but 1 obs per product). Needed: the runs' own tilecoord (copied from run A2; the local `M21C_test_CF0360` file has other tile boxes), land tiles only, and real*4 cell centers with fused multiply-add. CF0360 cell-loss finding confirmed: 54.5% of land CMG cells get a tile, 17.5% of land tiles never get an obs. A1 rerun with the runs' tilecoord: results unchanged to ≤0.02 points. |
 | 2026-11-04 | **A1 coverage done** (`coverage.py`, `coverage_report.py`; report section A1). Class 1 = 0.24–1.1% of kept cells, 0.8–2.8% of snowy cells. Snowy tile-days with obs only via class 1: CF0360 0.9–2.0%, M36 0.5–1.0% per period (max single day 2.45%, CF0360). Coverage leg of the decision rule not met in any period (pooled over 7 days); 2% read per period (confirmed by amfox 2026-11-05). |
 | 2026-11-05 | **A2 agreement with MODIS done** (`agreement.py`, `agreement_report.py`; report section A2). Class-1 RMSD vs MODIS Aqua 0.34–0.44, 1.5–29× class 3 in 19/19 period-satellites (snowy subset 15/19), 4.6–8× class 0; Terra the same. Bias +0.15..+0.25: class 1 sees snow MODIS does not (30% on the snowy side of 0.55 where MODIS is not, 1% the reverse). Only 11–25% of class-1 cells have a usable MODIS cell. **Both legs of the decision rule point to dropping class 1**; amfox decides. Next: A3 (IMS check of the disagreements). |
 | 2026-11-05 | amfox: the 2% coverage threshold is per period (7 days pooled), not per day. With it, the coverage leg is not met in any period (max 1.96%, S-NPP P1, CF0360), so the rule's outcome is to drop class 1. |
-| 2026-11-04 | `lib/obs2tile.py` (CMG cell → tile as GEOSldas) + `check_tile_map.py`. M36 checked end to end against `LS_DAv8_M36_as_test3` ObsFcstAna (MYD10C1, 2020-05-06): 17,783/17,827 tile obs reproduced. Finding: for CF0360 with FOV = 0 only 56% of land CMG cells get a tile (42% north of 60°N); not yet checked against CF0360 ObsFcstAna. |
+| 2026-11-04 | `viirs_snow_lib/obs2tile.py` (CMG cell → tile as GEOSldas) + `check_tile_map.py`. M36 checked end to end against `LS_DAv8_M36_as_test3` ObsFcstAna (MYD10C1, 2020-05-06): 17,783/17,827 tile obs reproduced. Finding: for CF0360 with FOV = 0 only 56% of land CMG cells get a tile (42% north of 60°N); not yet checked against CF0360 ObsFcstAna. |
 | 2026-11-04 | Obs downloaded (`get_obs.py`, 1.2 GB): 228 of 231 files; manifest in `data/viirs_obs_study/cmg/manifest.txt`. Missing: VNP10C1 2024-07-13..15 (P6) — not in the NSIDC catalog (CMR); VNP10C1 2024-07-16 is about half the usual size (likely a partial day). |
 | 2026-11-04 | Periods and decision rule confirmed (amfox); obs downloads started. |
-| 2026-11-04 | Plan written. `lib/scf_qc.py` + unit tests; `check_qc_vs_fortran.py` against GridComp `6d0ed32`: 9/9 files identical. |
+| 2026-11-04 | Plan written. `viirs_snow_lib/scf_qc.py` + unit tests; `check_qc_vs_fortran.py` against GridComp `6d0ed32`: 9/9 files identical. |

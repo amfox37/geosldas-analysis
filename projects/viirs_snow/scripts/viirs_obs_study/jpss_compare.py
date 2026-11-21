@@ -9,7 +9,7 @@ B1  cell level, per period x latitude band x J1 QA class x subset (agreement.com
       j1_j2     : J1 (x) vs J2 (y) on cells where both are kept
       j1_aqua3, j2_aqua3 : J1 vs Aqua and J2 vs Aqua on the cells where J1, J2 and Aqua are all kept
                   (same cells, so the two are directly comparable)
-B2  tile level, per tile space (M36, CF0360; lib/obs2tile.py) x tile latitude band, per day: tiles with an
+B2  tile level, per tile space (M36, CF0360; viirs_snow_lib/obs2tile.py) x tile latitude band, per day: tiles with an
       obs from J1 only, J2 only, both (a tile has an obs if >= 1 kept cell maps to it); and per period the
       number of days (0..7) a tile has an obs, for J1 alone and J1 or J2, for all tiles and for tiles that
       are snowy on >= 1 day. "snowy" = tile obs > 0, where the tile obs of J1+J2 is what GEOSldas gives the
@@ -34,7 +34,7 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1]))
 sys.path.insert(0, str(HERE))
-from lib import obs2tile, scf_qc  # noqa: E402
+from viirs_snow_lib import obs2tile, scf_qc  # noqa: E402
 from periods import DATA_DIR, PERIODS, cmg_file, days  # noqa: E402
 from coverage import BANDS, CACHE, TILECOORD, band_index  # noqa: E402
 from agreement import SUBSETS, compare  # noqa: E402

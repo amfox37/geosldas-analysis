@@ -42,7 +42,7 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1]))
 sys.path.insert(0, str(HERE))
-from lib import scf_qc  # noqa: E402
+from viirs_snow_lib import scf_qc  # noqa: E402
 from periods import DATA_DIR, MODIS, PERIODS, VIIRS, cmg_file, days, products  # noqa: E402
 from coverage import BANDS, band_index  # noqa: E402
 

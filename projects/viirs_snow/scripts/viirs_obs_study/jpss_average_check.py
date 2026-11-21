@@ -23,7 +23,7 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1]))
 sys.path.insert(0, str(HERE))
-from lib import scf_qc  # noqa: E402
+from viirs_snow_lib import scf_qc  # noqa: E402
 from periods import cmg_file, days  # noqa: E402
 from jpss_compare import AQUA, J1, J2, PERIODS_B, load_viirs  # noqa: E402
 from ims_check import NH_ROWS, cell_pixels, ims_state  # noqa: E402

@@ -1,7 +1,7 @@
 """
-Unit tests for lib/scf_qc.py (synthetic cells; no data files needed).
+Unit tests for viirs_snow_lib/scf_qc.py (synthetic cells; no data files needed).
 
-run:  /Users/amfox/mamba/envs/regrid/bin/python -m pytest projects/snow_da/lib/test_scf_qc.py
+run:  /Users/amfox/mamba/envs/regrid/bin/python -m pytest projects/viirs_snow/viirs_snow_lib/test_scf_qc.py
 The check against the Fortran readers on real files is scripts/viirs_obs_study/check_qc_vs_fortran.py.
 """
 

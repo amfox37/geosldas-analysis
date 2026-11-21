@@ -9,7 +9,7 @@ adds the current state, the next steps, and context that is not in the plan.
 | Item | Status |
 |---|---|
 | Plan, periods (P1–P7), decision rule for QA class 1 | confirmed by amfox 2026-11-04 |
-| `lib/scf_qc.py` (Python mirror of the GEOSldas VIIRS + MODIS SCF reader QC) | done; 7 unit tests pass; bit-identical to the Fortran readers on 9 files (GridComp `6d0ed32`) |
+| `viirs_snow_lib/scf_qc.py` (Python mirror of the GEOSldas VIIRS + MODIS SCF reader QC) | done; 7 unit tests pass; bit-identical to the Fortran readers on 9 files (GridComp `6d0ed32`) |
 | Obs download (`scripts/viirs_obs_study/get_obs.py`) | done: 228/231 files, 1.2 GB in `data/viirs_obs_study/cmg/` (git-ignored); `manifest.txt` there. Missing VNP10C1 2024-07-13..15 (not at NSIDC) |
 | Obs-to-tile mapping | worked out from the GEOSldas code; documented in the plan ("Obs-to-tile mapping") |
 | Part A1 (coverage of QA class 1) | **done 2026-11-04**; results in `viirs_obs_study_report.md` |
@@ -17,8 +17,8 @@ adds the current state, the next steps, and context that is not in the plan.
 | Part A3 (IMS check) | **done 2026-11-16**; supports dropping class 1 (IMS sides with MODIS in 76% of the class-1 disagreements; class 1 accuracy 75–80% vs ~97%) |
 | Part B (J1 vs J2), class 1 dropped | **done 2026-11-16**: J1, J2 agree closely (RMSD 0.057); J2 adds 5–10% tile-days; 1.6–1.8% of snowy tile-days change side at 0.55 |
 | Part A4 (effect on the update) | **not started**; optional (decision already made: drop class 1) |
-| GridComp reader change for dropping class 1 | **not made** (`basic_qa_keep` stays (0, 1, 3) in `lib/scf_qc.py`; analyses use an override) |
-| Obs-to-tile mapping (`lib/obs2tile.py`) | M36: reproduces ObsFcstAna exactly (2026-11-04). **CF0360 rewritten 2026-11-16 for GridComp PR #252** (equal to the PR's Fortran harness on 6.1 M points); the old CF0360 A1 results were rerun 2026-11-16 (outcome unchanged); A2 does not use the mapping and is unaffected. Use the runs' CF0360 tilecoord in `data/viirs_obs_study/validation_cf0360/tiles/`, not the older local one |
+| GridComp reader change for dropping class 1 | **not made** (`basic_qa_keep` stays (0, 1, 3) in `viirs_snow_lib/scf_qc.py`; analyses use an override) |
+| Obs-to-tile mapping (`viirs_snow_lib/obs2tile.py`) | M36: reproduces ObsFcstAna exactly (2026-11-04). **CF0360 rewritten 2026-11-16 for GridComp PR #252** (equal to the PR's Fortran harness on 6.1 M points); the old CF0360 A1 results were rerun 2026-11-16 (outcome unchanged); A2 does not use the mapping and is unaffected. Use the runs' CF0360 tilecoord in `data/viirs_obs_study/validation_cf0360/tiles/`, not the older local one |
 | Part C (DA runs on Discover) | after A, B and the QA decision |
 | Git | commits `f52c48e`, `a1d079b`, `b1c4448` (+ this note) are **local only**; amfox pushes (`git push origin main`) |
 
@@ -60,7 +60,7 @@ adds the current state, the next steps, and context that is not in the plan.
   M36 SCF DA runs (e.g. Lauren Andrews's).
 - **Snow update averages obs per tile:** with two SCF species in the same window, GEOSldas averages them per tile
   before the rule-based update (relevant for Part B / C).
-- **If the reader QC changes:** update `lib/scf_qc.py` and rerun `scripts/viirs_obs_study/check_qc_vs_fortran.py`
+- **If the reader QC changes:** update `viirs_snow_lib/scf_qc.py` and rerun `scripts/viirs_obs_study/check_qc_vs_fortran.py`
   (instructions in that folder's README).
 
 ## Conventions
@@ -68,5 +68,5 @@ adds the current state, the next steps, and context that is not in the plan.
 - Python: `/Users/amfox/mamba/envs/regrid/bin/python`. Data under `data/` (git-ignored); never commit data or
   large outputs.
 - Script-first; figures from scripts; clear notebook outputs before committing (repo `CLAUDE.md`).
-- Commit messages: `snow_da: <imperative summary>`. amfox pushes; ask before any push, `rm`, `mv`, `cp`.
+- Commit messages: `viirs_snow: <imperative summary>`. amfox pushes; ask before any push, `rm`, `mv`, `cp`.
 - Document as you go: plan log, folder README, report. amfox asked for everything to be well documented.

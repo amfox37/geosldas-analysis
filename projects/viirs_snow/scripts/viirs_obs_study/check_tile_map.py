@@ -4,7 +4,7 @@ Build (or load) the CMG -> tile maps for M36 and CF0360 and check them against G
 
 1. M36: every tile center falls in its own EASE cell (i_indg, j_indg).
 2. End to end, per tile space: the SCF obs in GEOSldas ObsFcstAna (OFA) files are
-   reproduced from the raw CMG files with lib/scf_qc.py (reader QC) + lib/obs2tile.py:
+   reproduced from the raw CMG files with viirs_snow_lib/scf_qc.py (reader QC) + viirs_snow_lib/obs2tile.py:
    same tile-mean SCF (to 1e-5) and same tile-mean obs lon/lat (to 1e-3 deg). The
    reader averages the lon/lat of the kept cells, so the lon/lat test checks the exact
    cell set of each tile. Each OFA obs is compared with the daily files of the day
@@ -28,7 +28,7 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1]))
 sys.path.insert(0, str(HERE))
-from lib import obs2tile, scf_qc  # noqa: E402
+from viirs_snow_lib import obs2tile, scf_qc  # noqa: E402
 from periods import DATA_DIR  # noqa: E402
 
 VAL = DATA_DIR.parent

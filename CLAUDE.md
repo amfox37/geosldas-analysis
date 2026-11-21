@@ -38,6 +38,7 @@ projects/
   cygnss_da/        # CYGNSS soil moisture DA (M21C manuscript figures)
   era5_land/        # ERA5 / ERA5-Land reanalysis comparison
   snow_da/          # Snow data assimilation diagnostics
+  viirs_snow/       # VIIRS snow-cover DA: reader test, obs study (QA class, J1 vs J2), MODIS-to-VIIRS transition runs
   SNOTEL/           # SNOTEL SWE/snow-depth in-situ validation
   GHCN_snwd/        # GHCN snow-depth in-situ validation
   IMS/              # IMS snow-cover categorical skill (DA vs OL)
@@ -148,7 +149,7 @@ nbformat 4.4 notebooks have **no cell IDs** — the `NotebookEdit` tool will fai
 
 **era5_land** — ERA5 / ERA5-Land comparison against GEOSldas OL and DA on M36 grid. Uses `compare_with_reanalysis_strict.ipynb` and postage-stamp figure notebooks.
 
-**snow_da / SNOTEL / GHCN_snwd / IMS** — Snow validation for the manuscript. IMS uses a script-first workflow (`run_ims_ol_da_cell_metrics.py`) then a plotting notebook.
+**snow_da / viirs_snow / SNOTEL / GHCN_snwd / IMS** — Snow validation for the manuscript (viirs_snow: VIIRS SCF reader, obs study and transition analysis). IMS uses a script-first workflow (`run_ims_ol_da_cell_metrics.py`) then a plotting notebook.
 
 ---
 

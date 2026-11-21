@@ -187,7 +187,7 @@ experiment root:
 
 ```
 P=/usr/local/other/GEOSpyD/25.3.1-0/2025-10-07/envs/py3.13/bin/python3
-S=<repo>/projects/snow_da/scripts/viirs_scf_reader_test
+S=<repo>/projects/viirs_snow/scripts/viirs_scf_reader_test
 X=M21C_test_CF0360_jpss
 python3 $S/get_snow_cmg_obs.py $NOBACKUP/snow_cmg_obs 2019-12-31 2020-01-12 VJ110C1 VNP10C1   # login node, ~/.netrc
 $P $S/check_jpss_logs.py ${X}_5d4d636_B                                                    # reader log checks

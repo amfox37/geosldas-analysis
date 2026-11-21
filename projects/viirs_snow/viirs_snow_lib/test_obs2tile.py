@@ -1,7 +1,7 @@
 """
-Tests for lib/obs2tile.py (cube-sphere cell lookup of GEOSldas_GridComp PR #252).
+Tests for viirs_snow_lib/obs2tile.py (cube-sphere cell lookup of GEOSldas_GridComp PR #252).
 
-run:  /Users/amfox/mamba/envs/regrid/bin/python -m pytest projects/snow_da/lib/test_obs2tile.py
+run:  /Users/amfox/mamba/envs/regrid/bin/python -m pytest projects/viirs_snow/viirs_snow_lib/test_obs2tile.py
 The full check against the PR's Fortran is c3_offline_harness/offline_map.x (see the report).
 """
 

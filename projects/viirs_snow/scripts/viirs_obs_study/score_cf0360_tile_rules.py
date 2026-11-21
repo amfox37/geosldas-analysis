@@ -7,8 +7,8 @@ ObsFcstAna). The other rules choose among the land tiles whose bounding box cont
 Run: python -I score_cf0360_tile_rules.py   (~1 min, ~6 GB memory)
 """
 import sys, numpy as np
-sys.path.insert(0,'/Users/amfox/Desktop/geosldas-analysis/projects/snow_da')
-from lib.obs2tile import read_tilecoord, land_tiles, _cmg_lonlat32
+sys.path.insert(0,'/Users/amfox/Desktop/geosldas-analysis/projects/viirs_snow')
+from viirs_snow_lib.obs2tile import read_tilecoord, land_tiles, _cmg_lonlat32
 V='/Users/amfox/Desktop/geosldas-analysis/data/viirs_obs_study/'
 tc=land_tiles(read_tilecoord(V+'validation_cf0360/tiles/M21C_test_CF0360_jpss_5d4d636_A2/output/CF0360x6C_GLOBAL/rc_out/M21C_test_CF0360_jpss_5d4d636_A2.ldas_tilecoord.bin'))
 NL=tc['N_tile']; d=np.load(V+'validation_cf0360/raster/cf0360_cmg_dominant_tile.npz')

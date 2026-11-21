@@ -10,13 +10,13 @@ Python: `/Users/amfox/mamba/envs/regrid/bin/python` (numpy, netCDF4 with HDF4 an
 
 | File | What |
 |---|---|
-| `../../lib/scf_qc.py` | Python mirror of the QC in the GEOSldas readers `read_JPSS_SCF_hdf` (VIIRS) and `read_MODIS_SCF_hdf` (MODIS): raw readers, QC dicts, SCF |
-| `../../lib/test_scf_qc.py` | unit tests of `scf_qc.py` on synthetic cells |
+| `../../viirs_snow_lib/scf_qc.py` | Python mirror of the QC in the GEOSldas readers `read_JPSS_SCF_hdf` (VIIRS) and `read_MODIS_SCF_hdf` (MODIS): raw readers, QC dicts, SCF |
+| `../../viirs_snow_lib/test_scf_qc.py` | unit tests of `scf_qc.py` on synthetic cells |
 | `check_qc_vs_fortran.py` | checks `scf_qc.py` against the Fortran readers on real files |
 | `fortran_check/` | builds a small driver around the two Fortran reader routines, copied verbatim from a GridComp checkout |
 | `periods.py` | study periods P1–P7, products, file paths (shared by all scripts) |
 | `get_obs.py` | downloads the VIIRS + MODIS files of all periods; writes `manifest.txt` |
-| `../../lib/obs2tile.py` | CMG cell → GEOSldas tile (M36; CF0360 as GridComp PR #252) as `get_tile_num_for_obs`; cached maps in `data/viirs_obs_study/tilemap/` |
+| `../../viirs_snow_lib/obs2tile.py` | CMG cell → GEOSldas tile (M36; CF0360 as GridComp PR #252) as `get_tile_num_for_obs`; cached maps in `data/viirs_obs_study/tilemap/` |
 | `check_tile_map.py` | builds and checks the tile maps (M36 end to end against local ObsFcstAna; CF0360 counts) |
 | `coverage.py` | Part A1: cells and tiles with / without QA class 1, per day; writes `data/viirs_obs_study/out/coverage/` |
 | `coverage_report.py` | Part A1 tables (stdout) and figures A1-1, A1-2 for the report |
@@ -35,7 +35,7 @@ Results go into [`../../docs/viirs_obs_study_report.md`](../../docs/viirs_obs_st
 ## Part A1, coverage
 
 ```bash
-cd /Users/amfox/Desktop/geosldas-analysis/projects/snow_da
+cd /Users/amfox/Desktop/geosldas-analysis/projects/viirs_snow
 PY=/Users/amfox/mamba/envs/regrid/bin/python
 $PY scripts/viirs_obs_study/check_tile_map.py         # tile maps: build once (~10 s) and check
 $PY scripts/viirs_obs_study/coverage.py --workers 4    # ~1 min for all 130 VIIRS files
@@ -56,14 +56,14 @@ $PY scripts/viirs_obs_study/coverage_report.py         # tables + figures
 Last run 2026-11-04: M36 17827/17827 MYD10C1 obs. The CF0360 check of that date tested the old pert-grid mapping
 (void); CF0360 is now checked against the PR #252 Fortran harness (see the report). Prints ALL OK at >= 99.99%.
 
-Things that matter for the exact match (details in `lib/obs2tile.py` and the report): use the run's own tilecoord
+Things that matter for the exact match (details in `viirs_snow_lib/obs2tile.py` and the report): use the run's own tilecoord
 (the older local `M21C_test_CF0360.ldas_tilecoord.bin` has other tile boxes), only its land tiles (typ 100), and
 real*4 CMG cell centers with a fused multiply-add, as the Discover build computes them.
 
 ## Part A2, agreement with MODIS
 
 ```bash
-cd /Users/amfox/Desktop/geosldas-analysis/projects/snow_da
+cd /Users/amfox/Desktop/geosldas-analysis/projects/viirs_snow
 PY=/Users/amfox/mamba/envs/regrid/bin/python
 $PY scripts/viirs_obs_study/agreement.py --workers 4    # ~1.5 min (49 days, 130 VIIRS + 98 MODIS files)
 $PY scripts/viirs_obs_study/agreement_report.py         # tables + figures; run coverage.py first
@@ -74,7 +74,7 @@ $PY scripts/viirs_obs_study/agreement_report.py         # tables + figures; run 
 Run this whenever the reader QC or `scf_qc.py` changes.
 
 ```bash
-cd /Users/amfox/Desktop/geosldas-analysis/projects/snow_da
+cd /Users/amfox/Desktop/geosldas-analysis/projects/viirs_snow
 
 # 1. build the driver from the GridComp code to be checked (records the commit in built_from.txt)
 bash scripts/viirs_obs_study/fortran_check/build.sh \
@@ -86,7 +86,7 @@ bash scripts/viirs_obs_study/fortran_check/build.sh \
      /tmp/scf_check/test_driver <files ...>
 
 # 3. unit tests
-/Users/amfox/mamba/envs/regrid/bin/python -m pytest -q lib/test_scf_qc.py
+/Users/amfox/mamba/envs/regrid/bin/python -m pytest -q viirs_snow_lib/test_scf_qc.py
 ```
 
 `build.sh` extracts `read_JPSS_SCF_hdf` and `read_MODIS_SCF_hdf` from `clsm_ensupd_read_obs.F90`, compiles them with

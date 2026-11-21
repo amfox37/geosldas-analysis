@@ -78,7 +78,7 @@ satellites, so it serves both questions (QA class 1; J1 vs J2) with the same dow
   through all reader tests except `Basic_QA` (`scf_qc.viirs_qc_without_qa`, the mirror checked bit-identical against
   the Fortran reader); QA class is kept as a label. "Kept" = classes {0, 1, 3}, as the reader does now. "Snowy" =
   SCF > 0. Latitude bands as in the plan (a cell at latitude φ goes to the band with lower ≤ φ < upper).
-- **Tiles:** cells are mapped to tiles as GEOSldas does (`lib/obs2tile.py`, next section). A tile has an obs on a day
+- **Tiles:** cells are mapped to tiles as GEOSldas does (`viirs_snow_lib/obs2tile.py`, next section). A tile has an obs on a day
   if at least one kept cell of that day's file maps to it; the reader averages all of them into one tile obs. A tile-
   day is "snowy" if that average (with {0, 1, 3}) is > 0. "Only via class 1": the tile has class-1 cells and no class
   0 or 3 cells, so dropping class 1 removes its obs. "Mixed": the tile has both; dropping class 1 changes its obs value
@@ -91,7 +91,7 @@ satellites, so it serves both questions (QA class 1; J1 vs J2) with the same dow
 
 ## Obs-to-tile mapping
 
-`lib/obs2tile.py` follows `get_tile_num_for_obs` → `get_tile_num_from_latlon` (`LDAS_TileCoordRoutines.F90`) with FOV = 0
+`viirs_snow_lib/obs2tile.py` follows `get_tile_num_for_obs` → `get_tile_num_from_latlon` (`LDAS_TileCoordRoutines.F90`) with FOV = 0
 (the SCF species in `LDASsa_DEFAULT_inputs_ensupd.nml`):
 
 - **M36:** an obs goes to the tile of the EASEv2 M36 cell that contains it.
@@ -240,7 +240,7 @@ obs. Dot: 7 days pooled; bar: range of the single days. Dashed: the 2% of the de
 ### Reproduce
 
 ```bash
-cd /Users/amfox/Desktop/geosldas-analysis/projects/snow_da
+cd /Users/amfox/Desktop/geosldas-analysis/projects/viirs_snow
 PY=/Users/amfox/mamba/envs/regrid/bin/python
 $PY scripts/viirs_obs_study/check_tile_map.py           # builds + checks the tile maps (~10 s)
 $PY scripts/viirs_obs_study/coverage.py --workers 4      # ~1 min, writes data/viirs_obs_study/out/coverage/
@@ -415,7 +415,7 @@ P7. These are the cells for the IMS check (A3).*
 ### Reproduce
 
 ```bash
-cd /Users/amfox/Desktop/geosldas-analysis/projects/snow_da
+cd /Users/amfox/Desktop/geosldas-analysis/projects/viirs_snow
 PY=/Users/amfox/mamba/envs/regrid/bin/python
 $PY scripts/viirs_obs_study/agreement.py --workers 4      # ~1.5 min, writes data/viirs_obs_study/out/agreement/
 $PY scripts/viirs_obs_study/agreement_report.py           # tables (stdout) + figures A2-1..3 (needs coverage.py output)
@@ -505,7 +505,7 @@ IMS has snow:
 ### Reproduce
 
 ```bash
-cd /Users/amfox/Desktop/geosldas-analysis/projects/snow_da
+cd /Users/amfox/Desktop/geosldas-analysis/projects/viirs_snow
 PY=/Users/amfox/mamba/envs/regrid/bin/python
 $PY scripts/viirs_obs_study/get_ims.py                    # 49 IMS 4 km files + lat/lon, 247 MB, data/viirs_obs_study/ims/
 $PY scripts/viirs_obs_study/ims_check.py --workers 4      # ~1.5 min, writes data/viirs_obs_study/out/ims/
@@ -605,7 +605,7 @@ IMS version gives the same ordering.)
 ### Reproduce
 
 ```bash
-cd /Users/amfox/Desktop/geosldas-analysis/projects/snow_da
+cd /Users/amfox/Desktop/geosldas-analysis/projects/viirs_snow
 PY=/Users/amfox/mamba/envs/regrid/bin/python
 $PY scripts/viirs_obs_study/jpss_compare.py        # ~1 min, writes data/viirs_obs_study/out/jpss/ (one worker per period)
 $PY scripts/viirs_obs_study/jpss_report.py         # tables (stdout)

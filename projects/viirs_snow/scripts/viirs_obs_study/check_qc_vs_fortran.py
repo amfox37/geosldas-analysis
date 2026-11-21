@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Check that lib/scf_qc.py reproduces the GEOSldas SCF readers exactly.
+Check that viirs_snow_lib/scf_qc.py reproduces the GEOSldas SCF readers exactly.
 
 For each daily CMG file, runs the Fortran readers (built with fortran_check/build.sh)
-over the whole globe and compares the kept obs with lib/scf_qc.py: same number of
+over the whole globe and compares the kept obs with viirs_snow_lib/scf_qc.py: same number of
 obs, same order, and bit-identical lon, lat and SCF (all real*4).
 
 usage:
@@ -20,8 +20,8 @@ from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))   # projects/snow_da
-from lib.scf_qc import cmg_lon_lat, modis_scf, read_modis_cmg, read_viirs_cmg, viirs_scf  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))   # projects/viirs_snow
+from viirs_snow_lib.scf_qc import cmg_lon_lat, modis_scf, read_modis_cmg, read_viirs_cmg, viirs_scf  # noqa: E402
 
 
 def python_obs(path):

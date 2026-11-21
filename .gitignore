@@ -20,10 +20,10 @@ __pycache__/
 !projects/CYGNSS_L1_AZ/paper/figures/*.png
 !projects/CYGNSS_L1_AZ/docs/cygl1_operator_skill_report_figures/
 !projects/CYGNSS_L1_AZ/docs/cygl1_operator_skill_report_figures/*.png
-!projects/snow_da/docs/viirs_scf_reader_test_report_figures/
-!projects/snow_da/docs/viirs_scf_reader_test_report_figures/*.png
-!projects/snow_da/docs/viirs_obs_study_report_figures/
-!projects/snow_da/docs/viirs_obs_study_report_figures/*.png
+!projects/viirs_snow/docs/viirs_scf_reader_test_report_figures/
+!projects/viirs_snow/docs/viirs_scf_reader_test_report_figures/*.png
+!projects/viirs_snow/docs/viirs_obs_study_report_figures/
+!projects/viirs_snow/docs/viirs_obs_study_report_figures/*.png
 
 
 # Ignore possible symlinked build and install directories
@@ -51,7 +51,7 @@ spack*.log
 *.npz
 *.double
 *.csv
-!projects/snow_da/docs/viirs_scf_reader_test_report_figures/*.csv
+!projects/viirs_snow/docs/viirs_scf_reader_test_report_figures/*.csv
 
 # Archives
 *.tar.gz
