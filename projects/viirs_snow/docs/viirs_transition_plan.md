@@ -1,6 +1,6 @@
 # MODIS-to-VIIRS transition and Terra vs Terra+Aqua: analysis plan
 
-Status: **2026-11-21 (amfox + Claude). Analyses A, B, C, D (+D2) and E have all been run (`scripts/viirs_transition/`, figures and tables in `docs/viirs_transition_report_figures/`); synthesis in `viirs_transition_report.md`. The decision rule below was CONFIRMED by amfox on 2026-11-21 (after the results were seen; see there) and the IMS SY5-6 behaviour is open.** Items marked **[CHECK]** are not verified.
+Status: **2026-11-21 (amfox + Claude). Analyses A, B, C, D (+D2) and E have all been run (`scripts/viirs_transition/`, figures and tables in `docs/viirs_transition_report_figures/`); synthesis in `viirs_transition_report.md`. The decision rule below was CONFIRMED by amfox on 2026-11-21 (after the results were seen; see there) and the IMS SY5-6 behaviour was resolved 2026-11-22: a 2024+ IMS N-S flip, corrected in the scoring.** Items marked **[CHECK]** are not verified.
 Runs: `/discover/nobackup/projects/land_da/VIIRS_testing/main_run/` (README there has the run history).
 Related: `viirs_obs_study_plan.md` (reader QC, QA class 1, J1 vs J2 obs agreement). This plan is its Part C,
 on M36 and for three years instead of one CF0360 snow season.
@@ -143,7 +143,7 @@ Run 2026-11-21 (`tr_*.py`, results `E_*`): no spin-up detected; no exclusion win
 |---|---|---|
 | A obs availability | `obs_availability_*.md`, `figA_*` | VIIRS union ~6-7% fewer tiles than MODIS T+A; input gap days (below). |
 | B increments | `B_summary.md`, `B_findings.md`, `B_1..4` | Double increments only in MODIS Terra+Aqua (51-60% of increment tile-days); T+A -> J1+J2 cuts annual absolute increments ~35%. |
-| C skill | `C_skill_results.md`, `figC_1..4` | DA beats OL slightly; MODIS-vs-VIIRS and Terra-vs-T+A differences are 1-2 orders smaller than the RMSE; IMS DA benefit turns negative in SY5-6. |
+| C skill | `C_skill_results.md`, `figC_1..4` | DA beats OL slightly; MODIS-vs-VIIRS and Terra-vs-T+A differences are 1-2 orders smaller than the RMSE; IMS DA benefit is positive every year once the 2024+ IMS N-S flip is corrected (+0.014..+0.016, SY1-6); IMS slightly favours VIIRS in C1/C2 (-0.0026). |
 | D water balance | `D_water_balance_tables.md`, `D_1..5` | Budget closes; DA adds ~65-134 kg m-2 per snow year, ~half to runoff, ~half to ET; Aqua adds ~46; MODIS T+A has ~36 more than J1+J2. |
 | D2 additions | `D2_water_balance_additions.md`, `D2_1..4` | Partition fractions, RZMC response, significance maps; SY1 storage is a real transient. |
 | E transition | `E_findings.md`, `E_summary.md`, `E_1..5` | No spin-up; first 8 weeks hold ~1% of the SWE integral. |
@@ -157,7 +157,7 @@ Run 2026-11-21 (`tr_*.py`, results `E_*`): no spin-up detected; no exclusion win
 - **Decision rule (CONFIRMED by amfox, 2026-11-21).** *Honest provenance:* the original version (|A - B| >= 10% of the
   DA - OL effect, same sign in all snow years) was proposed before any results were looked at. The skill and
   descriptive-term parts below were changed **after** seeing analysis C and D, because C showed the 10% reference is
-  too weak for station skill (DA - OL is only about 1 mm RMSE at SNOTEL/GHCN and about 0 for IMS in SY4-6) and D showed
+  too weak for station skill (DA - OL is only about 1 mm RMSE at SNOTEL/GHCN and, as then scored, about 0 for IMS in SY4-6 -- later shown to be the 2024+ IMS flip artefact; with corrected IMS the DA - OL effect is about +0.014 and the IMS argument for the rule change no longer holds, whereas the station argument still does) and D showed
   spurious flags for residual and dStorage (reference near 0). The change was justified on those merits, but it is not
   pre-registered. Rule as confirmed:
   1. **Water-balance flux terms** (`I_snow`, ET, runoff, peak SWE, RZMC): a difference only if |A - B| is at least 10% of
@@ -257,9 +257,7 @@ Still open:
 4. Whether the real Terra and Aqua overpass times drifted (affects interpretation of the time-of-day confound only).
 5. ~~Availability of `PEATCLSM_FSWCHANGE` and budget-endpoint restarts.~~ **Closed 2026-11-21** (see analysis D; caveat:
    file counts from a glob also match monthly means, count dailies by date).
-6. **IMS DA benefit turns negative in SY5-SY6** (DA - OL accuracy +0.013 in SY1-3, +0.006 in SY4, -0.002..-0.004 in
-   SY5-6), also in the MODIS control arms, so it is not caused by the VIIRS switch. Cause not investigated (IMS or OL
-   change, MODIS obs quality in 2025-26, or a real effect). Check before resting any C1/C2 conclusion on IMS.
+6. ~~IMS DA benefit turns negative in SY5-SY6.~~ **Closed 2026-11-22:** scoring artefact. IMS arrays from 2024-01-01 are stored bottom-up (flipped N-S on the M36 grid; sea share 6% -> 43%). Corrected scores: DA - OL +0.014..+0.016 (SY1-6), positive in every year and arm; C1/C2 -0.0026 (same sign SY4-6); C3 -0.0005; C4 inconclusive. See `IMS_findings.md`, `rule2_skill_imsfix.csv`. The regridded 2024+ files in `projects/IMS/output/` must not be used as-is (also affects the M21C 2000-2024 IMS comparison, year 2024).
 7. Upstream status of the input gap days (below): not checked whether NSIDC has the missing MODIS days (CMR approach in
    the project memory); an optional download would let the MODIS arms use them (needs amfox's go-ahead).
 8. J1/J2 obs counts in week 8 of 2023 (26 Sep - 2 Oct) are ~25-30% below 2024-25 (analysis E); not investigated.
@@ -279,3 +277,4 @@ Still open:
 | 2026-11-21 | **Validation data fetched and verified** (`scripts/validation_data/`, data in `land_da/VIIRS_testing/validation_data/`, 28 files, 145 MB). SNOTEL 2025-10-01 to 2026-07-31 (304/304 days, 913 stations, inches; the existing parquet covers to 2025-09-30; recent values are NRCS provisional); GHCN SNWD per-year parquet 2020-08-01 to 2026-07-31 (2191/2191 days, 29,284 stations, mm); IMS 2025 and 2026 (365/365 and 212/212 days) plus M36 nearest-neighbour versions, 2020 to 2024 already in `projects/IMS/output/`. Spot checks: IMS byte-identical to the existing 2024 raw files; SNOTEL overlap differences small (10 values, consistent with NRCS revisions); GHCN vs the old OL/DA product 0.004% of shared station-days differ, with some station-days present in only one product (likely NOAA revisions; not investigated). |
 | 2026-11-21 | **Analyses B, C, D, D2 and E run** (SLURM arrays 59364204 B, 59364397/59364576 C, 59364182 D, 59364691/59364715 D2, 59364708 E). Results summarised in "Results at a glance" and `viirs_transition_report.md`. Open items 2 and 5 and the D [CHECK] closed; input-gap cause recorded; decision rule kept PROPOSED with the C finding and options; IMS SY5-6, upstream MODIS gaps, week-8 J1/J2 dip and B/D unit reconciliation added as open items. |
 | 2026-11-21 | **Decision rule confirmed by amfox** (water-balance flux terms keep 10% + same sign; skill = same sign in every year + bootstrap CI excludes 0; residual/dStorage descriptive). Set after the results were seen; flags re-run with `rule2.py`. Changed calls: C2 SNOTEL depth (difference -> none), C4 post SNOTEL SWE (none -> difference); 14 water-balance terms now descriptive. |
+| 2026-11-22 | **IMS correction propagated.** 2024+ IMS N-S flip found and corrected in scoring; `rule2.py --imsfix` re-flags skill (C1, C2 IMS now resolvable, C4 DoD IMS no longer); `C_skill_results.md`, `figC_1`, report and plan updated; open item 6 closed; extra input gap days from E2 recorded; B/D reconciliation noted. M21C 2000-2024 IMS comparison (year 2024) uses the flipped files: not yet redone. |

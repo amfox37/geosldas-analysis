@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 sys.path.insert(0, str(Path(__file__).parent))
 import skill_common as sc
 ct = pd.read_csv(sc.FIG / "C_skill_contrasts.csv"); ab = pd.read_csv(sc.FIG / "C_skill_by_arm.csv")
+# IMS rows: use the flip-corrected scoring (IMS_skill_contrasts_fixed.csv; 2024+ IMS arrays are vertically flipped in the original C scoring)
+_fx = pd.read_csv(sc.FIG / "IMS_skill_contrasts_fixed.csv").assign(dataset="IMS")
+ct = pd.concat([ct[ct.dataset != "IMS"], _fx[[c for c in ct.columns if c in _fx.columns]]], ignore_index=True)
 ORDER = ["C0 T_to_J2-OL", "C0 TA_to_J1J2-OL", "C0 MODIS_T-OL", "C0 MODIS_TA-OL", "C0 T_control-OL", "C0 TA_control-OL",
          "C1 T_control-T_to_J2", "C2 TA_control-TA_to_J1J2", "C3 MODIS_T-MODIS_TA", "C4 DoD (T_to_J2-TA_to_J1J2)",
          "C4a T_to_J2-TA_to_J1J2 (post)", "C4b T_to_J2-TA_to_J1J2 (pre)"]

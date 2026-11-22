@@ -2,8 +2,8 @@
 
 > **IMS correction (2026-11-22).** The IMS numbers originally in this file used 2024+ IMS arrays that are flipped N-S on the M36 grid (see `IMS_findings.md`).
 > All IMS statements below now use the corrected scores (`IMS_skill_by_arm_fixed.csv`, `IMS_skill_contrasts_fixed.csv`, flags in `rule2_skill_imsfix.csv`).
-> The original IMS rows in `C_skill_by_arm.csv`, `C_skill_contrasts.csv`, `C_pooled_contrasts_table.csv`, `C_decision_rule_preliminary.csv`, `rule2_skill.csv` and `figC_1_ims_contrasts.png` are
-> unchanged and still contain the flipped-IMS values (not regenerated); SNOTEL and GHCN rows are unaffected (they do not use IMS).
+> `figC_1_ims_contrasts.png` and `C_pooled_contrasts_table.csv` were regenerated from the corrected scores (`skill_figures.py` now swaps in `IMS_skill_contrasts_fixed.csv`).
+> `C_skill_by_arm.csv`, `C_skill_contrasts.csv`, `C_decision_rule_preliminary.csv` (superseded preliminary rule) and `rule2_skill.csv` still hold the original flipped-IMS values; SNOTEL and GHCN rows are unaffected (they do not use IMS).
 
 Scripts (`scripts/viirs_transition/`): `skill_common.py`, `skill_extract.py` + `skill_extract.j` (per-arm extraction, SLURM array, 3-6 min per arm),
 `skill_score.py` + `skill_score.j` (metrics, contrasts, paired 5-degree block bootstrap, 1000 draws, 3 min), `skill_figures.py`, `skill_rule.py`.
@@ -33,7 +33,7 @@ Compact intermediates: `land_da/VIIRS_testing/skill_data/skill_<arm>.npz` (not v
    (MODIS worse, same sign all years). SNOTEL depth: no resolvable difference for C1, +0.48 mm (CI spans 0) for C2. Sizes are 1-2 orders smaller than the RMSE.
 4. **C3 (Terra vs T+A, MODIS, 6 y, same start):** Aqua helps slightly against SNOTEL SWE (Terra-only RMSE +0.23 mm, same sign all 6 y) and GHCN (+0.60 mm, same sign in all years),
    but Terra-only is better against SNOTEL depth (-0.53 mm); IMS accuracy -0.0005 [-0.0010, -0.0001] (Terra-only slightly worse, but the sign is not the same in all years: SY1-5 -0.0001..-0.0010, SY6 0.0000; no flag).
-5. **C4 (J2 vs J1+J2) as a difference of differences:** IMS -0.0002 [-0.0007, 0.0003], GHCN -0.78 mm [-0.99, -0.67], SNOTEL SWE -0.10 and depth +0.27 mm (CIs span 0).
+5. **C4 (J2 vs J1+J2) as a difference of differences:** IMS -0.0002 [-0.0007, 0.0003], GHCN -0.78 mm [-0.99, -0.60], SNOTEL SWE -0.10 and depth +0.27 mm (CIs span 0).
    The baseline (Terra vs T+A in SY1-3) is of the opposite sign to the post window for GHCN (+0.62 pre, -0.16 post), so the DoD is dominated by the baseline shift; treat as inconclusive and
    use C3 as the primary estimate of what a second daily sensor adds (as in the plan).
 6. **Preliminary decision rule** (superseded by the confirmed rule, `rule2_skill.csv` / `rule2_skill_imsfix.csv`; `C_decision_rule_preliminary.csv` keeps the original, uncorrected-IMS application): reference effects (DA - OL) are only ~1 mm RMSE for station data and ~0.014 for IMS after the fix,
