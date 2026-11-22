@@ -1,6 +1,6 @@
 # MODIS-to-VIIRS transition and Terra vs Terra+Aqua: analysis plan
 
-Status: **2026-11-21 (amfox + Claude). Analyses A, B, C, D (+D2) and E have all been run (`scripts/viirs_transition/`, figures and tables in `docs/viirs_transition_report_figures/`); synthesis in `viirs_transition_report.md`. The decision rule below is still PROPOSED / UNCONFIRMED and the IMS SY5-6 behaviour is open.** Items marked **[CHECK]** are not verified.
+Status: **2026-11-21 (amfox + Claude). Analyses A, B, C, D (+D2) and E have all been run (`scripts/viirs_transition/`, figures and tables in `docs/viirs_transition_report_figures/`); synthesis in `viirs_transition_report.md`. The decision rule below was CONFIRMED by amfox on 2026-11-21 (after the results were seen; see there) and the IMS SY5-6 behaviour is open.** Items marked **[CHECK]** are not verified.
 Runs: `/discover/nobackup/projects/land_da/VIIRS_testing/main_run/` (README there has the run history).
 Related: `viirs_obs_study_plan.md` (reader QC, QA class 1, J1 vs J2 obs agreement). This plan is its Part C,
 on M36 and for three years instead of one CF0360 snow season.
@@ -154,18 +154,21 @@ Run 2026-11-21 (`tr_*.py`, results `E_*`): no spin-up detected; no exclusion win
   captures spatial uncertainty only, not year-to-year variability, which is the larger uncertainty here. Report each
   snow year separately next to the pooled result, and use paired differences. Where a difference is not
   distinguishable from zero, say "no resolvable difference" and do not interpret maps.
-- **Proposed decision rule (PROPOSED / UNCONFIRMED; amfox to confirm; the results have now been looked at, so any change
-  must be justified on the rule's merits, not on the outcome):** a contrast counts as a
-  difference only if |A − B| is at least 10% of the corresponding DA − OL effect and has the same sign in all three
-  snow years (all six for C3); anything smaller or inconsistent is reported as "no resolvable difference".
-  **Finding from C (2026-11-21):** 10% of DA - OL is too weak a reference for the independent skill data: DA - OL is only
-  about 1 mm RMSE at SNOTEL/GHCN and about 0 for IMS in SY4-6, so a 10% threshold (about 0.1 mm; IMS C1 ratio 120% of a
-  ~0.0002 reference) is passed by almost anything. It works for the water-balance terms (DA - OL of tens of kg m-2).
-  Options for amfox to decide: (a) keep the 10% rule for water-balance terms only and judge skill by the bootstrap CI
-  (excludes 0) plus same sign in all years; (b) an absolute threshold per metric chosen before reading the contrasts
-  (e.g. a fixed fraction of the RMSE or of the metric's interannual spread); (c) take the reference from the pooled
-  SY1-6 DA - OL rather than the per-window one. `C_decision_rule_preliminary.csv` and `D_decision_rule.csv` hold the
-  preliminary application. The rule also gives spurious flags for residual and dStorage (reference near 0).
+- **Decision rule (CONFIRMED by amfox, 2026-11-21).** *Honest provenance:* the original version (|A - B| >= 10% of the
+  DA - OL effect, same sign in all snow years) was proposed before any results were looked at. The skill and
+  descriptive-term parts below were changed **after** seeing analysis C and D, because C showed the 10% reference is
+  too weak for station skill (DA - OL is only about 1 mm RMSE at SNOTEL/GHCN and about 0 for IMS in SY4-6) and D showed
+  spurious flags for residual and dStorage (reference near 0). The change was justified on those merits, but it is not
+  pre-registered. Rule as confirmed:
+  1. **Water-balance flux terms** (`I_snow`, ET, runoff, peak SWE, RZMC): a difference only if |A - B| is at least 10% of
+     the DA - OL reference in every snow year and A - B has the same sign in every snow year (3; 6 for C3).
+  2. **Skill metrics** (IMS accuracy, SNOTEL SWE/depth RMSE, GHCN depth RMSE): a difference only if A - B has the same
+     sign in every snow year (3; 6 for C3) **and** the pooled paired block-bootstrap CI excludes 0. The 10%-of-DA-OL
+     magnitude test is dropped. The C4 difference of differences has no per-year values, so it is CI-only and labelled so.
+  3. **Residual, dStorage, dFSW, dP, snowmelt, end-of-melt SWE, SFMC, TWLAND:** reported descriptively, no flag.
+  Anything not flagged is "no resolvable difference". Code: `scripts/viirs_transition/rule2.py`; output
+  `rule2_skill.csv`, `rule2_water_balance.csv`, `rule2_changes.csv` (calls that changed versus the preliminary rule).
+  `C_decision_rule_preliminary.csv` and `D_decision_rule.csv` keep the earlier all-terms 10% application.
 - C3 (6 years, same start) is the most reliable estimate of what Aqua adds; C4 is only a consistency check on it.
 - A difference between MODIS and VIIRS arms is a statement about the whole configuration (sensor, overpass time,
   QC, number of updates per day), not about the sensors alone. Part of the aim of B is to separate the update
@@ -250,7 +253,7 @@ Still open:
    optional).
 2. ~~Analysis C scoring.~~ **Closed 2026-11-21:** scoring generalised to the five arms and run (`skill_*.py`; GHCN
    `min_valid_days` rescaled 1500 -> 360 for the 2191-day window; SNOTEL inches converted to mm); results `C_*`.
-3. Confirm the decision rule in "How results will be read" (see the C finding there; options a-c).
+3. ~~Confirm the decision rule.~~ **Closed 2026-11-21:** confirmed in the form in "How results will be read" (skill: same sign + bootstrap CI; water-balance flux terms: 10% + same sign; residual/storage descriptive).
 4. Whether the real Terra and Aqua overpass times drifted (affects interpretation of the time-of-day confound only).
 5. ~~Availability of `PEATCLSM_FSWCHANGE` and budget-endpoint restarts.~~ **Closed 2026-11-21** (see analysis D; caveat:
    file counts from a glob also match monthly means, count dailies by date).
@@ -275,3 +278,4 @@ Still open:
 | 2026-11-21 | `.gitignore` now un-ignores `docs/viirs_transition_report_figures/*.png`; `obs_availability.j` walltime set to 15 min. |
 | 2026-11-21 | **Validation data fetched and verified** (`scripts/validation_data/`, data in `land_da/VIIRS_testing/validation_data/`, 28 files, 145 MB). SNOTEL 2025-10-01 to 2026-07-31 (304/304 days, 913 stations, inches; the existing parquet covers to 2025-09-30; recent values are NRCS provisional); GHCN SNWD per-year parquet 2020-08-01 to 2026-07-31 (2191/2191 days, 29,284 stations, mm); IMS 2025 and 2026 (365/365 and 212/212 days) plus M36 nearest-neighbour versions, 2020 to 2024 already in `projects/IMS/output/`. Spot checks: IMS byte-identical to the existing 2024 raw files; SNOTEL overlap differences small (10 values, consistent with NRCS revisions); GHCN vs the old OL/DA product 0.004% of shared station-days differ, with some station-days present in only one product (likely NOAA revisions; not investigated). |
 | 2026-11-21 | **Analyses B, C, D, D2 and E run** (SLURM arrays 59364204 B, 59364397/59364576 C, 59364182 D, 59364691/59364715 D2, 59364708 E). Results summarised in "Results at a glance" and `viirs_transition_report.md`. Open items 2 and 5 and the D [CHECK] closed; input-gap cause recorded; decision rule kept PROPOSED with the C finding and options; IMS SY5-6, upstream MODIS gaps, week-8 J1/J2 dip and B/D unit reconciliation added as open items. |
+| 2026-11-21 | **Decision rule confirmed by amfox** (water-balance flux terms keep 10% + same sign; skill = same sign in every year + bootstrap CI excludes 0; residual/dStorage descriptive). Set after the results were seen; flags re-run with `rule2.py`. Changed calls: C2 SNOTEL depth (difference -> none), C4 post SNOTEL SWE (none -> difference); 14 water-balance terms now descriptive. |

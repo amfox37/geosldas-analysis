@@ -4,9 +4,11 @@ Plan: `viirs_transition_plan.md` (design, contrasts, caveats). Detailed results:
 (`B_findings.md`, `C_skill_results.md`, `D_water_balance_tables.md`, `D2_water_balance_additions.md`, `E_findings.md`,
 `obs_availability_summary.md`). All numbers below are copied from those files.
 
-**Status of this report:** single member, M36, snow only, 2020-08-01 to 2026-08-01. The decision rule of the plan is
-**not confirmed**, so no contrast is declared "resolvable" here by rule; statements say what the tables show and which
-differences have the same sign in every snow year. Read the caveats at the end first.
+**Status of this report:** single member, M36, snow only, 2020-08-01 to 2026-08-01. "Resolvable difference" means the
+decision rule confirmed by amfox on 2026-11-21 (set after the results were seen; see the plan): water-balance flux terms
+(`I_snow`, ET, runoff, peak SWE, RZMC) need |A - B| >= 10% of the DA - OL effect and the same sign in every snow year;
+skill metrics need the same sign in every snow year and a bootstrap CI that excludes 0; residual and storage terms are
+descriptive. Flags: `rule2_*.csv`. Read the caveats at the end first.
 
 ## Design in one paragraph
 
@@ -37,10 +39,10 @@ QC, number of updates per day), not of the sensors alone.
 **Skill (analysis C; IMS is not independent of MODIS/VIIRS imagery, so SNOTEL SWE and GHCN depth carry the conclusion).**
 DA beats OL in all three data sets over SY1-6, but the effect is small: IMS accuracy 82.2 -> 82.9%, SNOTEL SWE RMSE
 -1.0..-1.3 mm (of ~208 mm), GHCN depth RMSE -1.2..-1.9 mm (of ~114 mm); the model has a large low bias at SNOTEL (SWE
-about -134 mm). For the switch (C1, C2) IMS shows no resolvable difference; against SNOTEL SWE the MODIS controls are
-slightly worse than VIIRS (RMSE +0.39 mm for Terra vs J2, same sign all three years; +0.26 mm for T+A vs J1+J2, SY6
-reverses) and against GHCN worse by +0.93 / +0.23 mm (same sign all years). These differences are one to two orders of
-magnitude smaller than the RMSE.
+about -134 mm). For the switch (C1, C2) IMS shows no resolvable difference. Against SNOTEL SWE the MODIS control is resolvably worse than
+VIIRS only for Terra vs J2 (RMSE +0.39 mm, same sign all three years, CI excludes 0); for T+A vs J1+J2 (+0.26 mm) the CI
+excludes 0 but SY6 reverses, so it is not resolvable. Against GHCN depth both are resolvable (+0.93 / +0.23 mm). SNOTEL depth
+is not resolvable for C1 or C2. These differences are one to two orders of magnitude smaller than the RMSE.
 
 **Water balance (D, D2).** The differential budget closes (residual about 0.01 kg m-2 against 65-134 kg m-2 of snow
 increment). DA adds substantial water: net snow increment `I_snow` (kg m-2 per snow year, domain mean over 46,602 seasonal-snow
@@ -49,9 +51,9 @@ tiles) is 65-81 for Terra-only and 105-134 for Terra+Aqua MODIS. It is partition
 m-2 and end-of-melt SWE hardly at all, and raises root-zone moisture by about 0.012 (Terra-only) and 0.019 (Terra+Aqua)
 m3 m-3 as a year mean.
 
-- **C1 (Terra vs J2): no resolvable difference** in water: `I_snow` -3.2, -1.3, +8.7 across SY4-6 (mean about 2% of the
-  DA effect), sign not consistent; partition fractions unstable; RZMC 0.0004 [-0.0001, 0.0010].
-- **C2 (T+A MODIS vs J1+J2): clear difference, same sign every year.** MODIS has more water input: `I_snow` +36
+- **C1 (Terra vs J2): no resolvable difference** in any flagged water term: `I_snow` -3.2, -1.3, +8.7 across SY4-6 (mean about 2% of the
+  DA effect), sign not consistent; partition fractions unstable; RZMC 0.0004 [-0.0001, 0.0010]. Residual is descriptive only.
+- **C2 (T+A MODIS vs J1+J2): resolvable difference (passes the rule for `I_snow`, ET, runoff, peak SWE and RZMC).** MODIS has more water input: `I_snow` +36
   (27.7, 31.6, 47.8), runoff +22, ET +11, lower peak SWE (-0.85), RZMC +0.005. The extra goes 63% to runoff and 31% to ET.
   It grows from SY4 to SY6. About 70% of mask tiles are marked for `I_snow` and runoff on a same-sign-in-3-years criterion
   (no t-test with n = 3); end-of-melt SWE is almost never marked (< 2%).
@@ -65,15 +67,14 @@ m3 m-3 as a year mean.
   `I_snow` per snow year (-43.5 to -53.2, same sign every year; about 49% of the mean DA effect in the rule's terms),
   28.5 less runoff, 16 less ET; the missing Aqua water goes 62% to runoff and 35% to ET. RZMC is lower by 0.0067 [-0.0076,
   -0.0058], resolvable in every season. About 74% of mask tiles are marked for `I_snow` (same sign in all 6 years and
-  FDR-corrected t-test); end-of-melt SWE almost none. Against independent data Aqua helps slightly: SNOTEL SWE RMSE
-  +0.23 mm and GHCN +0.60 mm for Terra-only (both same sign all years), but Terra-only is better against SNOTEL depth
-  (-0.53 mm) and IMS is ~0 (+0.0003, CI includes 0). So dropping Aqua changes the water budget a lot and the skill very
+  FDR-corrected t-test); end-of-melt SWE almost none. `I_snow`, ET, runoff and RZMC pass the rule; peak SWE does not (+0.16; mean 14% of the reference, below 10% in at least one year). Against independent data Aqua helps slightly
+  (resolvable by the skill rule): SNOTEL SWE RMSE +0.23 mm and GHCN +0.60 mm for Terra-only, but Terra-only is better against SNOTEL depth
+  (-0.53 mm; also resolvable) and IMS is ~0 (+0.0003, CI includes 0, not resolvable). So dropping Aqua changes the water budget a lot and the skill very
   little.
 - **VIIRS, J2 vs J1+J2 (C4).** Raw J2-only - J1+J2: `I_snow` about -14 (-14.3, -13.6, -14.1), runoff about -8, same sign
-  in all three years. As a difference of differences (subtracting the Terra - T+A gap of SY1-3) the sign flips to
+  in all three years (passes the rule for `I_snow`, ET, runoff, peak SWE, RZMC). As a difference of differences (subtracting the Terra - T+A gap of SY1-3) the sign flips to
   about +29 to +30, because the pre-switch gap was -43 to -48; the VIIRS second sensor therefore matters much less than
-  Aqua did in MODIS. Skill C4 is inconclusive (the GHCN baseline has the opposite sign pre and post, +0.62 vs -0.16 mm),
-  so use C3 as the primary constellation estimate.
+  Aqua did in MODIS. Skill C4 is inconclusive in substance: the difference of differences has a CI that excludes 0 for IMS (+0.0008) and GHCN (-0.78 mm) (CI-only flag, no per-year signs), but the GHCN baseline has the opposite sign pre and post (+0.62 vs -0.16 mm); in the post window alone the rule flags IMS, SNOTEL SWE (+0.11 mm) and GHCN (-0.16 mm), not SNOTEL depth. Use C3 as the primary constellation estimate.
 - **Partition:** the missing second-sensor water is mostly runoff (C3, C2) and for C4 storage differs (-0.14 of the
   difference), so interpret C4 partition with care.
 
@@ -93,8 +94,7 @@ m3 m-3 as a year mean.
 
 1. **IMS DA benefit turns negative in SY5-6** (-0.002..-0.004 accuracy), also in the control arms. Not a VIIRS effect,
    cause unknown; IMS-based C1/C2 statements should wait for it.
-2. **Decision rule unconfirmed.** 10% of DA - OL works for water-balance terms but is too weak for station skill
-   (DA - OL ~ 1 mm RMSE, ~0 IMS in SY4-6); options in the plan.
+2. **Decision rule changed after seeing results.** Confirmed 2026-11-21, but its skill part (same sign + CI) and the descriptive treatment of residual/storage replaced the pre-set 10% rule after C and D had been read; see the plan. Two skill calls change versus the preliminary rule (`rule2_changes.csv`): C2 SNOTEL depth (now not resolvable) and C4-post SNOTEL SWE (now resolvable).
 3. **Increment totals in B and D differ in units** (per tile >= 30N vs area-weighted mask mean): B net about 79-82 for
    T+A, D `I_snow` about 105-134; probably denominators, not reconciled.
 
