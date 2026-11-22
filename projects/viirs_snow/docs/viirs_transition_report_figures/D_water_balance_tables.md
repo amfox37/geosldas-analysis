@@ -90,7 +90,9 @@ Mask tiles: 46602. Units kg m-2 per snow year (RZMC in m3 m-3). Domain means are
 | SY5 | 30.01 | 7.17 | 19.29 | 3.56 | 0.00 | -0.00 | 0.00 | -0.54 | 0.02 | 0.00 |
 | SY6 | 29.56 | 7.70 | 18.96 | 2.91 | -0.00 | -0.00 | 0.00 | -0.58 | 0.01 | 0.00 |
 
-## Decision rule (proposed: |A-B| >= 10% of mean |DA-OL| in each year, same sign in all years)
+## Decision-rule diagnostic (10% test applied to every term)
+
+Confirmed rule (amfox, 2026-11-21; see docs/viirs_transition_plan.md and `rule2.py`): for the flux terms (I_snow, dET, dRunoff, SWE_max, RZMC) a contrast counts as a difference only if |A-B| >= 10% of the DA-OL reference in every snow year AND the sign is the same in all years (6 for C3); residual, dStorage and the other terms are reported descriptively with no flag. The table below applies the 10% test to every term as a diagnostic; the confirmed calls are in `rule2_water_balance.csv`.
 
 | contrast | var | mean_AminusB | min | max | mean_ref_DAminusOL | ratio | same_sign_all_years | ge10pct_all_years | resolvable |
 |---|---|---|---|---|---|---|---|---|---|

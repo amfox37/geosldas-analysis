@@ -286,7 +286,12 @@ def main():
     for c, (A, B, sy) in cdef.items():
         md_out += [f"\n## {c}: {A} - {B}\n", table(c, f"{c}:{A}-{B}", ks)]
     md_out += ["\n## C4 difference of differences\n", table("C4dd", "C4dd:(T_to_J2-TA_to_J1J2)[SY4-6] - mean[SY1-3]", ks)]
-    md_out += ["\n## Decision rule (proposed: |A-B| >= 10% of mean |DA-OL| in each year, same sign in all years)\n",
+    md_out += ["\n## Decision-rule diagnostic (10% test applied to every term)\n",
+               "Confirmed rule (amfox, 2026-11-21; see docs/viirs_transition_plan.md and `rule2.py`): for the flux terms "
+               "(I_snow, dET, dRunoff, SWE_max, RZMC) a contrast counts as a difference only if |A-B| >= 10% of the "
+               "DA-OL reference in every snow year AND the sign is the same in all years (6 for C3); residual, dStorage and "
+               "the other terms are reported descriptively with no flag. The table below applies the 10% test to every "
+               "term as a diagnostic; the confirmed calls are in `rule2_water_balance.csv`.\n",
                mdtable(dec.round(3))]
     miss = {n: [m for m in arms[n]["missing"]] for n in names}
     md_out += ["\n## Input gaps recorded by wb_extract.py\n", "```", json.dumps(miss), "```"]
