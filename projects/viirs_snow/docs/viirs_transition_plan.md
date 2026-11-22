@@ -1,6 +1,6 @@
 # MODIS-to-VIIRS transition and Terra vs Terra+Aqua: analysis plan
 
-Status: **draft, 2026-11-21 (amfox + Claude). Analysis A has been run (`scripts/viirs_transition/`, figures and tables in `docs/viirs_transition_report_figures/`); nothing else has.** Items marked **[CHECK]** are not verified.
+Status: **2026-11-21 (amfox + Claude). Analyses A, B, C, D (+D2) and E have all been run (`scripts/viirs_transition/`, figures and tables in `docs/viirs_transition_report_figures/`); synthesis in `viirs_transition_report.md`. The decision rule below is still PROPOSED / UNCONFIRMED and the IMS SY5-6 behaviour is open.** Items marked **[CHECK]** are not verified.
 Runs: `/discover/nobackup/projects/land_da/VIIRS_testing/main_run/` (README there has the run history).
 Related: `viirs_obs_study_plan.md` (reader QC, QA class 1, J1 vs J2 obs agreement). This plan is its Part C,
 on M36 and for three years instead of one CF0360 snow season.
@@ -126,12 +126,27 @@ Reuse the M21C snow-DA budget definitions (`projects/M21C_ls`, water-year differ
 free-standing-water term; do not re-derive them). Per snow year and arm: DA − OL for SWE (peak and end of melt),
 snowmelt, runoff, ET, `TWLAND`, RZMC; the snow-DA input as the summed `WESNN*_INCR`; and the partition of added snow
 water. Then A − B maps and domain means for C1–C4.
-**[CHECK]** whether these runs write `PEATCLSM_FSWCHANGE` and enough restarts for exact endpoints (restarts are
-monthly under `rs/`; the M21C budget used 1 October endpoints, here 1 August is natural).
+Checked 2026-11-21: `PEATCLSM_FSWCHANGE` (with `TWLAND`, `RUNSURFLAND`) is in the daily `tavg24_1d_lnd_Nt` files, and
+all monthly restarts exist (73 per six-year arm, 37 per control), including every 1 August endpoint. Only the variable
+list of one file was checked, not that every day has valid values; the budget closes to ~0.01 kg m-2, which supports it.
+Run 2026-11-21: `wb_extract.py`/`wb_analyze.py` (budget, C0-C4) and `wb2_extract.py`/`wb2_analyze.py` (partition
+fractions, RZMC/SFMC, significance maps, SY1 and gap-day sensitivities); results `D_*` and `D2_*`.
 
 ### E. Transition behaviour
 The first 4–8 weeks after 2023-08-01 in C1/C2: step in SWE, SCF and increments (spin-up of the new sensor). Decide
 whether to exclude a short window from the contrasts.
+Run 2026-11-21 (`tr_*.py`, results `E_*`): no spin-up detected; no exclusion window needed (see the report).
+
+## Results at a glance (2026-11-21; details and caveats in `viirs_transition_report.md`)
+
+| Analysis | Files (`docs/viirs_transition_report_figures/`) | Main result |
+|---|---|---|
+| A obs availability | `obs_availability_*.md`, `figA_*` | VIIRS union ~6-7% fewer tiles than MODIS T+A; input gap days (below). |
+| B increments | `B_summary.md`, `B_findings.md`, `B_1..4` | Double increments only in MODIS Terra+Aqua (51-60% of increment tile-days); T+A -> J1+J2 cuts annual absolute increments ~35%. |
+| C skill | `C_skill_results.md`, `figC_1..4` | DA beats OL slightly; MODIS-vs-VIIRS and Terra-vs-T+A differences are 1-2 orders smaller than the RMSE; IMS DA benefit turns negative in SY5-6. |
+| D water balance | `D_water_balance_tables.md`, `D_1..5` | Budget closes; DA adds ~65-134 kg m-2 per snow year, ~half to runoff, ~half to ET; Aqua adds ~46; MODIS T+A has ~36 more than J1+J2. |
+| D2 additions | `D2_water_balance_additions.md`, `D2_1..4` | Partition fractions, RZMC response, significance maps; SY1 storage is a real transient. |
+| E transition | `E_findings.md`, `E_summary.md`, `E_1..5` | No spin-up; first 8 weeks hold ~1% of the SWE integral. |
 
 ## How results will be read
 
@@ -139,9 +154,18 @@ whether to exclude a short window from the contrasts.
   captures spatial uncertainty only, not year-to-year variability, which is the larger uncertainty here. Report each
   snow year separately next to the pooled result, and use paired differences. Where a difference is not
   distinguishable from zero, say "no resolvable difference" and do not interpret maps.
-- **Proposed decision rule (to be confirmed by amfox before any results are looked at):** a contrast counts as a
+- **Proposed decision rule (PROPOSED / UNCONFIRMED; amfox to confirm; the results have now been looked at, so any change
+  must be justified on the rule's merits, not on the outcome):** a contrast counts as a
   difference only if |A − B| is at least 10% of the corresponding DA − OL effect and has the same sign in all three
   snow years (all six for C3); anything smaller or inconsistent is reported as "no resolvable difference".
+  **Finding from C (2026-11-21):** 10% of DA - OL is too weak a reference for the independent skill data: DA - OL is only
+  about 1 mm RMSE at SNOTEL/GHCN and about 0 for IMS in SY4-6, so a 10% threshold (about 0.1 mm; IMS C1 ratio 120% of a
+  ~0.0002 reference) is passed by almost anything. It works for the water-balance terms (DA - OL of tens of kg m-2).
+  Options for amfox to decide: (a) keep the 10% rule for water-balance terms only and judge skill by the bootstrap CI
+  (excludes 0) plus same sign in all years; (b) an absolute threshold per metric chosen before reading the contrasts
+  (e.g. a fixed fraction of the RMSE or of the metric's interannual spread); (c) take the reference from the pooled
+  SY1-6 DA - OL rather than the per-window one. `C_decision_rule_preliminary.csv` and `D_decision_rule.csv` hold the
+  preliminary application. The rule also gives spurious flags for residual and dStorage (reference near 0).
 - C3 (6 years, same start) is the most reliable estimate of what Aqua adds; C4 is only a consistency check on it.
 - A difference between MODIS and VIIRS arms is a statement about the whole configuration (sensor, overpass time,
   QC, number of updates per day), not about the sensors alone. Part of the aim of B is to separate the update
@@ -177,7 +201,11 @@ whether to exclude a short window from the contrasts.
 - **Input data gaps (days with no obs from a sensor that was being assimilated; no assimilation from it on those
   days, `zero_obs_days.csv`):** Aqua 2022-04-02 to 04-16 (15 days); Terra 2022-10-11 to 10-22 (12 days); Terra
   2025-05-11 to 05-14 (4 days; this leaves `T_control`, which assimilates Terra only, with no assimilation at all);
-  J2 2024-02-28 (1 day). The cause has not been checked (missing or empty input files vs a reader or QC effect).
+  J2 2024-02-28 (1 day). **Cause (checked 2026-11-21): the source files are missing from the `gmao_ops` archive**, not a reader or QC effect:
+  `MYD10C1_V61/2022` has no files for 2022-04-01..04-16 (the Aqua gap in the archive starts 04-01, one day before the
+  04-02 seen in the obs, probably a window offset), `MOD10C1_V61/2022` none for 2022-10-11..22 and `MOD10C1_V61/2025`
+  none for 2025-05-11..14, and `VIIRS/VJ210C1/Y2024/M02/D28/` exists but is empty. Whether NSIDC has the MODIS days
+  upstream was not checked; J1 on 2024-02-28 was not checked. The controls read the same 2025 gap.
   Also, 2023-08-01 is skipped in analysis A because its 00z file still carries the old segment's final analysis
   (it assimilates Terra, e.g. 1221 Terra and 4144 J2 obs in `T_to_J2`).
 - Output volume: `ObsFcstAna` is ~160 MB and ~250 files per arm-month; `catch_progn_incr` is ~34 MB per daily file
@@ -220,15 +248,21 @@ Still open:
 
 1. `LANDASSIM_DT` / `LANDASSIM_T0` as an explicit setting (the 3 h step itself is confirmed from the data, see above;
    optional).
-2. Analysis C scoring: the data are now in place (fetched and verified 2026-11-21, see the log and
-   `scripts/validation_data/README.md`), but the IMS / SNOTEL / GHCN scoring scripts are still OL/DA-pair specific and
-   need generalising to the five arms (driven by `arms.json`). Rescale the GHCN selection thresholds for a 6-year
-   window (the old `min_valid_days` 1500 and `min_avg_snow_days_per_year` 5 came from a 25-year record), and convert
-   units before comparing (SNOTEL inches, GHCN mm, model snow depth in m, SWE in kg m-2).
-3. Confirm the decision rule in "How results will be read".
+2. ~~Analysis C scoring.~~ **Closed 2026-11-21:** scoring generalised to the five arms and run (`skill_*.py`; GHCN
+   `min_valid_days` rescaled 1500 -> 360 for the 2191-day window; SNOTEL inches converted to mm); results `C_*`.
+3. Confirm the decision rule in "How results will be read" (see the C finding there; options a-c).
 4. Whether the real Terra and Aqua overpass times drifted (affects interpretation of the time-of-day confound only).
-5. Availability of `PEATCLSM_FSWCHANGE` in the daily output and of restarts at the budget endpoints (analysis D).
-   Restarts exist at least at 2023-08-01 and 2026-08-01; check that monthly restarts are complete.
+5. ~~Availability of `PEATCLSM_FSWCHANGE` and budget-endpoint restarts.~~ **Closed 2026-11-21** (see analysis D; caveat:
+   file counts from a glob also match monthly means, count dailies by date).
+6. **IMS DA benefit turns negative in SY5-SY6** (DA - OL accuracy +0.013 in SY1-3, +0.006 in SY4, -0.002..-0.004 in
+   SY5-6), also in the MODIS control arms, so it is not caused by the VIIRS switch. Cause not investigated (IMS or OL
+   change, MODIS obs quality in 2025-26, or a real effect). Check before resting any C1/C2 conclusion on IMS.
+7. Upstream status of the input gap days (below): not checked whether NSIDC has the missing MODIS days (CMR approach in
+   the project memory); an optional download would let the MODIS arms use them (needs amfox's go-ahead).
+8. J1/J2 obs counts in week 8 of 2023 (26 Sep - 2 Oct) are ~25-30% below 2024-25 (analysis E); not investigated.
+9. Reconcile the units of B and D increment totals (B: per tile over 52,732 tiles >= 30N; D: area-weighted over the
+   46,602 seasonal-snow mask tiles): D's net `I_snow` (TA MODIS ~105-134) is larger than B's net per-tile mean (~79-82).
+   Probably the different denominators, not verified.
 
 ## Log
 
@@ -240,3 +274,4 @@ Still open:
 | 2026-11-21 | **Analysis A run** (SLURM array 59362332, all five arms; 11 min for the 6-year arms): obs coverage per sensor and constellation overlap, input data-gap days found, 2026 MODIS gap confirmed in the OL and VIIRS arms. Plan updated with the coverage numbers and gap days. |
 | 2026-11-21 | `.gitignore` now un-ignores `docs/viirs_transition_report_figures/*.png`; `obs_availability.j` walltime set to 15 min. |
 | 2026-11-21 | **Validation data fetched and verified** (`scripts/validation_data/`, data in `land_da/VIIRS_testing/validation_data/`, 28 files, 145 MB). SNOTEL 2025-10-01 to 2026-07-31 (304/304 days, 913 stations, inches; the existing parquet covers to 2025-09-30; recent values are NRCS provisional); GHCN SNWD per-year parquet 2020-08-01 to 2026-07-31 (2191/2191 days, 29,284 stations, mm); IMS 2025 and 2026 (365/365 and 212/212 days) plus M36 nearest-neighbour versions, 2020 to 2024 already in `projects/IMS/output/`. Spot checks: IMS byte-identical to the existing 2024 raw files; SNOTEL overlap differences small (10 values, consistent with NRCS revisions); GHCN vs the old OL/DA product 0.004% of shared station-days differ, with some station-days present in only one product (likely NOAA revisions; not investigated). |
+| 2026-11-21 | **Analyses B, C, D, D2 and E run** (SLURM arrays 59364204 B, 59364397/59364576 C, 59364182 D, 59364691/59364715 D2, 59364708 E). Results summarised in "Results at a glance" and `viirs_transition_report.md`. Open items 2 and 5 and the D [CHECK] closed; input-gap cause recorded; decision rule kept PROPOSED with the C finding and options; IMS SY5-6, upstream MODIS gaps, week-8 J1/J2 dip and B/D unit reconciliation added as open items. |
