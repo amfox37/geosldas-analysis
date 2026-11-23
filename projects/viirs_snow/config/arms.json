@@ -12,7 +12,7 @@
   "n_members": 1,
   "update_type": 11,
   "assim_step_hours": 3,
-  "assim_step_note": "inferred from 3-hourly output; LANDASSIM_DT not found in the run files [CHECK]",
+  "assim_step_note": "LANDASSIM_DT not found as a setting in the run files; 3 h confirmed from ObsFcstAna: obs of one species at one step span 45 deg of longitude, and Terra and Aqua of a longitude band are in consecutive steps",
 
   "species": {
     "52": {"name": "Aqua",  "product": "MYD10C1", "overpass_local_hour": 13.5},
@@ -131,9 +131,16 @@
     "C1": {"a": "T_control",  "b": "T_to_J2",    "window": ["SY4", "SY6"], "same_start_state": true,  "isolates": "Terra vs J2 (sensor and overpass time)"},
     "C2": {"a": "TA_control", "b": "TA_to_J1J2", "window": ["SY4", "SY6"], "same_start_state": true,  "isolates": "Terra+Aqua vs J1+J2"},
     "C3": {"a": "MODIS_T",    "b": "MODIS_TA",   "window": ["SY1", "SY6"], "same_start_state": true,  "isolates": "Terra vs Terra+Aqua, MODIS, six years", "type": "continuous_series"},
-    "C4": {"a": "T_to_J2",    "b": "TA_to_J1J2", "window": ["SY4", "SY6"], "same_start_state": false, "isolates": "J2 vs J1+J2; treat as a coverage comparison"},
+    "C4": {"a": "T_to_J2",    "b": "TA_to_J1J2", "window": ["SY4", "SY6"], "same_start_state": false, "isolates": "J2 vs J1+J2, as a difference of differences: C4 in SY4-SY6 minus the same T-vs-TA difference in SY1-SY3 (no same-start J2-only arm; decided 2026-11-21)", "baseline_window": ["SY1", "SY3"]},
     "C0": {"a": "<each DA arm>", "b": "OL",      "window": ["SY1", "SY6"], "same_start_state": true,  "isolates": "DA impact (DA - OL)"}
   },
+
+  "known_issues": [
+    "OL, T_to_J2 and TA_to_J1J2 read monitor-only MODIS (species 52/53, ids 1/2 in ObsFcstAna) from gmao_ops, which ends 2025-12-31: they have no MODIS obs in ObsFcstAna from 2026-01-01. T_control and TA_control read MODIS_obs/ (includes 2026). Take MODIS obs for 2026 from the controls.",
+    "MODIS_obs/ 2023-2025 are symlinks to the gmao_ops year directories; only 2026 (214 files) is new. gmao_ops lacks 4 days in 2025.",
+    "IMS is not independent of MODIS/VIIRS imagery; use it next to SNOTEL SWE and GHCN snow depth.",
+    "Overpass hours in the readers are fixed (Terra 10.5, Aqua/J1/J2 13.5 local); real Terra/Aqua crossing times may have drifted since about 2020-2022 (unverified)."
+  ],
 
   "constraints_for_scripts": [
     "Take arm dates, species and paths from this file; do not hard-code them.",

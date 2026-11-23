@@ -24,6 +24,8 @@ __pycache__/
 !projects/viirs_snow/docs/viirs_scf_reader_test_report_figures/*.png
 !projects/viirs_snow/docs/viirs_obs_study_report_figures/
 !projects/viirs_snow/docs/viirs_obs_study_report_figures/*.png
+!projects/viirs_snow/docs/viirs_transition_report_figures/
+!projects/viirs_snow/docs/viirs_transition_report_figures/*.png
 
 
 # Ignore possible symlinked build and install directories
