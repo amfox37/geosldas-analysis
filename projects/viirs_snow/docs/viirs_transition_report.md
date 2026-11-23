@@ -90,7 +90,7 @@ m3 m-3 as a year mean.
   in SY1 and plateaus. Excluding SY1 lowers the pooled T+A dStorage from 4.1 to 1.3 but barely changes `I_snow`,
   runoff or C3.
 - **Input gaps** (days with no obs from an assimilated sensor) lower DA - OL `I_snow` by 1-2% when removed from every
-  arm (C3 -45.98 -> -44.98; C1 1.38 -> 1.91, still not resolvable). Cause: files missing in the `gmao_ops` archive. E2 found more gap days than the 34-day list: J1 2023-09-30 (missing) and 2023-10-01 (half-size), J1 2024-02-04/05, J2 2024-02-27/28, J2 2025-09-18 (half-size); the B/D2 gap-day sensitivities have not been re-run with these.
+  arm (C3 -45.98 -> -44.98; C1 1.38 -> 1.91, still not resolvable). Cause: files missing in the `gmao_ops` archive. E2 found more gap days than the 34-day list: J1 2023-09-30 (missing) and 2023-10-01 (half-size), J1 2024-02-04/05, J2 2024-02-27/28, J2 2025-09-18 (half-size). The B/D2 gap-day sensitivities were not re-run with these extra days: they are about 7 of roughly 2,200 days per arm (~0.3%), the original 34 days moved DA - OL `I_snow` by only 1-2%, and the reported effects (C2 about +36, C3 about -46 kg m-2 per snow year) are far larger, so no conclusion is expected to change.
 
 ## Open points that affect interpretation
 
