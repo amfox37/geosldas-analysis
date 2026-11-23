@@ -39,6 +39,17 @@ that excludes zero (skill).
 | **Two -> one satellite, MODIS** (Terra+Aqua vs Terra only), Aug 2020 - Jul 2026 | 117 -> 71 over six years (-46, -43 to -53 each year); -48 (-39%) over 2023-26 (124 -> 75); clear; 62% runoff, 35% ET; soil moisture -0.007 m3 m-3 | Terra+Aqua better by IMS +0.05 pp, SNOTEL water equivalent +0.23 mm, GHCN depth +0.60 mm; worse by SNOTEL depth 0.53 mm | Water: large change. Skill: tiny, mixed sign. |
 | **Two -> one satellite, VIIRS** (J1+J2 vs J2 only), Aug 2023 - Jul 2026 | 88 -> 74 (-14, -16%); clear, every year | IMS +0.06 pp; SNOTEL water equivalent +0.11 mm; GHCN depth -0.16 mm (J2 only slightly better) | Water: modest change. Skill: negligible. |
 
+## How many observations?
+
+Observation counts are similar across configurations, so they do not explain the differences above. Averaged over Aug 2023 -
+Jul 2026 (domain total, 112,573 tiles; at most one observation per tile per satellite per day), about 21,800 tiles per day
+are assimilated for MODIS Terra only and 21,300 for VIIRS J2 only. Two satellites roughly double that: about 40,100 for
+Terra+Aqua and 42,900 for J1+J2. Counting tiles that have at least one available observation, VIIRS covers about 23,200 tiles
+per day against about 24,900 for MODIS (7% fewer). Terra and Aqua both observe about 60% of the tiles that MODIS covers on a
+given day, which is where the double updates in Figure 2 come from. The J1+J2 count is higher than Terra+Aqua because it counts each satellite
+separately; J1 and J2 are then averaged into one observation per tile, so it is not 43,000 separate updates (source:
+`viirs_transition_report_figures/obs_availability_summary.md`).
+
 ## Figure 1: how much extra water does each configuration add?
 
 ![Net snow water added per year, by configuration](viirs_transition_report_figures/brief_1_water_added.png)
