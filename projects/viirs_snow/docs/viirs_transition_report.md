@@ -6,9 +6,22 @@ Plan: `viirs_transition_plan.md` (design, contrasts, caveats). Detailed results:
 
 **Status of this report:** single member, M36, snow only, 2020-08-01 to 2026-08-01. "Resolvable difference" means the
 decision rule confirmed by amfox on 2026-11-21 (set after the results were seen; see the plan): water-balance flux terms
-(`I_snow`, ET, runoff, peak SWE, RZMC) need |A - B| >= 10% of the DA - OL effect and the same sign in every snow year;
+(`I_snow`, ET, runoff, peak SWE, RZMC) need |A - B| >= 10% of the DA - OL effect of the same term and the same sign in every snow year;
 skill metrics need the same sign in every snow year and a bootstrap CI that excludes 0; residual and storage terms are
 descriptive. Flags: `rule2_*.csv`. Read the caveats at the end first.
+
+**Units and conventions (apply throughout).**
+- Water-balance terms (`I_snow`, ET, runoff, storage, peak SWE) are in kg m-2 (= mm of water) summed over a snow year
+  (1 Aug - 31 Jul), as an area-weighted domain mean over the 46,602 seasonal-snow tiles. RZMC is the difference in
+  year-mean root-zone moisture, in m3 m-3. Increment volumes in the Q3 section (analysis B) are kg m-2 yr-1 per tile.
+- SCF and RMS O-F (observation minus forecast) are fractions (0-1, dimensionless). IMS accuracy is a fraction (0-1): +0.01 is one
+  percentage point. Station RMSE differences are in mm (SNOTEL SWE in mm water equivalent, SNOTEL and GHCN depth in mm of snow depth).
+- "A - B" is first minus second. C0 = DA - OL, C1 = MODIS Terra control - T_to_J2, C2 = MODIS Terra+Aqua control - TA_to_J1J2,
+  C3 = MODIS Terra - MODIS Terra+Aqua, C4 = T_to_J2 - TA_to_J1J2. For RMSE a negative difference means the first term is better;
+  for IMS accuracy a positive difference means the first term is better; for water terms positive means the first term has more.
+- "x% of the DA - OL effect" means the contrast divided by the DA - OL (C0) effect of the same quantity, not a relative
+  change of the quantity itself. Other percentages say what they are a share of (tile-days, an increment, `I_snow`).
+- Square brackets are confidence intervals taken from the detail files (skill: 5-degree block bootstrap, 2.5-97.5%).
 
 ## Design in one paragraph
 
@@ -24,39 +37,40 @@ QC, number of updates per day), not of the sensors alone.
 - **Double increments are a MODIS Terra+Aqua feature.** 51-60% of tile-days with an increment get two (never three) in the
   MODIS Terra+Aqua configuration; 0% in any Terra-only or VIIRS configuration, because J1 and J2 share one window and are
   averaged into one obs per tile. 97% of doubles are in consecutive 3-hourly steps.
-- **The pair mostly reinforces but partly cancels:** 69-75% have the same sign; pair net/abs is 61-64%, so about a third of
-  the absolute adjustment cancels between Terra and Aqua. The second increment is about 10% smaller than the first.
-- **Volume.** Mean annual absolute increment (kg m-2 yr-1, per tile >= 30N): Terra-only about 65-76, Terra+Aqua MODIS
-  about 120-138, `TA_to_J1J2` after the switch 79-85 (a ~35% drop at the switch). The VIIRS configuration is closer to
-  Terra-only in volume than to Terra+Aqua MODIS. Net/abs is 64-71% in all arms; 1.7-3.3% of increments hit the
-  5 kg m-2 cap, so no arm is cap-dominated. B's per-tile totals (about 79-82 kg m-2 per year for Terra+Aqua) are
+- **The pair mostly reinforces but partly cancels:** 69-75% of double tile-days have the same sign; the pair's net/abs
+  (|sum of the two increments| / sum of their absolute values) is 61-64%, so about a third of
+  the absolute adjustment cancels between Terra and Aqua. The second increment is about 10% smaller in absolute size than the first.
+- **Volume.** Mean annual absolute increment, per tile >= 30N: Terra-only about 65-76 kg m-2 yr-1, Terra+Aqua MODIS
+  about 120-138 kg m-2 yr-1, `TA_to_J1J2` after the switch 79-85 kg m-2 yr-1 (a ~35% drop relative to Terra+Aqua MODIS at the switch). The VIIRS configuration is closer to
+  Terra-only in volume than to Terra+Aqua MODIS. Net/abs (|net| / absolute increment, summed) is 64-71% in all arms; 1.7-3.3% of increments (as a share of all increments) hit the
+  5 kg m-2 per-update cap, so no arm is cap-dominated. B's per-tile totals (about 79-82 kg m-2 per year for Terra+Aqua) are
   unweighted means over tiles >= 30N; D's `I_snow` (105-134 kg m-2 per snow year) is area-weighted over the
   seasonal-snow mask. The two agree once weighting and tile set are matched (see `BD_reconcile.md`).
-- **The first update does most of the work:** Aqua RMS O-F (SCF) goes 0.32 (OL) -> 0.244 (Terra assimilated) -> 0.237
+- **The first update does most of the work:** Aqua RMS O-F (SCF, fraction) goes 0.32 (OL) -> 0.244 (Terra assimilated) -> 0.237
   (Terra+Aqua); J1 0.320 -> 0.2725 (J2 only) -> 0.2689 (J1+J2).
-- **Coverage (A):** the VIIRS union covers about 6-7% fewer tiles than MODIS Terra+Aqua; J2 adds about 7% over J1.
+- **Coverage (A):** the VIIRS union covers about 6-7% fewer tiles (relative) than MODIS Terra+Aqua; J2 adds about 7% (relative) more tiles than J1.
 
 ## Q1. Does the MODIS -> VIIRS switch change skill and water balance?
 
 **Skill (analysis C; IMS is not independent of MODIS/VIIRS imagery, so SNOTEL SWE and GHCN depth carry the conclusion).**
-DA beats OL in all three data sets over SY1-6, but the effect is small: IMS accuracy +0.014..+0.016 (OL 90.6% -> DA 92.1-92.3%, after the 2024+ IMS orientation fix), SNOTEL SWE RMSE
--1.0..-1.3 mm (of ~208 mm), GHCN depth RMSE -1.2..-1.9 mm (of ~114 mm); the model has a large low bias at SNOTEL (SWE
-about -134 mm). For the switch (C1, C2) IMS slightly favours VIIRS (MODIS - VIIRS accuracy -0.0026 for both, same sign in SY4-6, CI excludes 0; about 17% of the DA - OL effect; IMS is not independent of the imagery, so this may partly reflect shared inputs). Against SNOTEL SWE the MODIS control is resolvably worse than
-VIIRS only for Terra vs J2 (RMSE +0.39 mm, same sign all three years, CI excludes 0); for T+A vs J1+J2 (+0.26 mm) the CI
-excludes 0 but SY6 reverses, so it is not resolvable. Against GHCN depth both are resolvable (+0.93 / +0.23 mm). SNOTEL depth
-is not resolvable for C1 or C2. These differences are one to two orders of magnitude smaller than the RMSE.
+DA beats OL in all three data sets over SY1-6 (DA - OL, pooled), but the effect is small: IMS accuracy +0.014..+0.016 (fraction, i.e. +1.4 to +1.6 percentage points; OL 90.6% -> DA 92.1-92.3%, after the 2024+ IMS orientation fix), SNOTEL SWE RMSE
+-1.0..-1.3 mm (against an OL RMSE of ~208 mm), GHCN depth RMSE -1.2..-1.9 mm (against ~114 mm); the model has a large low bias at SNOTEL (SWE
+bias about -134 mm). For the switch (C1, C2) IMS slightly favours VIIRS (MODIS - VIIRS accuracy -0.0026 for both, i.e. -0.26 percentage points, same sign in SY4-6, CI excludes 0; about 17% of the DA - OL accuracy gain; IMS is not independent of the imagery, so this may partly reflect shared inputs). Against SNOTEL SWE the MODIS control is resolvably worse than
+VIIRS only for Terra vs J2 (MODIS - VIIRS RMSE +0.39 mm, same sign all three years, CI excludes 0); for T+A vs J1+J2 (+0.26 mm) the CI
+excludes 0 but SY6 reverses, so it is not resolvable. Against GHCN depth both are resolvable (MODIS - VIIRS RMSE +0.93 mm for C1 and +0.23 mm for C2). SNOTEL depth
+is not resolvable for C1 or C2. These RMSE differences (a few tenths of a mm) are one to two orders of magnitude smaller than the RMSE itself (about 114-208 mm).
 
-**Water balance (D, D2).** The differential budget closes (residual about 0.01 kg m-2 against 65-134 kg m-2 of snow
-increment). DA adds substantial water: net snow increment `I_snow` (kg m-2 per snow year, domain mean over 46,602 seasonal-snow
+**Water balance (D, D2).** The differential budget closes (residual about 0.01 kg m-2 per snow year against 65-134 kg m-2 per snow year of snow
+increment). DA adds substantial water: net snow increment `I_snow` (DA - OL, kg m-2 per snow year, domain mean over 46,602 seasonal-snow
 tiles) is 65-81 for Terra-only and 105-134 for Terra+Aqua MODIS. It is partitioned about half to ET and half to runoff
-(Terra+Aqua - OL: 44% ET, 52% runoff, 3% storage; Terra-only - OL: 51% / 46% / 4%), raises peak SWE only by about 1-2 kg
-m-2 and end-of-melt SWE hardly at all, and raises root-zone moisture by about 0.012 (Terra-only) and 0.019 (Terra+Aqua)
+(shares of `I_snow`, Terra+Aqua - OL: 44% ET, 52% runoff, 3% storage; Terra-only - OL: 51% / 46% / 4%), raises peak SWE only by about 1-2 kg
+m-2 and end-of-melt SWE hardly at all (< 0.05 kg m-2), and raises root-zone moisture by about 0.012 (Terra-only) and 0.019 (Terra+Aqua)
 m3 m-3 as a year mean.
 
-- **C1 (Terra vs J2): no resolvable difference** in any flagged water term: `I_snow` -3.2, -1.3, +8.7 across SY4-6 (mean about 2% of the
-  DA effect), sign not consistent; partition fractions unstable; RZMC 0.0004 [-0.0001, 0.0010]. Residual is descriptive only.
-- **C2 (T+A MODIS vs J1+J2): resolvable difference (passes the rule for `I_snow`, ET, runoff, peak SWE and RZMC).** MODIS has more water input: `I_snow` +36
-  (27.7, 31.6, 47.8), runoff +22, ET +11, lower peak SWE (-0.85), RZMC +0.005. The extra goes 63% to runoff and 31% to ET.
+- **C1 (Terra vs J2): no resolvable difference** in any flagged water term: `I_snow` -3.2, -1.3, +8.7 kg m-2 per snow year across SY4-6 (mean about 2% of the
+  DA - OL `I_snow`), sign not consistent; partition fractions unstable; RZMC 0.0004 [-0.0001, 0.0010] m3 m-3. Residual is descriptive only.
+- **C2 (T+A MODIS vs J1+J2): resolvable difference (passes the rule for `I_snow`, ET, runoff, peak SWE and RZMC).** MODIS has more water input (all in kg m-2 per snow year unless noted): `I_snow` +36
+  (SY4, SY5, SY6: 27.7, 31.6, 47.8), runoff +22, ET +11, lower peak SWE (-0.85), RZMC +0.005 m3 m-3. The extra `I_snow` goes 63% to runoff and 31% to ET.
   It grows from SY4 to SY6. About 70% of mask tiles are marked for `I_snow` and runoff on a same-sign-in-3-years criterion
   (no t-test with n = 3); end-of-melt SWE is almost never marked (< 2%).
 - **Reading:** the water-balance difference between the MODIS and VIIRS configurations is driven by the Terra+Aqua
@@ -65,32 +79,32 @@ m3 m-3 as a year mean.
 
 ## Q2. Can we drop to one satellite?
 
-- **MODIS, Terra vs Terra+Aqua (C3, six years, same start; the most reliable estimate).** Terra-only gets about 46 less
-  `I_snow` per snow year (-43.5 to -53.2, same sign every year; about 49% of the mean DA effect in the rule's terms),
-  28.5 less runoff, 16 less ET; the missing Aqua water goes 62% to runoff and 35% to ET. RZMC is lower by 0.0067 [-0.0076,
-  -0.0058], resolvable in every season. About 74% of mask tiles are marked for `I_snow` (same sign in all 6 years and
-  FDR-corrected t-test); end-of-melt SWE almost none. `I_snow`, ET, runoff and RZMC pass the rule; peak SWE does not (+0.16; mean 14% of the reference, below 10% in at least one year). Against independent data Aqua helps slightly
-  (resolvable by the skill rule): SNOTEL SWE RMSE +0.23 mm and GHCN +0.60 mm for Terra-only, but Terra-only is better against SNOTEL depth
-  (-0.53 mm; also resolvable) and IMS is about 0 (-0.0005 [-0.0010, -0.0001], but SY6 is 0.0000 so the same-sign rule is not met; not flagged). So dropping Aqua changes the water budget a lot and the skill very
+- **MODIS, Terra vs Terra+Aqua (C3, six years, same start; the most reliable estimate).** Terra-only gets about 46 kg m-2 less
+  `I_snow` per snow year (-43.5 to -53.2 across SY1-6, same sign every year; about 49% of the mean DA - OL `I_snow` in the rule's terms),
+  28.5 kg m-2 less runoff, 16 kg m-2 less ET (per snow year); the missing Aqua `I_snow` goes 62% to runoff and 35% to ET. RZMC is lower by 0.0067 [-0.0076,
+  -0.0058] m3 m-3, resolvable in every season. About 74% of mask tiles are marked for `I_snow` (same sign in all 6 years and
+  FDR-corrected t-test); end-of-melt SWE almost none. `I_snow`, ET, runoff and RZMC pass the rule; peak SWE does not (+0.16 kg m-2; mean |difference| is 14% of the DA - OL peak-SWE effect, and below 10% in at least one year). Against independent data Aqua helps slightly
+  (resolvable by the skill rule): Terra-only RMSE is higher by 0.23 mm (SNOTEL SWE) and 0.60 mm (GHCN depth), but Terra-only is better against SNOTEL depth
+  (RMSE -0.53 mm; also resolvable) and IMS accuracy is about the same (Terra-only - Terra+Aqua -0.0005 [-0.0010, -0.0001], i.e. -0.05 percentage points, but SY6 is 0.0000 so the same-sign rule is not met; not flagged). So dropping Aqua changes the water budget a lot and the skill very
   little.
-- **VIIRS, J2 vs J1+J2 (C4).** Raw J2-only - J1+J2: `I_snow` about -14 (-14.3, -13.6, -14.1), runoff about -8, same sign
+- **VIIRS, J2 vs J1+J2 (C4).** Raw J2-only - J1+J2: `I_snow` about -14 kg m-2 per snow year (SY4-6: -14.3, -13.6, -14.1), runoff about -8 kg m-2 per snow year, same sign
   in all three years (passes the rule for `I_snow`, ET, runoff, peak SWE, RZMC). As a difference of differences (subtracting the Terra - T+A gap of SY1-3) the sign flips to
-  about +29 to +30, because the pre-switch gap was -43 to -48; the VIIRS second sensor therefore matters much less than
-  Aqua did in MODIS. Skill C4 is inconclusive in substance: the difference of differences has a CI that excludes 0 for GHCN (-0.78 mm [-0.99, -0.60]) (CI-only flag, no per-year signs) but not for IMS (-0.0002 [-0.0007, 0.0003]), but the GHCN baseline has the opposite sign pre and post (+0.62 vs -0.16 mm); in the post window alone the rule flags IMS (-0.0006), SNOTEL SWE (+0.11 mm) and GHCN (-0.16 mm), not SNOTEL depth. Use C3 as the primary constellation estimate.
-- **Partition:** the missing second-sensor water is mostly runoff (C3, C2) and for C4 storage differs (-0.14 of the
-  difference), so interpret C4 partition with care.
+  about +29 to +30 kg m-2 per snow year, because the pre-switch gap (Terra - T+A, SY1-3) was -43 to -48 kg m-2 per snow year; the VIIRS second sensor therefore matters much less than
+  Aqua did in MODIS. Skill C4 is inconclusive in substance: the difference of differences has a CI that excludes 0 for GHCN depth RMSE (-0.78 mm [-0.99, -0.60]) (CI-only flag, no per-year signs) but not for IMS accuracy (-0.0002 [-0.0007, 0.0003], fraction), but the GHCN baseline has the opposite sign pre and post (RMSE +0.62 vs -0.16 mm); in the post window alone the rule flags IMS accuracy (-0.0006), SNOTEL SWE RMSE (+0.11 mm) and GHCN depth RMSE (-0.16 mm), not SNOTEL depth. Use C3 as the primary constellation estimate.
+- **Partition:** the missing second-sensor water is mostly runoff (C3, C2) and for C4 the storage share is -0.14 of the
+  `I_snow` difference (i.e. -14%), so interpret C4 partition with care.
 
 ## Transition behaviour (analysis E) and sensitivities
 
 - **No spin-up at the 2023-08-01 switch.** The VIIRS-arm / MODIS-control ratio of weekly NH absolute increments is the same
   from week 0 in 2023 as in 2024 and 2025; J1/J2 counts and O-F are within the 2024-25 range (except a 25-30%
-  dip in J1 counts in week 8 of 2023, J1 only, caused by a missing input file on 2023-09-30 and a half-size one on 2023-10-01; see E2). The first 8 weeks hold about 1.1-1.2% of the NH SWE integral. **No exclusion
+  dip (relative to normal) in J1 obs counts in week 8 of 2023, J1 only, caused by a missing input file on 2023-09-30 and a half-size one on 2023-10-01; see E2). The first 8 weeks hold about 1.1-1.2% of the NH SWE integral. **No exclusion
   window is needed**; masking 1-28 Aug for C1/C2 is a conservative option (< 0.5% of the integral) and was shown in E2 to be a no-op for skill.
 - **SY1 storage is a real transient, not a restart artefact:** DA - OL storage builds to +18 (T+A) and +11 (Terra) kg m-2
-  in SY1 and plateaus. Excluding SY1 lowers the pooled T+A dStorage from 4.1 to 1.3 but barely changes `I_snow`,
+  in SY1 and plateaus. Excluding SY1 lowers the pooled T+A dStorage from 4.1 to 1.3 kg m-2 per snow year but barely changes `I_snow`,
   runoff or C3.
-- **Input gaps** (days with no obs from an assimilated sensor) lower DA - OL `I_snow` by 1-2% when removed from every
-  arm (C3 -45.98 -> -44.98; C1 1.38 -> 1.91, still not resolvable). Cause: files missing in the `gmao_ops` archive. E2 found more gap days than the 34-day list: J1 2023-09-30 (missing) and 2023-10-01 (half-size), J1 2024-02-04/05, J2 2024-02-27/28, J2 2025-09-18 (half-size). The B/D2 gap-day sensitivities were not re-run with these extra days: they are about 7 of roughly 2,200 days per arm (~0.3%), the original 34 days moved DA - OL `I_snow` by only 1-2%, and the reported effects (C2 about +36, C3 about -46 kg m-2 per snow year) are far larger, so no conclusion is expected to change.
+- **Input gaps** (days with no obs from an assimilated sensor) change DA - OL `I_snow` by 1-2% (relative) when removed from every
+  arm (kg m-2 per snow year: C3 -45.98 -> -44.98; C1 1.38 -> 1.91, still not resolvable). Cause: files missing in the `gmao_ops` archive. E2 found more gap days than the 34-day list: J1 2023-09-30 (missing) and 2023-10-01 (half-size), J1 2024-02-04/05, J2 2024-02-27/28, J2 2025-09-18 (half-size). The B/D2 gap-day sensitivities were not re-run with these extra days: they are about 7 of roughly 2,200 days per arm (~0.3%), the original 34 days moved DA - OL `I_snow` by only 1-2%, and the reported effects (C2 about +36, C3 about -46 kg m-2 per snow year) are far larger, so no conclusion is expected to change.
 
 ## Open points that affect interpretation
 
