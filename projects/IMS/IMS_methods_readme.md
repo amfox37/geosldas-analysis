@@ -206,15 +206,17 @@ The Figure-8-style all-period map panel is written to:
 
 - `/discover/nobackup/projects/land_da/geosldas-analysis/projects/IMS/output/figures_ims_maps_and_tables/ims_all_period_delta_metrics_SMAP_EASEv2_M36_GLOBAL_2000_2024_thr0p50_imsSnowDaysGe10_nh_robinson_2x3.png`
 
+> **2026-11 correction.** The table below replaces earlier values that were computed with the 2024 IMS field stored upside down (the 2024+ 24 km ASCII files start at the lower-left corner; 2000-2023 were top-down). 2024 IMS was flipped (`scripts/flip2024.py`), the 2024 per-cell counts were recomputed and merged (`scripts/merge_counts.py`), and the tables regenerated with `--reuse-cell-counts-nc` (`scripts/regen2.j`). The 10-snow-day mask was rebuilt from the corrected counts (eligible cells 48,721 to 46,076). 2025 and later IMS files must be flipped the same way before use.
+
 The screenshot table values correspond to:
 
 | Metric | OL (95% CI) | DA (95% CI) |
 | --- | --- | --- |
-| accuracy | 0.901 [0.900, 0.902] | 0.912 [0.911, 0.913] |
-| hit_rate | 0.824 [0.822, 0.826] | 0.863 [0.861, 0.864] |
-| miss_rate | 0.176 [0.174, 0.178] | 0.137 [0.136, 0.139] |
-| false_alarm_ratio | 0.116 [0.113, 0.119] | 0.118 [0.116, 0.121] |
-| correct_rejection_rate | 0.942 [0.941, 0.944] | 0.938 [0.937, 0.940] |
+| accuracy | 0.921 [0.920, 0.922] | 0.934 [0.934, 0.935] |
+| hit_rate | 0.825 [0.823, 0.827] | 0.864 [0.862, 0.865] |
+| miss_rate | 0.175 [0.173, 0.177] | 0.136 [0.135, 0.138] |
+| false_alarm_ratio | 0.044 [0.043, 0.045] | 0.045 [0.044, 0.045] |
+| correct_rejection_rate | 0.978 [0.977, 0.978] | 0.976 [0.976, 0.976] |
 
 ## Draft methods text
 

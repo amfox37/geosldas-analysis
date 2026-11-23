@@ -108,6 +108,18 @@ These project areas have local README files with current workflow notes:
 - The Terra-only/Terra+Aqua supplemental comparison uses the Discover rerun
   product with custom scopes `P1_MODIS_Terra_SCF` and
   `P2_MODIS_Terra_Aqua_SCF`.
+- **2024 IMS orientation fix (2026-11).** IMS 24 km arrays from 2024-01-01 are stored
+  bottom-up and had been used unflipped, which labelled land as "sea" and biased
+  2024 skill low. The 2000-2024 counts/table/metadata products used for Fig. 8
+  were regenerated from corrected 2024 data (details, scripts and open items in
+  `projects/IMS/README.md`). Regenerated Fig. 8 and the Section 3.4 numbers
+  (accuracy 0.921 to 0.934, hit rate 0.825 to 0.864, miss rate 0.175 to 0.136,
+  false alarm ratio 0.044 to 0.045, correct rejection rate 0.978 to 0.976, OL to
+  DA) supersede the earlier values. The manuscript embeds
+  `docs/paper_figures/fig08_ims_snow_cover_skill_maps.png`, which was updated;
+  the 2000-2007 Terra/Aqua supplement (S1, S2) is unaffected. Regenerate Fig. 8
+  only from the corrected products (the pre-2026-11-23 flipped copies exist only in
+  a local backup, not in the repo).
 
 ### SNOTEL SWE and snow-depth validation
 
