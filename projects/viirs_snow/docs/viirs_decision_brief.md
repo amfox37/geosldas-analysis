@@ -20,9 +20,9 @@ each for snow skill and for the water balance.
   snow water error by 1.3 mm out of about 208 mm). Every difference between configurations is a fraction of that: VIIRS is
   slightly better than MODIS (+0.26 percentage points of IMS accuracy, +0.2 to +0.4 mm on SNOTEL water equivalent), and a
   second satellite helps by about 0.1 to 0.6 mm on most measures, with two cases going the other way (SNOTEL depth for MODIS, GHCN depth for VIIRS).
-- **So a second MODIS satellite costs a lot of added water for almost no skill; a second VIIRS satellite costs much less.**
-  If the aim is to avoid a big change in the water balance, a single satellite (MODIS Terra or VIIRS J2) or VIIRS J1+J2 keeps
-  it close to the level of a one-sensor run; MODIS Terra+Aqua is the outlier.
+- **A second MODIS satellite adds a lot of snow water for almost no change in skill; a second VIIRS satellite adds much less.**
+  A single satellite (MODIS Terra or VIIRS J2) and VIIRS J1+J2 give similar amounts of added water (74-88 kg m-2 per year);
+  MODIS Terra+Aqua (124) is well above them.
 - **Limits:** one model member, one transition, three snow years for the VIIRS comparisons, and the model is low-biased
   against SNOTEL snow water (about -134 mm), so more added water is not automatically worse. See Caveats.
 
@@ -87,13 +87,14 @@ rows. Every effect here is a small fraction of that improvement, and against sta
 
 ## What to take from this for the decision
 
-- **If the priority is limiting the change to the water balance:** MODIS Terra+Aqua is the configuration that moves it most
-  (about +64% relative to MODIS Terra only). One satellite, or VIIRS with both J1 and J2, stays within about 0-20% of a
-  one-satellite run.
-- **If skill is the priority:** there is no strong case for any of the four. Two satellites give at most a few tenths of a mm
-  or hundredths of a percentage point, and not on every measure.
-- **VIIRS J1+J2 vs VIIRS J2 only** is the cheapest way to get two satellites of coverage (J2 adds about 7% more tiles than J1),
-  at +14 kg m-2 per year.
+- **Water balance:** the configurations differ mainly in how much snow water assimilation adds. MODIS Terra+Aqua adds the
+  most (about +64% relative to MODIS Terra only). One satellite, or VIIRS with both J1 and J2, is within about 0-20% of a
+  one-satellite run. The added water is a result of the configuration, not a good or bad outcome in itself (see Caveats on the
+  model's low bias).
+- **Skill:** there is no strong case for any of the four. Two satellites give at most a few tenths of a mm or hundredths of a
+  percentage point, and not on every measure.
+- **VIIRS J1+J2 vs VIIRS J2 only:** J1 adds about 9% more tiles covered per day (+1,900) and +14 kg m-2 per year of added
+  snow water.
 
 ## Caveats
 
