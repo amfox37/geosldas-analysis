@@ -50,6 +50,14 @@ given day, which is where the double updates in Figure 2 come from. The J1+J2 co
 separately; J1 and J2 are then averaged into one observation per tile, so it is not 43,000 separate updates (source:
 `viirs_transition_report_figures/obs_availability_summary.md`).
 
+**Spatial coverage.** Almost all observations are north of 30N (under 1,200 tiles per day in the southern hemisphere and under 600
+in 0-30N, against 4,000-8,000 per band further north; Aug 2023 - Jul 2025), and the four sensors have the same latitude profile. A second satellite
+mostly adds tiles rather than revisits: J1+J2 covers about 23,200 tiles per day against about 21,300 for J2 alone (+1,900
+tiles, +9%), because J1 sees about 1,900 tiles that J2 misses on a given day (they overlap on about 84% of VIIRS-covered
+tiles). So J1+J2 is better than J2 only in coverage, by a modest amount. For MODIS the gain from Aqua is larger: Terra+Aqua
+covers about 24,900 tiles against about 21,800 for Terra alone (+3,100, +14%). We have not mapped where the added tiles are, so
+we cannot say whether they fall in the regions that matter most for snow water (for example mountain snowpack).
+
 ## Figure 1: how much extra water does each configuration add?
 
 ![Net snow water added per year, by configuration](viirs_transition_report_figures/brief_1_water_added.png)
